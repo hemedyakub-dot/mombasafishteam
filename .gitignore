@@ -1,0 +1,14 @@
+# Secrets — the Notion token belongs in Netlify env vars, never in the repo
+.env
+.env.*
+!.env.example
+
+# Netlify local
+.netlify/
+
+# Dependencies
+node_modules/
+
+# OS noise
+.DS_Store
+Thumbs.db
