@@ -301,44 +301,29 @@ h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01
   </main>
 </div>
 
-<script>
-/* ============================================================
-   ORDER DATA — replace with a live fetch when the backend is wired:
-     const ORDERS = await (await fetch('/.netlify/functions/orders')).json();
-   Never put phone numbers, street addresses, or prices here.
-   This file is public.
-   ============================================================ */
-const ORDERS = [
-  {ord:"NRB-JUL 030",   code:"MFM-4K7QX", name:"Osman",    stage:5, dest:"Nairobi",            items:"Tafi 4kg · Pweza 1kg",                                             date:"31 Jul 2026"},
-  {ord:"NRB-JUL 031",   code:"MFM-9P2MT", name:"Hemed",    stage:5, dest:"Nairobi",            items:"Tafi 7kg",                                                         date:"31 Jul 2026"},
-  {ord:"NRB-JUL-032",   code:"MFM-3H8LR", name:"Customer", stage:-1,dest:"Nairobi",            items:"Tewa 6kg",                                                         date:"31 Jul 2026"},
-  {ord:"NKR-JUL 007",   code:"MFM-6W5ND", name:"Brian",    stage:1, dest:"Nakuru",             items:"Jodari 1kg · Tafi 2kg · Sulisuli 2kg · Dagaa 2kg · Kamba 1kg",     date:"31 Jul 2026"},
-  {ord:"NRB-JUL 033",   code:"MFM-2Y9FK", name:"Elizabeth",stage:1, dest:"Nairobi",            items:"Kibua 4kg · Dagaa 3kg · Tembo 3kg",                                date:"31 Jul 2026"},
-  {ord:"NRB-JUL 034",   code:"MFM-8C4VB", name:"Caroline", stage:5, dest:"Nairobi",            items:"Nguru 4kg",                                                        date:"31 Jul 2026"},
-  {ord:"NRB-JUL 035",   code:"MFM-5T3JZ", name:"Gideon",   stage:5, dest:"Mukurweini, Nyeri",  items:"Jodari 4kg",                                                       date:"31 Jul 2026"},
-  {ord:"KISM-AUG 001A", code:"MFM-7R6GQ", name:"Anwar",    stage:5, dest:"Kisumu",             items:"Kamba 1kg · Dagaa 1kg",                                            date:"1 Aug 2026"},
-  {ord:"ELD-AUG 001B",  code:"MFM-1N8XD", name:"Kauthara", stage:1, dest:"Eldoret",            items:"Kamba 1kg · Dagaa 1kg",                                            date:"1 Aug 2026"},
-  {ord:"ELD-AUG 002",   code:"MFM-4B2WS", name:"Sylvia",   stage:1, dest:"Eldoret",            items:"Jodari 3kg · Kamba 2kg · Changu 1kg",                              date:"1 Aug 2026"},
-  {ord:"CHUKA-AUG 003", code:"MFM-9L5PH", name:"Jotham",   stage:1, dest:"Chuka",              items:"Nguru 3kg · Kibua 1kg · Kamba 2kg",                                date:"1 Aug 2026"},
-  {ord:"NRB-AUG 004",   code:"MFM-3D7KM", name:"Prize",    stage:1, dest:"South C, Nairobi",   items:"Papa 1kg · Kaa · Nguru 4kg · Tafi 3kg · Katashingo 3kg · Kamba jumbo 1kg", date:"1 Aug 2026"},
-  {ord:"NRB-AUG 005",   code:"MFM-6F1ZT", name:"Customer", stage:1, dest:"Westlands, Nairobi", items:"Nguru 2kg · Dagaa 2kg · Katashingo 1kg",                            date:"1 Aug 2026"},
-  {ord:"KERGYA-AUG 006",code:"MFM-2V4CQ", name:"Jonathan", stage:1, dest:"Kerugoya",           items:"Dagaa 2kg",                                                        date:"1 Aug 2026"},
-  {ord:"LIM-AUG 007",   code:"MFM-8J9RN", name:"Anne",     stage:1, dest:"Limuru",             items:"Kamba S3 1kg · Kamba S2 1kg · Jodari 1kg · Tembo 1kg · Pweza 1kg",  date:"2 Aug 2026"},
-  {ord:"NRB-AUG 008",   code:"MFM-5X3BW", name:"Mohammed", stage:1, dest:"South C, Nairobi",   items:"Kibua 5kg",                                                        date:"2 Aug 2026"}
-];
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+/* Live lookup against Supabase. The browser cannot read the orders table —
+   track_order() requires BOTH the order number and the tracking code, and
+   returns only non-sensitive fields. No phone numbers, no prices. */
+const sb = createClient(
+  'https://tcpqbrchpxpshmqprbkv.supabase.co',
+  'sb_publishable_7YLqP3JMq8AFZQl4XF--bw_itOMj1gA'
+);
 
 /* Stage art pulled from the Mombasa Fish Market catalogue */
 const CDN = "https://cdn.shopify.com/s/files/1/0657/2153/2515/files/";
 const STAGES = [
   {sw:"Imethibitishwa", en:"Order confirmed", pic:null},
-  {sw:"Baharini",       en:"At the harbour",  pic:CDN+"WhatsApp_Image_2026-04-18_at_23.14.59.jpg?v=1776561006"},
   {sw:"Imefungwa",      en:"Packed on ice",   pic:CDN+"ETS.jpg?v=1776561005"},
   {sw:"Njiani",         en:"On the road",     pic:null},
-  {sw:"Imefika",        en:"Delivered",       pic:null}
+  {sw:"Imefika",        en:"Arrived",         pic:null}
 ];
 
 const $ = id => document.getElementById(id);
-const tidy = s => s.trim().toUpperCase().replace(/\s+/g,' ');
+/* Compare on letters and numbers only — hyphens, spaces and case never matter */
+const tidy = s => s.toUpperCase().replace(/[^A-Z0-9]/g,'');
 
 function drawChain(stage){
   return STAGES.map((s,i)=>{
@@ -355,28 +340,44 @@ function drawChain(stage){
   }).join('');
 }
 
-function track(){
-  const o = tidy($('ord').value), c = tidy($('code').value);
+async function track(){
+  const o = $('ord').value, c = $('code').value;
   $('result').classList.remove('on');
   $('miss').classList.remove('on');
-  if(!o || !c){ $('miss').classList.add('on'); return; }
+  if(!tidy(o) || !tidy(c)){ showMiss('Enter both your order number and tracking code.'); return; }
 
-  const hit = ORDERS.find(x => tidy(x.ord) === o && tidy(x.code) === c);
-  if(!hit){ $('miss').classList.add('on'); return; }
+  const btn = $('go'); btn.disabled = true; const label = btn.textContent; btn.textContent = 'Checking…';
 
-  $('rOrd').textContent   = hit.ord;
-  $('rName').textContent  = hit.name === 'Customer' ? 'Your order' : `${hit.name}'s order`;
-  $('rItems').textContent = hit.items;
-  $('rDest').textContent  = hit.dest;
-  $('rDate').textContent  = hit.date;
+  let rows, err;
+  try{
+    ({ data: rows, error: err } = await sb.rpc('track_order', { p_order: o, p_code: c }));
+  }catch(e){ err = e; }
+
+  btn.disabled = false; btn.textContent = label;
+
+  if(err){
+    showMiss('Could not reach the tracker just now. Check your connection and try again.');
+    return;
+  }
+  const hit = rows && rows[0];
+  if(!hit){ showMiss(); return; }
+
+  const name = hit.customer_name ? hit.customer_name.split(' ')[0] : null;
+  $('rOrd').textContent   = hit.order_number;
+  $('rName').textContent  = name ? `${name}'s order` : 'Your order';
+  $('rItems').textContent = hit.items || '—';
+  $('rDest').textContent  = hit.destination || '—';
+  $('rDate').textContent  = hit.date_ordered
+    ? new Date(hit.date_ordered + 'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
+    : '—';
 
   const b = $('rBadge');
   if(hit.stage === -1){
     b.className = 'badge void'; b.textContent = 'Imesitishwa';
     $('rChain').innerHTML = '<div class="stage"><div class="rail"><div class="dot"></div></div><div><div class="stage-sw">Imesitishwa</div><div class="stage-en">This order was cancelled</div></div><span></span></div>';
-  } else if(hit.stage >= 5){
+  } else if(hit.stage >= 4){
     b.className = 'badge done'; b.textContent = 'Imefika';
-    $('rChain').innerHTML = drawChain(5);
+    $('rChain').innerHTML = drawChain(4);
   } else {
     b.className = 'badge live'; b.textContent = STAGES[hit.stage-1].sw;
     $('rChain').innerHTML = drawChain(hit.stage);
@@ -385,7 +386,15 @@ function track(){
 
   /* Pre-fill WhatsApp so the customer arrives with their order number attached */
   $('waLink').href = 'https://wa.me/254787668888?text=' +
-    encodeURIComponent(`Hi Mombasafish, I need help with order ${hit.ord}.`);
+    encodeURIComponent(`Hi Mombasafish, I need help with order ${hit.order_number}.`);
+}
+
+function showMiss(msg){
+  const m = $('miss');
+  m.querySelector('strong').textContent = msg ? 'Check again' : 'No order matches those details.';
+  m.querySelector('span').textContent = msg ||
+    'Check the order number and code against your receipt. Both must match exactly.';
+  m.classList.add('on');
 }
 
 $('go').addEventListener('click', track);
