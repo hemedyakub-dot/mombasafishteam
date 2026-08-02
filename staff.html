@@ -21,7 +21,24 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--body);background:var(--abyss);color:var(--sand);min-height:100vh;line-height:1.5;-webkit-font-smoothing:antialiased}
-.wrap{max-width:640px;margin:0 auto;padding:0 16px 80px}
+
+/* Shoreline behind everything. The photo is pale, so the scrim runs heavy —
+   it reads as texture, never competes with the text. */
+.bg{
+  position:fixed;inset:0;z-index:-2;
+  background-image:url('shore.jpg');
+  background-image:-webkit-image-set(url('shore.webp') 1x);
+  background-size:cover;
+  background-position:center;
+}
+.bg::after{
+  content:'';position:fixed;inset:0;
+  background:linear-gradient(160deg,
+    rgba(3,42,46,.87) 0%,
+    rgba(3,42,46,.93) 45%,
+    rgba(5,52,56,.96) 100%);
+}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px 80px;position:relative;z-index:1}
 
 header{padding:26px 0 18px;border-bottom:1px solid var(--faint);margin-bottom:22px}
 .brand{font-family:var(--display);font-size:20px;letter-spacing:-.01em;text-transform:uppercase}
@@ -33,11 +50,11 @@ header{padding:26px 0 18px;border-bottom:1px solid var(--faint);margin-bottom:22
 .link:hover{text-decoration:underline}
 
 /* login */
-.card{background:rgba(14,107,110,.16);border:1px solid var(--faint);border-radius:5px;padding:22px}
+.card{background:rgba(3,42,46,.72);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid var(--faint);border-radius:5px;padding:22px;box-shadow:0 16px 44px rgba(0,0,0,.3)}
 h1{font-family:var(--display);font-size:19px;margin-bottom:6px}
 .lead{color:var(--dim);font-size:14px;margin-bottom:20px}
 label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
-input{width:100%;padding:14px;background:rgba(3,42,46,.6);border:1px solid var(--faint);border-radius:3px;color:var(--sand);font-family:var(--body);font-size:16px;margin-bottom:14px}
+input{width:100%;padding:14px;background:rgba(3,42,46,.78);border:1px solid var(--faint);border-radius:3px;color:var(--sand);font-family:var(--body);font-size:16px;margin-bottom:14px}
 input:focus{outline:none;border-color:var(--foam)}
 .btn{width:100%;padding:15px;background:var(--foam);color:var(--abyss);border:none;border-radius:3px;font-family:var(--display);font-size:13px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
 .btn:hover{background:#96e0d0}
@@ -49,7 +66,7 @@ input:focus{outline:none;border-color:var(--foam)}
 .tab.on{border-color:var(--foam);color:var(--foam);background:rgba(127,212,193,.09)}
 
 /* order rows */
-.order{border:1px solid var(--faint);border-radius:5px;padding:15px;margin-bottom:11px;background:rgba(14,107,110,.10)}
+.order{border:1px solid var(--faint);border-radius:5px;padding:15px;margin-bottom:11px;background:rgba(3,42,46,.70);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
 .order-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px}
 .ono{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--sand)}
 .cust{font-size:14px;color:var(--sand);margin-top:2px}
@@ -79,6 +96,7 @@ input:focus{outline:none;border-color:var(--foam)}
 </style>
 </head>
 <body>
+<div class="bg" role="presentation"></div>
 <div class="wrap">
 
   <header>
