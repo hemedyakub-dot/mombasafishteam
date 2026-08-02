@@ -208,6 +208,17 @@ h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01
   letter-spacing:.13em;text-transform:uppercase;cursor:pointer;
   transition:border-color .18s,color .18s;
 }
+.confirm{
+  margin-top:18px;width:100%;padding:15px;
+  background:var(--foam);border:none;border-radius:3px;color:var(--abyss);
+  font-family:var(--display);font-size:13px;letter-spacing:.05em;
+  cursor:pointer;transition:background .18s,transform .12s;
+}
+.confirm:hover{background:#96e0d0}
+.confirm:active{transform:translateY(1px)}
+.confirm:focus-visible{outline:2px solid var(--sand);outline-offset:3px}
+.confirm:disabled{opacity:.6;cursor:not-allowed}
+.confirm.hidden{display:none}
 .copy:hover{border-color:var(--foam);color:var(--foam)}
 .copy:focus-visible{outline:2px solid var(--foam);outline-offset:2px}
 .copy.ok{border-color:var(--foam);color:var(--foam)}
@@ -289,6 +300,7 @@ h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01
             <div class="row"><dt>Inakwenda · Destination</dt><dd id="rDest"></dd></div>
             <div class="row"><dt>Tarehe · Ordered</dt><dd id="rDate"></dd></div>
           </dl>
+          <button class="confirm hidden" id="confirmBtn" type="button">✓ Nimepokea · I've received it</button>
           <button class="copy" id="copyBtn" type="button">Copy tracking link</button>
         </div>
       </div>
@@ -372,6 +384,11 @@ async function track(){
     : '—';
 
   const b = $('rBadge');
+  const cbtn = $('confirmBtn');
+  cbtn.classList.add('hidden');
+  cbtn.disabled = false;
+  cbtn.textContent = "✓ Nimepokea · I've received it";
+
   if(hit.stage === -1){
     b.className = 'badge void'; b.textContent = 'Imesitishwa';
     $('rChain').innerHTML = '<div class="stage"><div class="rail"><div class="dot"></div></div><div><div class="stage-sw">Imesitishwa</div><div class="stage-en">This order was cancelled</div></div><span></span></div>';
@@ -381,6 +398,8 @@ async function track(){
   } else {
     b.className = 'badge live'; b.textContent = STAGES[hit.stage-1].sw;
     $('rChain').innerHTML = drawChain(hit.stage);
+    /* Only an order actually on the road can be confirmed as received */
+    if(hit.stage === 3) cbtn.classList.remove('hidden');
   }
   $('result').classList.add('on');
 
@@ -399,6 +418,30 @@ function showMiss(msg){
 
 $('go').addEventListener('click', track);
 ['ord','code'].forEach(id => $(id).addEventListener('keydown', e => { if(e.key==='Enter') track(); }));
+
+/* Customer confirms receipt. Two taps, so a stray thumb doesn't close an order. */
+let armed = false;
+$('confirmBtn').addEventListener('click', async () => {
+  const btn = $('confirmBtn');
+  if(!armed){
+    armed = true;
+    btn.textContent = 'Tap again to confirm';
+    setTimeout(()=>{ if(armed){ armed=false; btn.textContent="✓ Nimepokea · I've received it"; } }, 5000);
+    return;
+  }
+  armed = false;
+  btn.disabled = true; btn.textContent = 'Saving…';
+  const { data, error } = await sb.rpc('confirm_receipt', {
+    p_order: $('ord').value, p_code: $('code').value
+  });
+  if(error || !data || !data.length){
+    btn.disabled = false;
+    btn.textContent = 'Could not save — try again';
+    return;
+  }
+  btn.textContent = 'Asante! Marked as received';
+  setTimeout(track, 900);
+});
 
 /* Copy a ready-to-send deep link for the order on screen */
 $('copyBtn').addEventListener('click', async () => {
