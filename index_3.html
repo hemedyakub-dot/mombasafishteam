@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mombasafish iSeafood Hub · Track your order</title>
+<meta name="description" content="Track your Mombasafish order from the Indian Ocean to your door. Quality. Delivery. Freshness. Traceable to the source.">
+
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#032A2E">
+
+<!-- Absolute URLs required: WhatsApp and social crawlers ignore relative paths -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Mombasafish iSeafood Hub">
+<meta property="og:url" content="https://mombasafishteam.netlify.app/">
+<meta property="og:title" content="Mombasafish iSeafood Hub — Track your order">
+<meta property="og:description" content="Quality. Delivery. Freshness. Traceable to the source.">
+<meta property="og:image" content="https://mombasafishteam.netlify.app/hero.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="800">
+<meta property="og:image:alt" content="A fisherman landing a tuna at sunrise on the Indian Ocean">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Mombasafish iSeafood Hub — Track your order">
+<meta name="twitter:description" content="Quality. Delivery. Freshness. Traceable to the source.">
+<meta name="twitter:image" content="https://mombasafishteam.netlify.app/hero.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.shopify.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --abyss:#032A2E;
+  --deep:#07474C;
+  --shallow:#0E6B6E;
+  --foam:#7FD4C1;
+  --catch:#FFB84D;
+  --coral:#FF6B5A;
+  --sand:#F2EDE3;
+  --sand-dim:rgba(242,237,227,.62);
+  --sand-faint:rgba(242,237,227,.24);
+  --display:'Archivo Black',system-ui,sans-serif;
+  --body:'Inter',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:var(--body);background:var(--abyss);color:var(--sand);
+  min-height:100vh;line-height:1.55;-webkit-font-smoothing:antialiased;
+}
+
+/* ---------- full-page background ---------- */
+.bg{
+  position:fixed;inset:0;z-index:-2;
+  background-image:url('hero.jpg');
+  background-image:-webkit-image-set(url('hero.webp') 1x);
+  background-size:cover;
+  background-position:center 38%;
+  background-repeat:no-repeat;
+}
+/* Scrim: sunset stays open at the top, deepens so the tracker reads below */
+.bg::after{
+  content:'';position:fixed;inset:0;
+  background:linear-gradient(180deg,
+    rgba(3,42,46,.12) 0%,
+    rgba(3,42,46,.34) 30%,
+    rgba(3,42,46,.80) 58%,
+    rgba(3,42,46,.93) 78%,
+    rgba(3,42,46,.96) 100%);
+}
+.wrap{max-width:680px;margin:0 auto;padding:0 20px 60px;position:relative;z-index:1}
+
+/* ---------- hero ---------- */
+.hero{
+  position:relative;
+  min-height:340px;
+  display:flex;align-items:flex-end;
+  margin-bottom:34px;
+  z-index:1;
+}
+.hero-in{position:relative;z-index:2;width:100%;max-width:680px;margin:0 auto;padding:0 20px 28px}
+.brand{
+  font-family:var(--display);
+  font-size:clamp(28px,8vw,42px);line-height:1;
+  letter-spacing:-.025em;text-transform:uppercase;
+  text-shadow:0 2px 22px rgba(3,42,46,.8);
+}
+.brand em{font-style:normal;color:var(--foam);display:block}
+.motto{
+  display:flex;flex-wrap:wrap;align-items:center;gap:0 9px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.15em;
+  text-transform:uppercase;color:rgba(242,237,227,.82);margin-top:13px;
+  text-shadow:0 1px 12px rgba(3,42,46,.9);line-height:1.9;
+}
+.motto i{font-style:normal;color:rgba(242,237,227,.38)}
+/* The last claim is what this page actually delivers — let it carry the accent */
+.motto span:last-of-type{color:var(--foam)}
+
+/* ---------- lookup ---------- */
+h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01em}
+.h1-sw{
+  font-family:var(--mono);font-size:11px;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--foam);margin-bottom:6px;
+}
+.lead{color:var(--sand-dim);font-size:15px;margin:9px 0 26px;max-width:47ch}
+
+.field{margin-bottom:15px}
+.field label{
+  display:block;font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--sand-dim);margin-bottom:7px;
+}
+.field input{
+  width:100%;padding:15px 16px;background:rgba(3,42,46,.62);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  border:1px solid var(--sand-faint);border-radius:3px;color:var(--sand);
+  font-family:var(--mono);font-size:16px;letter-spacing:.05em;text-transform:uppercase;
+  transition:border-color .18s,background .18s;
+}
+.field input::placeholder{color:rgba(242,237,227,.32);letter-spacing:.03em}
+.field input:focus{outline:none;border-color:var(--foam);background:rgba(14,107,110,.5)}
+.field input:focus-visible{outline:2px solid var(--foam);outline-offset:2px}
+.go{
+  width:100%;margin-top:9px;padding:16px;background:var(--foam);color:var(--abyss);
+  border:none;border-radius:3px;font-family:var(--display);font-size:14px;
+  letter-spacing:.06em;text-transform:uppercase;cursor:pointer;
+  transition:background .18s,transform .12s;
+}
+.go:hover{background:#96e0d0}
+.go:active{transform:translateY(1px)}
+.go:focus-visible{outline:2px solid var(--sand);outline-offset:3px}
+
+/* ---------- result ---------- */
+.result{margin-top:36px;display:none}
+.result.on{display:block;animation:rise .4s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.ticket{
+  border:1px solid var(--sand-faint);border-radius:5px;overflow:hidden;
+  background:rgba(3,42,46,.78);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  box-shadow:0 18px 50px rgba(0,0,0,.35);
+}
+.ticket-top{
+  padding:22px;background:linear-gradient(180deg,rgba(14,107,110,.5),rgba(14,107,110,.14));
+  border-bottom:1px solid var(--sand-faint);
+}
+.ord-no{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--sand-dim)}
+.ord-name{font-family:var(--display);font-size:clamp(19px,5vw,24px);margin:6px 0 14px;letter-spacing:-.01em}
+.badge{
+  display:inline-block;padding:6px 13px;border-radius:100px;font-family:var(--mono);
+  font-size:11px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;
+}
+.badge.live{background:var(--catch);color:var(--abyss)}
+.badge.done{background:var(--foam);color:var(--abyss)}
+.badge.void{background:var(--coral);color:#fff}
+
+/* ---------- cold chain ---------- */
+.chain{padding:26px 22px 10px}
+.chain-hd{
+  font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--sand-dim);margin-bottom:19px;
+}
+.stage{display:grid;grid-template-columns:22px 1fr auto;gap:15px;padding-bottom:22px;position:relative;align-items:start}
+.stage:last-child{padding-bottom:6px}
+.rail{position:relative;display:flex;justify-content:center}
+.dot{
+  width:12px;height:12px;border-radius:50%;background:transparent;
+  border:2px solid var(--sand-faint);margin-top:5px;z-index:2;
+  transition:background .3s,border-color .3s;
+}
+.stage:not(:last-child) .rail::after{
+  content:'';position:absolute;top:19px;bottom:-22px;width:2px;
+  background:var(--sand-faint);transition:background .3s;
+}
+.stage.past .dot{background:var(--foam);border-color:var(--foam)}
+.stage.past .rail::after{background:var(--foam)}
+.stage.now .dot{
+  background:var(--catch);border-color:var(--catch);
+  box-shadow:0 0 0 4px rgba(255,184,77,.22);animation:beat 2.1s ease-in-out infinite;
+}
+@keyframes beat{0%,100%{box-shadow:0 0 0 4px rgba(255,184,77,.22)}50%{box-shadow:0 0 0 9px rgba(255,184,77,.05)}}
+.stage-sw{font-size:15px;font-weight:600;color:var(--sand-dim);transition:color .3s}
+.stage-en{
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:rgba(242,237,227,.32);margin-top:3px;
+}
+.stage.past .stage-sw,.stage.now .stage-sw{color:var(--sand)}
+.stage.now .stage-sw{color:var(--catch)}
+.stage.now .stage-en{color:rgba(255,184,77,.72)}
+.stage-pic{
+  width:42px;height:42px;border-radius:3px;object-fit:cover;
+  opacity:0;transition:opacity .35s;border:1px solid var(--sand-faint);
+}
+.stage.now .stage-pic,.stage.past .stage-pic{opacity:.9}
+
+/* ---------- details ---------- */
+.detail{border-top:1px solid var(--sand-faint);padding:20px 22px}
+.row{display:flex;justify-content:space-between;gap:20px;padding:7px 0;font-size:14px}
+.row dt{
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--sand-dim);flex-shrink:0;padding-top:2px;
+}
+.row dd{text-align:right;line-height:1.6}
+.copy{
+  margin-top:16px;width:100%;padding:11px;
+  background:transparent;border:1px solid var(--sand-faint);border-radius:3px;
+  color:var(--sand-dim);font-family:var(--mono);font-size:11px;
+  letter-spacing:.13em;text-transform:uppercase;cursor:pointer;
+  transition:border-color .18s,color .18s;
+}
+.copy:hover{border-color:var(--foam);color:var(--foam)}
+.copy:focus-visible{outline:2px solid var(--foam);outline-offset:2px}
+.copy.ok{border-color:var(--foam);color:var(--foam)}
+
+/* ---------- miss ---------- */
+.miss{
+  margin-top:24px;padding:18px 20px;border:1px solid var(--coral);border-left-width:3px;
+  border-radius:3px;background:rgba(60,20,18,.72);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);display:none;
+}
+.miss.on{display:block}
+.miss strong{display:block;margin-bottom:5px;font-size:15px}
+.miss span{font-size:14px;color:var(--sand-dim)}
+
+/* ---------- footer ---------- */
+.foot{margin-top:42px;padding-top:22px;border-top:1px solid var(--sand-faint);font-size:13px;color:var(--sand-dim)}
+.foot a{color:var(--foam);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .18s}
+.foot a:hover{border-bottom-color:var(--foam)}
+
+@media (min-width:560px){
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .form-grid .field{margin-bottom:0}
+  .go{width:auto;padding:16px 40px;margin-top:20px}
+  .hero{min-height:440px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="bg" role="img" aria-label="A fisherman landing a tuna at sunrise on the Indian Ocean"></div>
+
+<div class="hero">
+  <div class="hero-in">
+    <div class="brand">Mombasafish<em>iSeafood Hub</em></div>
+    <div class="motto">
+      <span>Quality</span><i>·</i><span>Delivery</span><i>·</i><span>Freshness</span><i>·</i><span>Traceable to the source</span>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <main>
+    <div class="h1-sw">Fuatilia oda yako</div>
+    <h1>Track your order</h1>
+    <p class="lead">Enter the order number and tracking code from your receipt to see where your catch has reached.</p>
+
+    <div class="form-grid">
+      <div class="field">
+        <label for="ord">Order number</label>
+        <input id="ord" type="text" placeholder="NRB-AUG 008" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="code">Tracking code</label>
+        <input id="code" type="text" placeholder="MFM-XXXXX" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+    <button class="go" id="go">Track order</button>
+
+    <div class="miss" id="miss" role="alert" aria-live="polite">
+      <strong>No order matches those details.</strong>
+      <span>Check the order number and code against your receipt. Both must match exactly.</span>
+    </div>
+
+    <section class="result" id="result" aria-live="polite">
+      <div class="ticket">
+        <div class="ticket-top">
+          <div class="ord-no" id="rOrd"></div>
+          <div class="ord-name" id="rName"></div>
+          <span class="badge" id="rBadge"></span>
+        </div>
+        <div class="chain">
+          <div class="chain-hd">Safari ya samaki · Cold chain</div>
+          <div id="rChain"></div>
+        </div>
+        <div class="detail">
+          <dl>
+            <div class="row"><dt>Mzigo · Your catch</dt><dd id="rItems"></dd></div>
+            <div class="row"><dt>Inakwenda · Destination</dt><dd id="rDest"></dd></div>
+            <div class="row"><dt>Tarehe · Ordered</dt><dd id="rDate"></dd></div>
+          </dl>
+          <button class="copy" id="copyBtn" type="button">Copy tracking link</button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="foot">
+      Kuna shida? Message us on WhatsApp with your order number —
+      <a href="https://wa.me/254787668888" id="waLink">chat with us</a>.
+    </footer>
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   ORDER DATA — replace with a live fetch when the backend is wired:
+     const ORDERS = await (await fetch('/.netlify/functions/orders')).json();
+   Never put phone numbers, street addresses, or prices here.
+   This file is public.
+   ============================================================ */
+const ORDERS = [
+  {ord:"NRB-JUL 030",   code:"MFM-4K7QX", name:"Osman",    stage:4, dest:"Nairobi",            items:"Tafi 4kg · Pweza 1kg",                                             date:"31 Jul 2026"},
+  {ord:"NRB-JUL 031",   code:"MFM-9P2MT", name:"Hemed",    stage:4, dest:"Nairobi",            items:"Tafi 7kg",                                                         date:"31 Jul 2026"},
+  {ord:"NRB-JUL-032",   code:"MFM-3H8LR", name:"Customer", stage:-1,dest:"Nairobi",            items:"Tewa 6kg",                                                         date:"31 Jul 2026"},
+  {ord:"NKR-JUL 007",   code:"MFM-6W5ND", name:"Brian",    stage:1, dest:"Nakuru",             items:"Jodari 1kg · Tafi 2kg · Sulisuli 2kg · Dagaa 2kg · Kamba 1kg",     date:"31 Jul 2026"},
+  {ord:"NRB-JUL 033",   code:"MFM-2Y9FK", name:"Elizabeth",stage:1, dest:"Nairobi",            items:"Kibua 4kg · Dagaa 3kg · Tembo 3kg",                                date:"31 Jul 2026"},
+  {ord:"NRB-JUL 034",   code:"MFM-8C4VB", name:"Caroline", stage:4, dest:"Nairobi",            items:"Nguru 4kg",                                                        date:"31 Jul 2026"},
+  {ord:"NRB-JUL 035",   code:"MFM-5T3JZ", name:"Gideon",   stage:4, dest:"Mukurweini, Nyeri",  items:"Jodari 4kg",                                                       date:"31 Jul 2026"},
+  {ord:"KISM-AUG 001A", code:"MFM-7R6GQ", name:"Anwar",    stage:4, dest:"Kisumu",             items:"Kamba 1kg · Dagaa 1kg",                                            date:"1 Aug 2026"},
+  {ord:"ELD-AUG 001B",  code:"MFM-1N8XD", name:"Kauthara", stage:1, dest:"Eldoret",            items:"Kamba 1kg · Dagaa 1kg",                                            date:"1 Aug 2026"},
+  {ord:"ELD-AUG 002",   code:"MFM-4B2WS", name:"Sylvia",   stage:1, dest:"Eldoret",            items:"Jodari 3kg · Kamba 2kg · Changu 1kg",                              date:"1 Aug 2026"},
+  {ord:"CHUKA-AUG 003", code:"MFM-9L5PH", name:"Jotham",   stage:1, dest:"Chuka",              items:"Nguru 3kg · Kibua 1kg · Kamba 2kg",                                date:"1 Aug 2026"},
+  {ord:"NRB-AUG 004",   code:"MFM-3D7KM", name:"Prize",    stage:1, dest:"South C, Nairobi",   items:"Papa 1kg · Kaa · Nguru 4kg · Tafi 3kg · Katashingo 3kg · Kamba jumbo 1kg", date:"1 Aug 2026"},
+  {ord:"NRB-AUG 005",   code:"MFM-6F1ZT", name:"Customer", stage:1, dest:"Westlands, Nairobi", items:"Nguru 2kg · Dagaa 2kg · Katashingo 1kg",                            date:"1 Aug 2026"},
+  {ord:"KERGYA-AUG 006",code:"MFM-2V4CQ", name:"Jonathan", stage:1, dest:"Kerugoya",           items:"Dagaa 2kg",                                                        date:"1 Aug 2026"},
+  {ord:"LIM-AUG 007",   code:"MFM-8J9RN", name:"Anne",     stage:1, dest:"Limuru",             items:"Kamba S3 1kg · Kamba S2 1kg · Jodari 1kg · Tembo 1kg · Pweza 1kg",  date:"2 Aug 2026"},
+  {ord:"NRB-AUG 008",   code:"MFM-5X3BW", name:"Mohammed", stage:1, dest:"South C, Nairobi",   items:"Kibua 5kg",                                                        date:"2 Aug 2026"}
+];
+
+/* Stage art pulled from the Mombasa Fish Market catalogue */
+const CDN = "https://cdn.shopify.com/s/files/1/0657/2153/2515/files/";
+const STAGES = [
+  {sw:"Imethibitishwa", en:"Order confirmed", pic:null},
+  {sw:"Baharini",       en:"At the harbour",  pic:CDN+"WhatsApp_Image_2026-04-18_at_23.14.59.jpg?v=1776561006"},
+  {sw:"Imefungwa",      en:"Packed on ice",   pic:CDN+"ETS.jpg?v=1776561005"},
+  {sw:"Njiani",         en:"On the road",     pic:null},
+  {sw:"Imefika",        en:"Delivered",       pic:null}
+];
+
+const $ = id => document.getElementById(id);
+/* Compare on letters and numbers only — hyphens, spaces and case never matter */
+const tidy = s => s.toUpperCase().replace(/[^A-Z0-9]/g,'');
+
+function drawChain(stage){
+  return STAGES.map((s,i)=>{
+    const n = i + 1;
+    const cls = n < stage ? 'past' : n === stage ? 'now' : '';
+    const pic = s.pic && n <= stage
+      ? `<img class="stage-pic" src="${s.pic}" alt="" loading="lazy" onerror="this.remove()">`
+      : `<span></span>`;
+    return `<div class="stage ${cls}">
+      <div class="rail"><div class="dot"></div></div>
+      <div><div class="stage-sw">${s.sw}</div><div class="stage-en">${s.en}</div></div>
+      ${pic}
+    </div>`;
+  }).join('');
+}
+
+function track(){
+  const o = tidy($('ord').value), c = tidy($('code').value);
+  $('result').classList.remove('on');
+  $('miss').classList.remove('on');
+  if(!o || !c){ $('miss').classList.add('on'); return; }
+
+  const hit = ORDERS.find(x => tidy(x.ord) === o && tidy(x.code) === c);
+  if(!hit){ $('miss').classList.add('on'); return; }
+
+  $('rOrd').textContent   = hit.ord;
+  $('rName').textContent  = hit.name === 'Customer' ? 'Your order' : `${hit.name}'s order`;
+  $('rItems').textContent = hit.items;
+  $('rDest').textContent  = hit.dest;
+  $('rDate').textContent  = hit.date;
+
+  const b = $('rBadge');
+  if(hit.stage === -1){
+    b.className = 'badge void'; b.textContent = 'Imesitishwa';
+    $('rChain').innerHTML = '<div class="stage"><div class="rail"><div class="dot"></div></div><div><div class="stage-sw">Imesitishwa</div><div class="stage-en">This order was cancelled</div></div><span></span></div>';
+  } else if(hit.stage >= 5){
+    b.className = 'badge done'; b.textContent = 'Imefika';
+    $('rChain').innerHTML = drawChain(5);
+  } else {
+    b.className = 'badge live'; b.textContent = STAGES[hit.stage-1].sw;
+    $('rChain').innerHTML = drawChain(hit.stage);
+  }
+  $('result').classList.add('on');
+
+  /* Pre-fill WhatsApp so the customer arrives with their order number attached */
+  $('waLink').href = 'https://wa.me/254787668888?text=' +
+    encodeURIComponent(`Hi Mombasafish, I need help with order ${hit.ord}.`);
+}
+
+$('go').addEventListener('click', track);
+['ord','code'].forEach(id => $(id).addEventListener('keydown', e => { if(e.key==='Enter') track(); }));
+
+/* Copy a ready-to-send deep link for the order on screen */
+$('copyBtn').addEventListener('click', async () => {
+  const link = `${location.origin}${location.pathname}?order=${encodeURIComponent($('rOrd').textContent)}&code=${encodeURIComponent(tidy($('code').value))}`;
+  const btn = $('copyBtn');
+  try{
+    await navigator.clipboard.writeText(link);
+  }catch{
+    const t = document.createElement('textarea');
+    t.value = link; t.style.position='fixed'; t.style.opacity='0';
+    document.body.appendChild(t); t.select();
+    document.execCommand('copy'); t.remove();
+  }
+  btn.textContent = 'Link copied';
+  btn.classList.add('ok');
+  setTimeout(()=>{ btn.textContent='Copy tracking link'; btn.classList.remove('ok'); }, 2200);
+});
+
+const q = new URLSearchParams(location.search);
+if(q.get('order') && q.get('code')){
+  $('ord').value = q.get('order'); $('code').value = q.get('code'); track();
+}
+</script>
+</body>
+</html>
