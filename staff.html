@@ -92,6 +92,28 @@ input:focus{outline:none;border-color:var(--foam)}
 .msg.ok{background:rgba(127,212,193,.12);border:1px solid var(--foam);border-left-width:3px;color:var(--foam)}
 .empty{text-align:center;padding:46px 20px;color:var(--dim);font-size:14px}
 .hidden{display:none}
+
+/* delivery type marker on each order */
+.dtype{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;
+  padding:3px 7px;border-radius:2px;margin-left:8px;vertical-align:middle}
+.d-mombasa{background:rgba(255,184,77,.20);color:var(--catch)}
+.d-upcountry{background:rgba(127,212,193,.16);color:var(--foam)}
+.d-pickup{background:rgba(242,237,227,.14);color:var(--dim)}
+
+/* dispatch sheet */
+.sheet{position:fixed;inset:0;background:rgba(3,42,46,.86);-webkit-backdrop-filter:blur(6px);
+  backdrop-filter:blur(6px);z-index:50;display:none;align-items:flex-end;justify-content:center}
+.sheet.on{display:flex}
+.sheet-in{width:100%;max-width:640px;background:#06383D;border:1px solid var(--faint);
+  border-radius:8px 8px 0 0;padding:22px 18px 28px;max-height:88vh;overflow-y:auto}
+.sheet h2{font-family:var(--display);font-size:17px;margin-bottom:3px}
+.sheet .for{font-family:var(--mono);font-size:11px;letter-spacing:.1em;color:var(--foam);margin-bottom:16px}
+.sheet .opt{font-size:12px;color:var(--dim);margin:-8px 0 14px}
+.sheet-acts{display:flex;gap:9px;margin-top:6px}
+.sheet-acts .btn{flex:2}
+.ghost{flex:1;padding:15px;background:transparent;border:1px solid var(--faint);border-radius:3px;
+  color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+.ghost:hover{border-color:var(--sand);color:var(--sand)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -133,6 +155,33 @@ input:focus{outline:none;border-color:var(--foam)}
     <div id="list"></div>
   </section>
 
+</div>
+
+<!-- dispatch sheet -->
+<div class="sheet" id="sheet">
+  <div class="sheet-in">
+    <h2>Dispatch order</h2>
+    <div class="for" id="sheetFor"></div>
+
+    <div id="riderFields">
+      <label for="rn">Rider / driver name</label>
+      <input id="rn" type="text" autocomplete="off">
+      <label for="rp">Rider phone</label>
+      <input id="rp" type="tel" autocomplete="off" inputmode="tel">
+      <p class="opt">Optional. Leave blank if your own staff is delivering — the customer just sees the status.</p>
+    </div>
+
+    <div id="etaWrap">
+      <label for="eta">Note for the customer</label>
+      <input id="eta" type="text" autocomplete="off">
+      <p class="opt" id="etaHint"></p>
+    </div>
+
+    <div class="sheet-acts">
+      <button class="ghost" id="sheetCancel">Cancel</button>
+      <button class="btn" id="sheetGo">Dispatch</button>
+    </div>
+  </div>
 </div>
 
 <script type="module">
@@ -182,12 +231,14 @@ async function boot(){
 
 async function load(){
   const { data, error } = await sb.from('mfm_orders')
-    .select('order_number, customer_name, destination, items, stage, dispatched_at, courier')
+    .select('order_number, customer_name, destination, items, stage, dispatched_at, delivery_type, rider_name, rider_phone, eta_note')
     .order('date_ordered', { ascending:true });
   if(error){ note(error.message,'err'); return; }
   orders = data || [];
   render();
 }
+
+const DTYPE = { mombasa:'Mombasa', upcountry:'Upcountry', pickup:'Pickup' };
 
 function render(){
   const sets = { todo:o=>o.stage===1||o.stage===2, road:o=>o.stage===3, done:o=>o.stage===4||o.stage===-1 };
@@ -196,21 +247,25 @@ function render(){
 
   $('list').innerHTML = rows.map(o=>{
     const [label, cls] = STAGE[o.stage] || ['—','p1'];
+    const dt = o.delivery_type || 'upcountry';
     let acts = '';
     if(o.stage===1) acts = `<button class="act" data-s="2" data-o="${o.order_number}">Mark packed</button>
-                            <button class="act go" data-s="3" data-o="${o.order_number}">Dispatch →</button>`;
-    else if(o.stage===2) acts = `<button class="act go" data-s="3" data-o="${o.order_number}">Dispatch →</button>`;
-    else if(o.stage===3) acts = `<button class="act" data-s="4" data-o="${o.order_number}">Mark arrived</button>`;
+                            <button class="act go" data-d="${o.order_number}">Dispatch →</button>`;
+    else if(o.stage===2) acts = `<button class="act go" data-d="${o.order_number}">Dispatch →</button>`;
+    else if(o.stage===3) acts = `<button class="act" data-s="4" data-o="${o.order_number}">Mark ${dt==='pickup'?'collected':'arrived'}</button>`;
+    const rider = (o.stage>=3 && (o.rider_name||o.rider_phone))
+      ? `<div class="items">🛵 ${o.rider_name||'Rider'}${o.rider_phone?' · '+o.rider_phone:''}</div>` : '';
     return `<div class="order">
       <div class="order-top">
         <div>
-          <div class="ono">${o.order_number}</div>
+          <div class="ono">${o.order_number}<span class="dtype d-${dt}">${DTYPE[dt]}</span></div>
           <div class="cust">${o.customer_name || 'Customer'}</div>
           <div class="dest">${o.destination || ''}</div>
         </div>
         <span class="pill ${cls}">${label}</span>
       </div>
       ${o.items ? `<div class="items">${o.items}</div>` : ''}
+      ${rider}
       ${acts ? `<div class="acts">${acts}</div>` : ''}
     </div>`;
   }).join('');
@@ -224,6 +279,58 @@ async function setStage(orderNo, stage, btn){
   await load();
 }
 
+/* ---- dispatch sheet ---- */
+let pending = null;
+
+function openSheet(orderNo){
+  const o = orders.find(x => x.order_number === orderNo);
+  if(!o) return;
+  pending = o;
+  const dt = o.delivery_type || 'upcountry';
+
+  $('sheetFor').textContent = `${o.order_number} · ${o.customer_name || 'Customer'} · ${o.destination || ''}`;
+  $('rn').value = o.rider_name || '';
+  $('rp').value = o.rider_phone || '';
+  $('eta').value = o.eta_note || '';
+
+  // Rider details only make sense when something is actually being carried
+  $('riderFields').classList.toggle('hidden', dt === 'pickup');
+
+  if(dt === 'mombasa'){
+    $('eta').placeholder = 'e.g. 30–60 minutes';
+    $('etaHint').textContent = 'Shown to the customer while the rider is on the way.';
+  } else if(dt === 'pickup'){
+    $('eta').placeholder = 'e.g. Ready at the shop until 6pm';
+    $('etaHint').textContent = 'Tell them where and when to collect.';
+  } else {
+    $('eta').placeholder = 'e.g. Smart Coach, arriving tomorrow morning';
+    $('etaHint').textContent = 'Which bus or courier, and when to expect it.';
+  }
+  $('sheet').classList.add('on');
+}
+
+function closeSheet(){ $('sheet').classList.remove('on'); pending = null; }
+
+async function doDispatch(){
+  if(!pending) return;
+  const btn = $('sheetGo'); btn.disabled = true; btn.textContent = 'Dispatching…';
+  const { error } = await sb.rpc('dispatch_order', {
+    p_order: pending.order_number,
+    p_rider_name: $('rn').value,
+    p_rider_phone: $('rp').value,
+    p_eta: $('eta').value
+  });
+  btn.disabled = false; btn.textContent = 'Dispatch';
+  if(error){ note(error.message,'err'); return; }
+  note(`${pending.order_number} dispatched. The customer's link is live.`);
+  closeSheet();
+  await load();
+}
+
+$('sheetGo').addEventListener('click', doDispatch);
+$('sheetCancel').addEventListener('click', closeSheet);
+$('sheet').addEventListener('click', e => { if(e.target.id === 'sheet') closeSheet(); });
+
 $('in').addEventListener('click', signIn);
 $('pw').addEventListener('keydown', e=>{ if(e.key==='Enter') signIn(); });
 $('out').addEventListener('click', async ()=>{ await sb.auth.signOut(); location.reload(); });
@@ -234,8 +341,10 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>{
 }));
 
 $('list').addEventListener('click', e=>{
+  const d = e.target.closest('[data-d]');
+  if(d){ openSheet(d.dataset.d); return; }
   const b = e.target.closest('.act');
-  if(b) setStage(b.dataset.o, Number(b.dataset.s), b);
+  if(b && b.dataset.s) setStage(b.dataset.o, Number(b.dataset.s), b);
 });
 
 boot();

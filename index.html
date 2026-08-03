@@ -194,6 +194,22 @@ h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01
 .stage.now .stage-pic,.stage.past .stage-pic{opacity:.9}
 
 /* ---------- details ---------- */
+#rExtra{margin:4px 0 6px}
+#rExtra.hidden{display:none}
+.eta{
+  background:rgba(255,184,77,.13);border-left:3px solid var(--catch);
+  padding:11px 13px;border-radius:0 3px 3px 0;font-size:14px;color:var(--sand);margin-bottom:10px;
+}
+.rider{
+  display:flex;justify-content:space-between;align-items:center;gap:14px;
+  padding:11px 13px;border:1px solid var(--sand-faint);border-radius:3px;
+}
+.rider-l{
+  font-family:var(--mono);font-size:10px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--sand-dim);
+}
+.rider-v{font-size:14px;text-align:right}
+.rider-v a{color:var(--foam);text-decoration:none;border-bottom:1px solid rgba(127,212,193,.4)}
 .detail{border-top:1px solid var(--sand-faint);padding:20px 22px}
 .row{display:flex;justify-content:space-between;gap:20px;padding:7px 0;font-size:14px}
 .row dt{
@@ -293,6 +309,7 @@ h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01
         <div class="chain">
           <div class="chain-hd">Safari ya samaki · Cold chain</div>
           <div id="rChain"></div>
+          <div id="rExtra" class="hidden"></div>
         </div>
         <div class="detail">
           <dl>
@@ -326,12 +343,28 @@ const sb = createClient(
 
 /* Stage art pulled from the Mombasa Fish Market catalogue */
 const CDN = "https://cdn.shopify.com/s/files/1/0657/2153/2515/files/";
-const STAGES = [
-  {sw:"Imethibitishwa", en:"Order confirmed", pic:null},
-  {sw:"Imefungwa",      en:"Packed on ice",   pic:CDN+"ETS.jpg?v=1776561005"},
-  {sw:"Njiani",         en:"On the road",     pic:null},
-  {sw:"Imefika",        en:"Arrived",         pic:null}
-];
+/* Stage wording depends on how the order actually travels */
+const CHAINS = {
+  upcountry: [
+    {sw:"Imethibitishwa", en:"Order confirmed", pic:null},
+    {sw:"Imefungwa",      en:"Packed on ice",   pic:CDN+"ETS.jpg?v=1776561005"},
+    {sw:"Njiani",         en:"On the road",     pic:null},
+    {sw:"Imefika",        en:"Arrived",         pic:null}
+  ],
+  mombasa: [
+    {sw:"Imethibitishwa", en:"Order confirmed",     pic:null},
+    {sw:"Imefungwa",      en:"Packed on ice",       pic:CDN+"ETS.jpg?v=1776561005"},
+    {sw:"Njiani",         en:"Rider on the way",    pic:null},
+    {sw:"Imefika",        en:"Delivered to you",    pic:null}
+  ],
+  pickup: [
+    {sw:"Imethibitishwa", en:"Order confirmed",           pic:null},
+    {sw:"Imefungwa",      en:"Packed on ice",             pic:CDN+"ETS.jpg?v=1776561005"},
+    {sw:"Tayari",         en:"Ready at the shop",         pic:null},
+    {sw:"Imechukuliwa",   en:"Collected",                 pic:null}
+  ]
+};
+let STAGES = CHAINS.upcountry;
 
 const $ = id => document.getElementById(id);
 /* Compare on letters and numbers only — hyphens, spaces and case never matter */
@@ -374,6 +407,9 @@ async function track(){
   const hit = rows && rows[0];
   if(!hit){ showMiss(); return; }
 
+  const dt = hit.delivery_type || 'upcountry';
+  STAGES = CHAINS[dt] || CHAINS.upcountry;
+
   const name = hit.customer_name ? hit.customer_name.split(' ')[0] : null;
   $('rOrd').textContent   = hit.order_number;
   $('rName').textContent  = name ? `${name}'s order` : 'Your order';
@@ -382,6 +418,19 @@ async function track(){
   $('rDate').textContent  = hit.date_ordered
     ? new Date(hit.date_ordered + 'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
     : '—';
+
+  /* Rider card and note: only present once the order is moving */
+  const extra = $('rExtra');
+  let bits = '';
+  if(hit.eta_note) bits += `<div class="eta">${hit.eta_note}</div>`;
+  if(hit.rider_name || hit.rider_phone){
+    const ph = hit.rider_phone
+      ? `<a href="tel:${hit.rider_phone.replace(/\s/g,'')}">${hit.rider_phone}</a>` : '';
+    bits += `<div class="rider"><span class="rider-l">${dt==='mombasa'?'Your rider':'Carried by'}</span>
+             <span class="rider-v">${hit.rider_name || 'Rider'}${ph ? ' · '+ph : ''}</span></div>`;
+  }
+  extra.innerHTML = bits;
+  extra.classList.toggle('hidden', !bits);
 
   const b = $('rBadge');
   const cbtn = $('confirmBtn');
