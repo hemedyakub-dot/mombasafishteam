@@ -22,21 +22,21 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--body);background:var(--abyss);color:var(--sand);min-height:100vh;line-height:1.5;-webkit-font-smoothing:antialiased}
 
-/* Shoreline behind everything. The photo is pale, so the scrim runs heavy —
-   it reads as texture, never competes with the text. */
+/* Sunset shore behind everything. The source photo is heavily saturated, so it's
+   desaturated and darkened before shipping — the scrim alone would go muddy. */
 .bg{
   position:fixed;inset:0;z-index:-2;
-  background-image:url('shore.jpg');
-  background-image:-webkit-image-set(url('shore.webp') 1x);
+  background-image:url('dispatch.jpg');
+  background-image:-webkit-image-set(url('dispatch.webp') 1x);
   background-size:cover;
   background-position:center;
 }
 .bg::after{
   content:'';position:fixed;inset:0;
-  background:linear-gradient(160deg,
-    rgba(3,42,46,.87) 0%,
-    rgba(3,42,46,.93) 45%,
-    rgba(5,52,56,.96) 100%);
+  background:linear-gradient(165deg,
+    rgba(3,42,46,.82) 0%,
+    rgba(3,42,46,.88) 45%,
+    rgba(4,48,52,.93) 100%);
 }
 .wrap{max-width:640px;margin:0 auto;padding:0 16px 80px;position:relative;z-index:1}
 
@@ -249,7 +249,7 @@ function render(){
     const [label, cls] = STAGE[o.stage] || ['—','p1'];
     const dt = o.delivery_type || 'upcountry';
     let acts = '';
-    if(o.stage===1) acts = `<button class="act" data-s="2" data-o="${o.order_number}">Mark packed</button>
+    if(o.stage===1) acts = `<button class="act" data-s="2" data-o="${o.order_number}">Mark ${dt==='mombasa'?'prepared':'packed'}</button>
                             <button class="act go" data-d="${o.order_number}">Dispatch →</button>`;
     else if(o.stage===2) acts = `<button class="act go" data-d="${o.order_number}">Dispatch →</button>`;
     else if(o.stage===3) acts = `<button class="act" data-s="4" data-o="${o.order_number}">Mark ${dt==='pickup'?'collected':'arrived'}</button>`;

@@ -352,10 +352,10 @@ const CHAINS = {
     {sw:"Imefika",        en:"Arrived",         pic:null}
   ],
   mombasa: [
-    {sw:"Imethibitishwa", en:"Order confirmed",     pic:null},
-    {sw:"Imefungwa",      en:"Packed on ice",       pic:CDN+"ETS.jpg?v=1776561005"},
-    {sw:"Njiani",         en:"Rider on the way",    pic:null},
-    {sw:"Imefika",        en:"Delivered to you",    pic:null}
+    {sw:"Imethibitishwa", en:"Order confirmed",             pic:null},
+    {sw:"Inaandaliwa",    en:"Being cleaned & prepared",     pic:null},
+    {sw:"Njiani",         en:"Rider on the way",             pic:null},
+    {sw:"Imefika",        en:"Delivered to you",             pic:null}
   ],
   pickup: [
     {sw:"Imethibitishwa", en:"Order confirmed",           pic:null},
@@ -409,6 +409,10 @@ async function track(){
 
   const dt = hit.delivery_type || 'upcountry';
   STAGES = CHAINS[dt] || CHAINS.upcountry;
+  document.querySelector('.chain-hd').textContent =
+    dt === 'mombasa' ? 'Safari ya samaki · Local delivery'
+    : dt === 'pickup' ? 'Safari ya samaki · Collection'
+    : 'Safari ya samaki · Cold chain';
 
   const name = hit.customer_name ? hit.customer_name.split(' ')[0] : null;
   $('rOrd').textContent   = hit.order_number;
