@@ -196,6 +196,10 @@ h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01
 /* ---------- details ---------- */
 #rExtra{margin:4px 0 6px}
 #rExtra.hidden{display:none}
+.sent{
+  font-family:var(--mono);font-size:11px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--foam);margin-bottom:10px;
+}
 .eta{
   background:rgba(255,184,77,.13);border-left:3px solid var(--catch);
   padding:11px 13px;border-radius:0 3px 3px 0;font-size:14px;color:var(--sand);margin-bottom:10px;
@@ -419,13 +423,30 @@ async function track(){
   $('rName').textContent  = name ? `${name}'s order` : 'Your order';
   $('rItems').textContent = hit.items || '—';
   $('rDest').textContent  = hit.destination || '—';
-  $('rDate').textContent  = hit.date_ordered
-    ? new Date(hit.date_ordered + 'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
-    : '—';
+  const ago = (iso) => {
+    if(!iso) return '';
+    const mins = Math.max(0, Math.floor((Date.now() - new Date(iso)) / 60000));
+    if(mins < 60)   return mins + ' minutes ago';
+    const h = Math.floor(mins/60);
+    if(h < 24)      return h + (h===1 ? ' hour ago' : ' hours ago');
+    const d = Math.floor(h/24);
+    return d + (d===1 ? ' day ago' : ' days ago');
+  };
+  const when = (iso) => iso ? new Date(iso).toLocaleString('en-GB',
+    { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '';
+
+  $('rDate').textContent = hit.placed_at
+    ? `${when(hit.placed_at)} · ${ago(hit.placed_at)}`
+    : (hit.date_ordered
+        ? new Date(hit.date_ordered + 'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
+        : '—');
 
   /* Rider card and note: only present once the order is moving */
   const extra = $('rExtra');
   let bits = '';
+  if(hit.dispatched_at && hit.stage >= 3){
+    bits += `<div class="sent">${dt==='pickup' ? 'Ready since' : 'Left Mombasa'} ${when(hit.dispatched_at)} · ${ago(hit.dispatched_at)}</div>`;
+  }
   if(hit.eta_note) bits += `<div class="eta">${hit.eta_note}</div>`;
   if(hit.rider_name || hit.rider_phone){
     const ph = hit.rider_phone
