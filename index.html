@@ -97,6 +97,39 @@ body{
 /* The last claim is what this page actually delivers — let it carry the accent */
 .motto span:last-of-type{color:var(--foam)}
 
+/* ---------- waves ---------- */
+/* Pure SVG + CSS. Three layers drifting at different speeds — the parallax
+   is what reads as depth. Roughly 1KB, no library, no JS. */
+.waves{
+  position:absolute;bottom:-1px;left:0;right:0;
+  height:90px;pointer-events:none;z-index:1;overflow:hidden;
+}
+.waves svg{width:200%;height:100%;display:block}
+.waves use{fill:currentColor}
+
+/* drift and bob are on separate elements — both animate transform,
+   so they must not sit on the same node */
+.w-back  {color:rgba(14,107,110,.34); animation:drift 26s linear infinite}
+.w-mid   {color:rgba(127,212,193,.18); animation:drift 17s linear infinite}
+.w-front {color:var(--abyss);          animation:drift 11s linear infinite}
+
+.bob-a{animation:bob 7s ease-in-out infinite}
+.bob-b{animation:bob 5.5s ease-in-out infinite reverse}
+
+@keyframes drift{
+  from{ transform:translateX(0) }
+  to  { transform:translateX(-1440px) }
+}
+@keyframes bob{
+  0%,100%{ transform:translateY(0) }
+  50%    { transform:translateY(5px) }
+}
+
+@media (max-width:560px){ .waves{height:60px} }
+@media (prefers-reduced-motion:reduce){
+  .w-back,.w-mid,.w-front,.bob-a,.bob-b{animation:none}
+}
+
 /* ---------- lookup ---------- */
 h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01em}
 .h1-sw{
@@ -277,6 +310,22 @@ h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01
     <div class="motto">
       <span>Quality</span><i>·</i><span>Delivery</span><i>·</i><span>Freshness</span><i>·</i><span>Traceable to the source</span>
     </div>
+  </div>
+
+  <!-- Three wave layers at different speeds. The parallax is what reads as depth. -->
+  <div class="waves" aria-hidden="true">
+    <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
+      <defs>
+        <path id="w" d="M0,60 C180,100 360,20 540,60 C720,100 900,20 1080,60 C1260,100 1380,40 1440,60 L1440,120 L0,120 Z"/>
+      </defs>
+      <g class="bob-a">
+        <g class="w-back"><use href="#w" x="0"/><use href="#w" x="1440"/></g>
+      </g>
+      <g class="bob-b">
+        <g class="w-mid"><use href="#w" x="0" y="6"/><use href="#w" x="1440" y="6"/></g>
+      </g>
+      <g class="w-front"><use href="#w" x="0" y="14"/><use href="#w" x="1440" y="14"/></g>
+    </svg>
   </div>
 </div>
 
