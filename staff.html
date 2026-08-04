@@ -72,6 +72,15 @@ input:focus{outline:none;border-color:var(--foam)}
 .cust{font-size:14px;color:var(--sand);margin-top:2px}
 .dest{font-size:13px;color:var(--dim);margin-top:2px}
 .items{font-size:13px;color:var(--dim);margin-top:8px;line-height:1.6;padding-top:8px;border-top:1px solid rgba(242,237,227,.10)}
+.contact{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:9px}
+.contact a{
+  font-family:var(--mono);font-size:12px;letter-spacing:.04em;text-decoration:none;
+  padding:6px 11px;border:1px solid var(--faint);border-radius:3px;
+  color:var(--foam);transition:border-color .18s,background .18s;
+}
+.contact a:hover{border-color:var(--foam);background:rgba(127,212,193,.10)}
+.contact.nonum{font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--coral)}
 .pill{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;border-radius:100px;white-space:nowrap}
 .p1{background:rgba(242,237,227,.15);color:var(--sand)}
 .p2{background:rgba(127,212,193,.22);color:var(--foam)}
@@ -231,7 +240,7 @@ async function boot(){
 
 async function load(){
   const { data, error } = await sb.from('mfm_orders')
-    .select('order_number, customer_name, destination, items, stage, dispatched_at, delivery_type, rider_name, rider_phone, eta_note')
+    .select('order_number, customer_name, contact, destination, items, stage, dispatched_at, delivery_type, rider_name, rider_phone, eta_note')
     .order('date_ordered', { ascending:true });
   if(error){ note(error.message,'err'); return; }
   orders = data || [];
@@ -255,6 +264,14 @@ function render(){
     else if(o.stage===3) acts = `<button class="act" data-s="4" data-o="${o.order_number}">Mark ${dt==='pickup'?'collected':'arrived'}</button>`;
     const rider = (o.stage>=3 && (o.rider_name||o.rider_phone))
       ? `<div class="items">🛵 ${o.rider_name||'Rider'}${o.rider_phone?' · '+o.rider_phone:''}</div>` : '';
+    const tel = o.contact ? o.contact.replace(/[^0-9+]/g,'') : '';
+    const wa  = tel.replace(/^\+/,'').replace(/^0/,'254');
+    const contact = o.contact
+      ? `<div class="contact">
+           <a href="tel:${tel}">📞 ${o.contact}</a>
+           <a href="https://wa.me/${wa}" target="_blank" rel="noopener">WhatsApp</a>
+         </div>`
+      : `<div class="contact nonum">No phone number on file</div>`;
     return `<div class="order">
       <div class="order-top">
         <div>
@@ -264,6 +281,7 @@ function render(){
         </div>
         <span class="pill ${cls}">${label}</span>
       </div>
+      ${contact}
       ${o.items ? `<div class="items">${o.items}</div>` : ''}
       ${rider}
       ${acts ? `<div class="acts">${acts}</div>` : ''}
