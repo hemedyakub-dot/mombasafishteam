@@ -254,6 +254,7 @@ h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01
   color:var(--sand-dim);flex-shrink:0;padding-top:2px;
 }
 .row dd{text-align:right;line-height:1.6}
+.warn{color:var(--catch);font-size:13px}
 .copy{
   margin-top:16px;width:100%;padding:11px;
   background:transparent;border:1px solid var(--sand-faint);border-radius:3px;
@@ -367,6 +368,7 @@ h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01
         <div class="detail">
           <dl>
             <div class="row"><dt>Mzigo · Your catch</dt><dd id="rItems"></dd></div>
+            <div class="row"><dt>Simu · Contact</dt><dd id="rPhone"></dd></div>
             <div class="row"><dt>Inakwenda · Destination</dt><dd id="rDest"></dd></div>
             <div class="row"><dt>Tarehe · Ordered</dt><dd id="rDate"></dd></div>
           </dl>
@@ -471,6 +473,9 @@ async function track(){
   $('rOrd').textContent   = hit.order_number;
   $('rName').textContent  = name ? `${name}'s order` : 'Your order';
   $('rItems').textContent = hit.items || '—';
+  $('rPhone').innerHTML   = hit.contact
+    ? hit.contact
+    : '<span class="warn">Not on file — please send us your number</span>';
   $('rDest').textContent  = hit.destination || '—';
   const ago = (iso) => {
     if(!iso) return '';
