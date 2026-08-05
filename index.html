@@ -173,6 +173,14 @@ h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01
   -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
   box-shadow:0 18px 50px rgba(0,0,0,.35);
 }
+.loyalty{
+  padding:13px 22px;background:linear-gradient(90deg,rgba(127,212,193,.22),rgba(127,212,193,.05));
+  border-bottom:1px solid var(--sand-faint);font-size:14px;color:var(--sand);
+  display:flex;align-items:center;gap:9px;
+}
+.loyalty.hidden{display:none}
+.loyalty b{color:var(--foam)}
+.loyalty .fish{font-size:17px}
 .ticket-top{
   padding:22px;background:linear-gradient(180deg,rgba(14,107,110,.5),rgba(14,107,110,.14));
   border-bottom:1px solid var(--sand-faint);
@@ -184,6 +192,13 @@ h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01
   font-size:11px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;
 }
 .badge.live{background:var(--catch);color:var(--abyss)}
+.badge.pay{background:#B57A1F;color:#fff}
+.pay-note{
+  background:rgba(255,184,77,.12);border:1px solid var(--catch);border-left-width:3px;
+  border-radius:0 4px 4px 0;padding:14px 15px;font-size:14px;color:var(--sand);line-height:1.6;
+}
+.pay-note strong{display:block;color:var(--catch);margin-bottom:6px;font-size:13px}
+.pay-note b{font-family:var(--mono);color:var(--foam);font-size:15px;letter-spacing:.05em}
 .badge.done{background:var(--foam);color:var(--abyss)}
 .badge.void{background:var(--coral);color:#fff}
 
@@ -355,6 +370,7 @@ h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01
 
     <section class="result" id="result" aria-live="polite">
       <div class="ticket">
+        <div class="loyalty hidden" id="rLoyal"></div>
         <div class="ticket-top">
           <div class="ord-no" id="rOrd"></div>
           <div class="ord-name" id="rName"></div>
@@ -398,7 +414,9 @@ const sb = createClient(
 
 /* Stage art pulled from the Mombasa Fish Market catalogue */
 const CDN = "https://cdn.shopify.com/s/files/1/0657/2153/2515/files/";
-/* Stage wording depends on how the order actually travels */
+/* Stage wording depends on how the order actually travels.
+   Stage 0 (awaiting payment) is shared across every delivery type. */
+const PAY_STAGE = {sw:"Inasubiri malipo", en:"Awaiting payment", pic:null};
 const CHAINS = {
   upcountry: [
     {sw:"Imethibitishwa", en:"Order confirmed", pic:null},
@@ -495,21 +513,24 @@ async function track(){
         ? new Date(hit.date_ordered + 'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
         : '—');
 
-  /* Rider card and note: only present once the order is moving */
+  /* Rider card and note: only present once the order is moving and paid.
+     Unpaid orders let the awaiting-payment branch below own rExtra. */
   const extra = $('rExtra');
   let bits = '';
-  if(hit.dispatched_at && hit.stage >= 3){
-    bits += `<div class="sent">${dt==='pickup' ? 'Ready since' : 'Left Mombasa'} ${when(hit.dispatched_at)} · ${ago(hit.dispatched_at)}</div>`;
+  if(!hit.awaiting_payment){
+    if(hit.dispatched_at && hit.stage >= 3){
+      bits += `<div class="sent">${dt==='pickup' ? 'Ready since' : 'Left Mombasa'} ${when(hit.dispatched_at)} · ${ago(hit.dispatched_at)}</div>`;
+    }
+    if(hit.eta_note) bits += `<div class="eta">${hit.eta_note}</div>`;
+    if(hit.rider_name || hit.rider_phone){
+      const ph = hit.rider_phone
+        ? `<a href="tel:${hit.rider_phone.replace(/\s/g,'')}">${hit.rider_phone}</a>` : '';
+      bits += `<div class="rider"><span class="rider-l">${dt==='mombasa'?'Your rider':'Carried by'}</span>
+               <span class="rider-v">${hit.rider_name || 'Rider'}${ph ? ' · '+ph : ''}</span></div>`;
+    }
+    extra.innerHTML = bits;
+    extra.classList.toggle('hidden', !bits);
   }
-  if(hit.eta_note) bits += `<div class="eta">${hit.eta_note}</div>`;
-  if(hit.rider_name || hit.rider_phone){
-    const ph = hit.rider_phone
-      ? `<a href="tel:${hit.rider_phone.replace(/\s/g,'')}">${hit.rider_phone}</a>` : '';
-    bits += `<div class="rider"><span class="rider-l">${dt==='mombasa'?'Your rider':'Carried by'}</span>
-             <span class="rider-v">${hit.rider_name || 'Rider'}${ph ? ' · '+ph : ''}</span></div>`;
-  }
-  extra.innerHTML = bits;
-  extra.classList.toggle('hidden', !bits);
 
   const b = $('rBadge');
   const cbtn = $('confirmBtn');
@@ -517,7 +538,27 @@ async function track(){
   cbtn.disabled = false;
   cbtn.textContent = "✓ Nimepokea · I've received it";
 
-  if(hit.stage === -1){
+  if(hit.awaiting_payment){
+    /* Unpaid: honest status, no confirmed promise, till number shown */
+    b.className = 'badge pay'; b.textContent = 'Inasubiri malipo';
+    $('rChain').innerHTML =
+      `<div class="stage now">
+         <div class="rail"><div class="dot"></div></div>
+         <div><div class="stage-sw">${PAY_STAGE.sw}</div><div class="stage-en">${PAY_STAGE.en}</div></div>
+         <span></span>
+       </div>` +
+      STAGES.map((s,i)=>`<div class="stage">
+         <div class="rail"><div class="dot"></div></div>
+         <div><div class="stage-sw">${s.sw}</div><div class="stage-en">${s.en}</div></div><span></span>
+       </div>`).join('');
+    $('rExtra').innerHTML =
+      `<div class="pay-note">
+         <strong>Lipa kukamilisha oda yako · Pay to confirm your order</strong>
+         Lipa na M-Pesa — Buy Goods Till <b>9948037</b> (Hemed Yakub).
+         Ukisha lipa, oda yako itathibitishwa hapa moja kwa moja.
+       </div>`;
+    $('rExtra').classList.remove('hidden');
+  } else if(hit.stage === -1){
     b.className = 'badge void'; b.textContent = 'Imesitishwa';
     $('rChain').innerHTML = '<div class="stage"><div class="rail"><div class="dot"></div></div><div><div class="stage-sw">Imesitishwa</div><div class="stage-en">This order was cancelled</div></div><span></span></div>';
   } else if(hit.stage >= 4){
@@ -526,12 +567,24 @@ async function track(){
   } else {
     b.className = 'badge live'; b.textContent = STAGES[hit.stage-1].sw;
     $('rChain').innerHTML = drawChain(hit.stage);
-    /* Only an order actually on the road can be confirmed as received */
     if(hit.stage === 3) cbtn.classList.remove('hidden');
   }
   $('result').classList.add('on');
 
-  /* Pre-fill WhatsApp so the customer arrives with their order number attached */
+  /* Loyalty — a warm nudge for returning customers. Count only, no money. */
+  const loyal = $('rLoyal');
+  loyal.classList.add('hidden');
+  try{
+    const { data: L } = await sb.rpc('order_loyalty', { p_order: o, p_code: c });
+    const row = L && L[0];
+    if(row && row.total_orders > 1){
+      const first = row.display_name ? row.display_name.split(' ')[0] : null;
+      const ord = row.order_seq;
+      const nth = ord + (['th','st','nd','rd'][(ord%100>>3^1&&ord%10)] || 'th');
+      loyal.innerHTML = `<span class="fish">🐟</span> <span>${first ? 'Karibu tena, <b>'+first+'</b> — ' : ''}this is your <b>${nth} order</b> with Mombasafish. Asante kwa kurudi!</span>`;
+      loyal.classList.remove('hidden');
+    }
+  }catch(e){ /* loyalty is a bonus; never block the tracker on it */ }
   $('waLink').href = 'https://wa.me/254787668888?text=' +
     encodeURIComponent(`Hi Mombasafish, I need help with order ${hit.order_number}.`);
 }

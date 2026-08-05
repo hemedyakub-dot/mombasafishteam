@@ -97,6 +97,11 @@ input:focus{outline:none;border-color:var(--foam)}
 .contact a:hover{border-color:var(--foam);background:rgba(127,212,193,.10)}
 .contact.nonum{font-family:var(--mono);font-size:11px;letter-spacing:.08em;
   text-transform:uppercase;color:var(--coral)}
+.repeat-row{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:10px 0;border-top:1px solid rgba(242,237,227,.08)}
+.rlink{flex-shrink:0}
+.linked{font-family:var(--mono);font-size:11px;color:var(--foam)}
+.repeat-hint{margin-top:10px;font-size:12px;color:var(--dim);font-style:italic}
 .pill{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;border-radius:100px;white-space:nowrap}
 .p1{background:rgba(242,237,227,.15);color:var(--sand)}
 .p2{background:rgba(127,212,193,.22);color:var(--foam)}
@@ -176,6 +181,7 @@ input:focus{outline:none;border-color:var(--foam)}
       <button class="tab on" data-f="todo">To dispatch</button>
       <button class="tab" data-f="road">On the road</button>
       <button class="tab" data-f="done">Arrived</button>
+      <button class="tab owner-only hidden" data-f="repeats">Repeat customers</button>
     </div>
     <div id="list"></div>
   </section>
@@ -251,8 +257,11 @@ async function boot(){
   $('who').classList.remove('hidden');
   $('loginView').classList.add('hidden');
   $('appView').classList.remove('hidden');
+  isOwner = staff.role === 'owner';
+  if(isOwner) document.querySelectorAll('.owner-only').forEach(el => el.classList.remove('hidden'));
   await load();
 }
+let isOwner = false;
 
 async function load(){
   const { data, error } = await sb.from('mfm_orders')
@@ -302,6 +311,7 @@ function stamp(iso){
 }
 
 function render(){
+  if(filter === 'repeats'){ renderRepeats(); return; }
   const sets = { todo:o=>o.stage===1||o.stage===2, road:o=>o.stage===3, done:o=>o.stage===4||o.stage===-1 };
   const rows = orders.filter(sets[filter]);
   if(!rows.length){ $('list').innerHTML = '<div class="empty">Nothing here right now.</div>'; return; }
@@ -348,6 +358,40 @@ function render(){
       ${acts ? `<div class="acts">${acts}</div>` : ''}
     </div>`;
   }).join('');
+}
+
+let repeatsData = null;
+async function renderRepeats(){
+  const list = $('list');
+  if(!repeatsData){
+    list.innerHTML = '<div class="empty">Loading customers…</div>';
+    const { data, error } = await sb.from('mfm_possible_repeats').select('*');
+    if(error){ list.innerHTML = '<div class="empty">Could not load.</div>'; return; }
+    repeatsData = data || [];
+  }
+  // group by first name; only show names appearing more than once
+  const groups = {};
+  repeatsData.forEach(r => { (groups[r.first_name] ||= []).push(r); });
+  const dupes = Object.entries(groups).filter(([,rows]) => rows.length > 1);
+
+  if(!dupes.length){
+    list.innerHTML = '<div class="empty">No possible repeat customers yet.<br>They\'ll appear here once someone orders twice, or two orders share a name or number.</div>';
+    return;
+  }
+
+  list.innerHTML = dupes.map(([name, rows]) => `
+    <div class="order">
+      <div class="ono">${name} <span class="dtype d-upcountry">${rows.length} orders</span></div>
+      ${rows.map(r => `
+        <div class="repeat-row">
+          <div>
+            <div class="cust">${r.customer_name}</div>
+            <div class="dest">${r.contact || 'no number'} · ${r.county || '—'} · ${r.order_number}</div>
+          </div>
+          <div class="rlink">${r.account_id ? '<span class="linked">✓ linked</span>' : ''}</div>
+        </div>`).join('')}
+      <div class="repeat-hint">If these are the same person, tell Hemed to link them — the system will remember all their numbers.</div>
+    </div>`).join('');
 }
 
 async function setStage(orderNo, stage, btn){
