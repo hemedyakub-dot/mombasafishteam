@@ -174,13 +174,39 @@ h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01
   box-shadow:0 18px 50px rgba(0,0,0,.35);
 }
 .loyalty{
-  padding:13px 22px;background:linear-gradient(90deg,rgba(127,212,193,.22),rgba(127,212,193,.05));
-  border-bottom:1px solid var(--sand-faint);font-size:14px;color:var(--sand);
-  display:flex;align-items:center;gap:9px;
+  padding:14px 20px;border-bottom:1px solid var(--sand-faint);
+  display:flex;align-items:center;gap:15px;
 }
 .loyalty.hidden{display:none}
-.loyalty b{color:var(--foam)}
-.loyalty .fish{font-size:17px}
+.vessel{flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.vessel svg{display:block}
+.seal-txt{line-height:1.4}
+.seal-hi{font-size:14px;font-weight:600;color:var(--sand)}
+.seal-sub{font-size:12px;color:var(--sand-dim);margin-top:2px}
+.seal-sub b{letter-spacing:.04em}
+
+/* The boat grows with the tier — width climbs Ngalawa → Meli */
+.tier-ngalawa .vessel svg{width:44px}
+.tier-mashua  .vessel svg{width:54px}
+.tier-dau     .vessel svg{width:64px}
+.tier-meli    .vessel svg{width:76px}
+
+/* Tier colours carried from the metal scheme onto the boats */
+.tier-ngalawa{background:linear-gradient(90deg,rgba(176,110,58,.20),rgba(176,110,58,.04))}
+.tier-ngalawa .vessel{color:#e2a06a}
+.tier-ngalawa .seal-sub b{color:#e2a06a}
+
+.tier-mashua{background:linear-gradient(90deg,rgba(200,208,214,.20),rgba(200,208,214,.04))}
+.tier-mashua .vessel{color:#d6dee4}
+.tier-mashua .seal-sub b{color:#d6dee4}
+
+.tier-dau{background:linear-gradient(90deg,rgba(255,184,77,.24),rgba(255,184,77,.05))}
+.tier-dau .vessel{color:var(--catch)}
+.tier-dau .seal-sub b{color:var(--catch)}
+
+.tier-meli{background:linear-gradient(90deg,rgba(127,212,193,.26),rgba(127,212,193,.06))}
+.tier-meli .vessel{color:var(--foam)}
+.tier-meli .seal-sub b{color:var(--foam)}
 .ticket-top{
   padding:22px;background:linear-gradient(180deg,rgba(14,107,110,.5),rgba(14,107,110,.14));
   border-bottom:1px solid var(--sand-faint);
@@ -414,6 +440,43 @@ const sb = createClient(
 
 /* Stage art pulled from the Mombasa Fish Market catalogue */
 const CDN = "https://cdn.shopify.com/s/files/1/0657/2153/2515/files/";
+
+/* The fleet — each vessel drawn to fill more of its frame than the last.
+   currentColor picks up the tier accent. */
+const BOATS = {
+  // Ngalawa — slim outrigger canoe, low and simple
+  ngalawa: `<svg viewBox="0 0 64 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 30 C20 38 44 38 54 30" fill="currentColor" fill-opacity=".18"/>
+    <path d="M14 24 L14 30 M50 24 L50 30"/>
+    <path d="M8 30 L56 30" stroke-opacity=".5"/>
+    <path d="M32 12 L32 30 M32 14 L44 26" stroke-width="2"/>
+  </svg>`,
+  // Mashua — wooden dhow, fuller hull, one lateen sail
+  mashua: `<svg viewBox="0 0 64 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 32 C18 41 46 41 56 32 L52 30 L12 30 Z" fill="currentColor" fill-opacity=".22"/>
+    <path d="M30 6 L30 30 M30 8 L46 28 L30 28 Z" fill="currentColor" fill-opacity=".30"/>
+    <path d="M8 30 L56 30" stroke-opacity=".5"/>
+  </svg>`,
+  // Dau — larger trading dhow, taller mast, bigger sail
+  dau: `<svg viewBox="0 0 64 48" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 34 C16 43 48 43 58 34 L54 31 L10 31 Z" fill="currentColor" fill-opacity=".24"/>
+    <path d="M26 4 L26 31" stroke-width="2.6"/>
+    <path d="M26 5 L48 29 L26 29 Z" fill="currentColor" fill-opacity=".32"/>
+    <path d="M26 6 L12 22 L26 22 Z" fill="currentColor" fill-opacity=".18"/>
+    <path d="M6 31 L58 31" stroke-opacity=".5"/>
+  </svg>`,
+  // Meli — deep-sea vessel, tall hull, superstructure, funnel
+  meli: `<svg viewBox="0 0 64 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 32 L60 32 L54 40 L10 40 Z" fill="currentColor" fill-opacity=".26"/>
+    <path d="M14 32 L14 22 L44 22 L44 32" fill="currentColor" fill-opacity=".20"/>
+    <path d="M22 22 L22 15 L38 15 L38 22"/>
+    <path d="M30 15 L30 8 L36 8 L36 15" fill="currentColor" fill-opacity=".30"/>
+    <path d="M4 32 L60 32" stroke-opacity=".5"/>
+    <circle cx="19" cy="27" r="1.4" fill="currentColor" stroke="none"/>
+    <circle cx="27" cy="27" r="1.4" fill="currentColor" stroke="none"/>
+    <circle cx="35" cy="27" r="1.4" fill="currentColor" stroke="none"/>
+  </svg>`
+};
 /* Stage wording depends on how the order actually travels.
    Stage 0 (awaiting payment) is shared across every delivery type. */
 const PAY_STAGE = {sw:"Inasubiri malipo", en:"Awaiting payment", pic:null};
@@ -571,17 +634,28 @@ async function track(){
   }
   $('result').classList.add('on');
 
-  /* Loyalty — a warm nudge for returning customers. Count only, no money. */
+  /* Loyalty — the fleet. Ngalawa · Mashua · Dau · Meli, boats that grow.
+     Count only, no money — safe on a forwarded link. */
   const loyal = $('rLoyal');
   loyal.classList.add('hidden');
   try{
     const { data: L } = await sb.rpc('order_loyalty', { p_order: o, p_code: c });
     const row = L && L[0];
-    if(row && row.total_orders > 1){
+    const n = row ? row.total_orders : 1;
+    if(n > 1){
       const first = row.display_name ? row.display_name.split(' ')[0] : null;
-      const ord = row.order_seq;
-      const nth = ord + (['th','st','nd','rd'][(ord%100>>3^1&&ord%10)] || 'th');
-      loyal.innerHTML = `<span class="fish">🐟</span> <span>${first ? 'Karibu tena, <b>'+first+'</b> — ' : ''}this is your <b>${nth} order</b> with Mombasafish. Asante kwa kurudi!</span>`;
+      const tier =
+        n >= 20 ? {key:'meli',    name:'Meli',    tag:'Deep-sea vessel'} :
+        n >= 10 ? {key:'dau',     name:'Dau',     tag:'Trade-route dhow'} :
+        n >= 5  ? {key:'mashua',  name:'Mashua',  tag:'Wooden dhow-boat'} :
+                  {key:'ngalawa', name:'Ngalawa', tag:'Outrigger canoe'};
+      loyal.className = 'loyalty tier-' + tier.key;
+      loyal.innerHTML =
+        `<div class="vessel">${BOATS[tier.key]}</div>
+         <div class="seal-txt">
+           <div class="seal-hi">${first ? 'Karibu tena, '+first : 'Karibu tena'}</div>
+           <div class="seal-sub"><b>${tier.name}</b> · ${tier.tag} · ${n} orders</div>
+         </div>`;
       loyal.classList.remove('hidden');
     }
   }catch(e){ /* loyalty is a bonus; never block the tracker on it */ }
