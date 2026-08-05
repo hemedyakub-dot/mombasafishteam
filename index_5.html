@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mombasafish iSeafood Hub · Track your order</title>
+<meta name="description" content="Track your Mombasafish order from the Indian Ocean to your door. Quality. Delivery. Freshness. Traceable to the source.">
+
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#032A2E">
+
+<!-- Absolute URLs required: WhatsApp and social crawlers ignore relative paths -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Mombasafish iSeafood Hub">
+<meta property="og:url" content="https://mombasafishteam.netlify.app/">
+<meta property="og:title" content="Mombasafish iSeafood Hub — Track your order">
+<meta property="og:description" content="Quality. Delivery. Freshness. Traceable to the source.">
+<meta property="og:image" content="https://mombasafishteam.netlify.app/hero.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="800">
+<meta property="og:image:alt" content="A fisherman landing a tuna at sunrise on the Indian Ocean">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Mombasafish iSeafood Hub — Track your order">
+<meta name="twitter:description" content="Quality. Delivery. Freshness. Traceable to the source.">
+<meta name="twitter:image" content="https://mombasafishteam.netlify.app/hero.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.shopify.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --abyss:#032A2E;
+  --deep:#07474C;
+  --shallow:#0E6B6E;
+  --foam:#7FD4C1;
+  --catch:#FFB84D;
+  --coral:#FF6B5A;
+  --sand:#F2EDE3;
+  --sand-dim:rgba(242,237,227,.62);
+  --sand-faint:rgba(242,237,227,.24);
+  --display:'Archivo Black',system-ui,sans-serif;
+  --body:'Inter',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:var(--body);background:var(--abyss);color:var(--sand);
+  min-height:100vh;line-height:1.55;-webkit-font-smoothing:antialiased;
+}
+
+/* ---------- full-page background ---------- */
+.bg{
+  position:fixed;inset:0;z-index:-2;
+  background-image:url('hero.jpg');
+  background-image:-webkit-image-set(url('hero.webp') 1x);
+  background-size:cover;
+  background-position:center 38%;
+  background-repeat:no-repeat;
+}
+/* Scrim: sunset stays open at the top, deepens so the tracker reads below */
+.bg::after{
+  content:'';position:fixed;inset:0;
+  background:linear-gradient(180deg,
+    rgba(3,42,46,.12) 0%,
+    rgba(3,42,46,.34) 30%,
+    rgba(3,42,46,.80) 58%,
+    rgba(3,42,46,.93) 78%,
+    rgba(3,42,46,.96) 100%);
+}
+.wrap{max-width:680px;margin:0 auto;padding:0 20px 60px;position:relative;z-index:1}
+
+/* ---------- hero ---------- */
+.hero{
+  position:relative;
+  min-height:340px;
+  display:flex;align-items:flex-end;
+  margin-bottom:34px;
+  z-index:1;
+}
+.hero-in{position:relative;z-index:2;width:100%;max-width:680px;margin:0 auto;padding:0 20px 28px}
+.brand{
+  font-family:var(--display);
+  font-size:clamp(28px,8vw,42px);line-height:1;
+  letter-spacing:-.025em;text-transform:uppercase;
+  text-shadow:0 2px 22px rgba(3,42,46,.8);
+}
+.brand em{font-style:normal;color:var(--foam);display:block}
+.motto{
+  display:flex;flex-wrap:wrap;align-items:center;gap:0 9px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.15em;
+  text-transform:uppercase;color:rgba(242,237,227,.82);margin-top:13px;
+  text-shadow:0 1px 12px rgba(3,42,46,.9);line-height:1.9;
+}
+.motto i{font-style:normal;color:rgba(242,237,227,.38)}
+/* The last claim is what this page actually delivers — let it carry the accent */
+.motto span:last-of-type{color:var(--foam)}
+
+/* ---------- waves ---------- */
+/* Pure SVG + CSS. Three layers drifting at different speeds — the parallax
+   is what reads as depth. Roughly 1KB, no library, no JS. */
+.waves{
+  position:absolute;bottom:-1px;left:0;right:0;
+  height:90px;pointer-events:none;z-index:1;overflow:hidden;
+}
+.waves svg{width:200%;height:100%;display:block}
+.waves use{fill:currentColor}
+
+/* drift and bob are on separate elements — both animate transform,
+   so they must not sit on the same node */
+.w-back  {color:rgba(14,107,110,.34); animation:drift 26s linear infinite}
+.w-mid   {color:rgba(127,212,193,.18); animation:drift 17s linear infinite}
+.w-front {color:var(--abyss);          animation:drift 11s linear infinite}
+
+.bob-a{animation:bob 7s ease-in-out infinite}
+.bob-b{animation:bob 5.5s ease-in-out infinite reverse}
+
+@keyframes drift{
+  from{ transform:translateX(0) }
+  to  { transform:translateX(-1440px) }
+}
+@keyframes bob{
+  0%,100%{ transform:translateY(0) }
+  50%    { transform:translateY(5px) }
+}
+
+@media (max-width:560px){ .waves{height:60px} }
+@media (prefers-reduced-motion:reduce){
+  .w-back,.w-mid,.w-front,.bob-a,.bob-b{animation:none}
+}
+
+/* ---------- lookup ---------- */
+h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01em}
+.h1-sw{
+  font-family:var(--mono);font-size:11px;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--foam);margin-bottom:6px;
+}
+.lead{color:var(--sand-dim);font-size:15px;margin:9px 0 26px;max-width:47ch}
+
+.field{margin-bottom:15px}
+.field label{
+  display:block;font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--sand-dim);margin-bottom:7px;
+}
+.field input{
+  width:100%;padding:15px 16px;background:rgba(3,42,46,.62);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+  border:1px solid var(--sand-faint);border-radius:3px;color:var(--sand);
+  font-family:var(--mono);font-size:16px;letter-spacing:.05em;text-transform:uppercase;
+  transition:border-color .18s,background .18s;
+}
+.field input::placeholder{color:rgba(242,237,227,.32);letter-spacing:.03em}
+.field input:focus{outline:none;border-color:var(--foam);background:rgba(14,107,110,.5)}
+.field input:focus-visible{outline:2px solid var(--foam);outline-offset:2px}
+.go{
+  width:100%;margin-top:9px;padding:16px;background:var(--foam);color:var(--abyss);
+  border:none;border-radius:3px;font-family:var(--display);font-size:14px;
+  letter-spacing:.06em;text-transform:uppercase;cursor:pointer;
+  transition:background .18s,transform .12s;
+}
+.go:hover{background:#96e0d0}
+.go:active{transform:translateY(1px)}
+.go:focus-visible{outline:2px solid var(--sand);outline-offset:3px}
+
+/* ---------- result ---------- */
+.result{margin-top:36px;display:none}
+.result.on{display:block;animation:rise .4s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.ticket{
+  border:1px solid var(--sand-faint);border-radius:5px;overflow:hidden;
+  background:rgba(3,42,46,.78);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  box-shadow:0 18px 50px rgba(0,0,0,.35);
+}
+.loyalty{
+  padding:14px 20px;border-bottom:1px solid var(--sand-faint);
+  display:flex;align-items:center;gap:15px;
+}
+.loyalty.hidden{display:none}
+.vessel{flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.vessel svg{display:block}
+.seal-txt{line-height:1.4}
+.seal-hi{font-size:14px;font-weight:600;color:var(--sand)}
+.seal-sub{font-size:12px;color:var(--sand-dim);margin-top:2px}
+.seal-sub b{letter-spacing:.04em}
+
+/* The boat grows with the tier — width climbs Ngalawa → Meli */
+.tier-ngalawa .vessel svg{width:44px}
+.tier-mashua  .vessel svg{width:54px}
+.tier-dau     .vessel svg{width:64px}
+.tier-meli    .vessel svg{width:76px}
+
+/* Tier colours carried from the metal scheme onto the boats */
+.tier-ngalawa{background:linear-gradient(90deg,rgba(176,110,58,.20),rgba(176,110,58,.04))}
+.tier-ngalawa .vessel{color:#e2a06a}
+.tier-ngalawa .seal-sub b{color:#e2a06a}
+
+.tier-mashua{background:linear-gradient(90deg,rgba(200,208,214,.20),rgba(200,208,214,.04))}
+.tier-mashua .vessel{color:#d6dee4}
+.tier-mashua .seal-sub b{color:#d6dee4}
+
+.tier-dau{background:linear-gradient(90deg,rgba(255,184,77,.24),rgba(255,184,77,.05))}
+.tier-dau .vessel{color:var(--catch)}
+.tier-dau .seal-sub b{color:var(--catch)}
+
+.tier-meli{background:linear-gradient(90deg,rgba(127,212,193,.26),rgba(127,212,193,.06))}
+.tier-meli .vessel{color:var(--foam)}
+.tier-meli .seal-sub b{color:var(--foam)}
+.ticket-top{
+  padding:22px;background:linear-gradient(180deg,rgba(14,107,110,.5),rgba(14,107,110,.14));
+  border-bottom:1px solid var(--sand-faint);
+}
+.ord-no{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--sand-dim)}
+.ord-name{font-family:var(--display);font-size:clamp(19px,5vw,24px);margin:6px 0 14px;letter-spacing:-.01em}
+.badge{
+  display:inline-block;padding:6px 13px;border-radius:100px;font-family:var(--mono);
+  font-size:11px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;
+}
+.badge.live{background:var(--catch);color:var(--abyss)}
+.badge.pay{background:#B57A1F;color:#fff}
+.pay-note{
+  background:rgba(255,184,77,.12);border:1px solid var(--catch);border-left-width:3px;
+  border-radius:0 4px 4px 0;padding:14px 15px;font-size:14px;color:var(--sand);line-height:1.6;
+}
+.pay-note strong{display:block;color:var(--catch);margin-bottom:6px;font-size:13px}
+.pay-note b{font-family:var(--mono);color:var(--foam);font-size:15px;letter-spacing:.05em}
+.badge.done{background:var(--foam);color:var(--abyss)}
+.badge.void{background:var(--coral);color:#fff}
+
+/* ---------- cold chain ---------- */
+.chain{padding:26px 22px 10px}
+.chain-hd{
+  font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--sand-dim);margin-bottom:19px;
+}
+.stage{display:grid;grid-template-columns:22px 1fr auto;gap:15px;padding-bottom:22px;position:relative;align-items:start}
+.stage:last-child{padding-bottom:6px}
+.rail{position:relative;display:flex;justify-content:center}
+.dot{
+  width:12px;height:12px;border-radius:50%;background:transparent;
+  border:2px solid var(--sand-faint);margin-top:5px;z-index:2;
+  transition:background .3s,border-color .3s;
+}
+.stage:not(:last-child) .rail::after{
+  content:'';position:absolute;top:19px;bottom:-22px;width:2px;
+  background:var(--sand-faint);transition:background .3s;
+}
+.stage.past .dot{background:var(--foam);border-color:var(--foam)}
+.stage.past .rail::after{background:var(--foam)}
+.stage.now .dot{
+  background:var(--catch);border-color:var(--catch);
+  box-shadow:0 0 0 4px rgba(255,184,77,.22);animation:beat 2.1s ease-in-out infinite;
+}
+@keyframes beat{0%,100%{box-shadow:0 0 0 4px rgba(255,184,77,.22)}50%{box-shadow:0 0 0 9px rgba(255,184,77,.05)}}
+.stage-sw{font-size:15px;font-weight:600;color:var(--sand-dim);transition:color .3s}
+.stage-en{
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:rgba(242,237,227,.32);margin-top:3px;
+}
+.stage.past .stage-sw,.stage.now .stage-sw{color:var(--sand)}
+.stage.now .stage-sw{color:var(--catch)}
+.stage.now .stage-en{color:rgba(255,184,77,.72)}
+.stage-pic{
+  width:42px;height:42px;border-radius:3px;object-fit:cover;
+  opacity:0;transition:opacity .35s;border:1px solid var(--sand-faint);
+}
+.stage.now .stage-pic,.stage.past .stage-pic{opacity:.9}
+
+/* ---------- details ---------- */
+#rExtra{margin:4px 0 6px}
+#rExtra.hidden{display:none}
+.sent{
+  font-family:var(--mono);font-size:11px;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--foam);margin-bottom:10px;
+}
+.eta{
+  background:rgba(255,184,77,.13);border-left:3px solid var(--catch);
+  padding:11px 13px;border-radius:0 3px 3px 0;font-size:14px;color:var(--sand);margin-bottom:10px;
+}
+.rider{
+  display:flex;justify-content:space-between;align-items:center;gap:14px;
+  padding:11px 13px;border:1px solid var(--sand-faint);border-radius:3px;
+}
+.rider-l{
+  font-family:var(--mono);font-size:10px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--sand-dim);
+}
+.rider-v{font-size:14px;text-align:right}
+.rider-v a{color:var(--foam);text-decoration:none;border-bottom:1px solid rgba(127,212,193,.4)}
+.detail{border-top:1px solid var(--sand-faint);padding:20px 22px}
+.row{display:flex;justify-content:space-between;gap:20px;padding:7px 0;font-size:14px}
+.row dt{
+  font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--sand-dim);flex-shrink:0;padding-top:2px;
+}
+.row dd{text-align:right;line-height:1.6}
+.warn{color:var(--catch);font-size:13px}
+.copy{
+  margin-top:16px;width:100%;padding:11px;
+  background:transparent;border:1px solid var(--sand-faint);border-radius:3px;
+  color:var(--sand-dim);font-family:var(--mono);font-size:11px;
+  letter-spacing:.13em;text-transform:uppercase;cursor:pointer;
+  transition:border-color .18s,color .18s;
+}
+.confirm{
+  margin-top:18px;width:100%;padding:15px;
+  background:var(--foam);border:none;border-radius:3px;color:var(--abyss);
+  font-family:var(--display);font-size:13px;letter-spacing:.05em;
+  cursor:pointer;transition:background .18s,transform .12s;
+}
+.confirm:hover{background:#96e0d0}
+.confirm:active{transform:translateY(1px)}
+.confirm:focus-visible{outline:2px solid var(--sand);outline-offset:3px}
+.confirm:disabled{opacity:.6;cursor:not-allowed}
+.confirm.hidden{display:none}
+.copy:hover{border-color:var(--foam);color:var(--foam)}
+.copy:focus-visible{outline:2px solid var(--foam);outline-offset:2px}
+.copy.ok{border-color:var(--foam);color:var(--foam)}
+
+/* ---------- miss ---------- */
+.miss{
+  margin-top:24px;padding:18px 20px;border:1px solid var(--coral);border-left-width:3px;
+  border-radius:3px;background:rgba(60,20,18,.72);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);display:none;
+}
+.miss.on{display:block}
+.miss strong{display:block;margin-bottom:5px;font-size:15px}
+.miss span{font-size:14px;color:var(--sand-dim)}
+
+/* ---------- footer ---------- */
+.foot{margin-top:42px;padding-top:22px;border-top:1px solid var(--sand-faint);font-size:13px;color:var(--sand-dim)}
+.foot a{color:var(--foam);text-decoration:none;border-bottom:1px solid transparent;transition:border-color .18s}
+.foot a:hover{border-bottom-color:var(--foam)}
+
+@media (min-width:560px){
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .form-grid .field{margin-bottom:0}
+  .go{width:auto;padding:16px 40px;margin-top:20px}
+  .hero{min-height:440px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="bg" role="img" aria-label="A fisherman landing a tuna at sunrise on the Indian Ocean"></div>
+
+<div class="hero">
+  <div class="hero-in">
+    <div class="brand">Mombasafish<em>iSeafood Hub</em></div>
+    <div class="motto">
+      <span>Quality</span><i>·</i><span>Delivery</span><i>·</i><span>Freshness</span><i>·</i><span>Traceable to the source</span>
+    </div>
+  </div>
+
+  <!-- Three wave layers at different speeds. The parallax is what reads as depth. -->
+  <div class="waves" aria-hidden="true">
+    <svg viewBox="0 0 1440 120" preserveAspectRatio="none">
+      <defs>
+        <path id="w" d="M0,60 C180,100 360,20 540,60 C720,100 900,20 1080,60 C1260,100 1380,40 1440,60 L1440,120 L0,120 Z"/>
+      </defs>
+      <g class="bob-a">
+        <g class="w-back"><use href="#w" x="0"/><use href="#w" x="1440"/></g>
+      </g>
+      <g class="bob-b">
+        <g class="w-mid"><use href="#w" x="0" y="6"/><use href="#w" x="1440" y="6"/></g>
+      </g>
+      <g class="w-front"><use href="#w" x="0" y="14"/><use href="#w" x="1440" y="14"/></g>
+    </svg>
+  </div>
+</div>
+
+<div class="wrap">
+  <main>
+    <div class="h1-sw">Fuatilia oda yako</div>
+    <h1>Track your order</h1>
+    <p class="lead">Enter the order number and tracking code from your receipt to see where your catch has reached.</p>
+
+    <div class="form-grid">
+      <div class="field">
+        <label for="ord">Order number</label>
+        <input id="ord" type="text" placeholder="NRB-AUG 008" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="code">Tracking code</label>
+        <input id="code" type="text" placeholder="MFM-XXXXX" autocomplete="off" spellcheck="false">
+      </div>
+    </div>
+    <button class="go" id="go">Track order</button>
+
+    <div class="miss" id="miss" role="alert" aria-live="polite">
+      <strong>No order matches those details.</strong>
+      <span>Check the order number and code against your receipt. Both must match exactly.</span>
+    </div>
+
+    <section class="result" id="result" aria-live="polite">
+      <div class="ticket">
+        <div class="loyalty hidden" id="rLoyal"></div>
+        <div class="ticket-top">
+          <div class="ord-no" id="rOrd"></div>
+          <div class="ord-name" id="rName"></div>
+          <span class="badge" id="rBadge"></span>
+        </div>
+        <div class="chain">
+          <div class="chain-hd">Safari ya samaki · Cold chain</div>
+          <div id="rChain"></div>
+          <div id="rExtra" class="hidden"></div>
+        </div>
+        <div class="detail">
+          <dl>
+            <div class="row"><dt>Mzigo · Your catch</dt><dd id="rItems"></dd></div>
+            <div class="row"><dt>Simu · Contact</dt><dd id="rPhone"></dd></div>
+            <div class="row"><dt>Inakwenda · Destination</dt><dd id="rDest"></dd></div>
+            <div class="row"><dt>Tarehe · Ordered</dt><dd id="rDate"></dd></div>
+          </dl>
+          <button class="confirm hidden" id="confirmBtn" type="button">✓ Nimepokea · I've received it</button>
+          <button class="copy" id="copyBtn" type="button">Copy tracking link</button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="foot">
+      Kuna shida? Message us on WhatsApp with your order number —
+      <a href="https://wa.me/254787668888" id="waLink">chat with us</a>.
+    </footer>
+  </main>
+</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+/* Live lookup against Supabase. The browser cannot read the orders table —
+   track_order() requires BOTH the order number and the tracking code, and
+   returns only non-sensitive fields. No phone numbers, no prices. */
+const sb = createClient(
+  'https://tcpqbrchpxpshmqprbkv.supabase.co',
+  'sb_publishable_7YLqP3JMq8AFZQl4XF--bw_itOMj1gA'
+);
+
+/* Stage art pulled from the Mombasa Fish Market catalogue */
+const CDN = "https://cdn.shopify.com/s/files/1/0657/2153/2515/files/";
+
+/* The fleet — each vessel drawn with its sail cloth filled, growing up the tiers.
+   currentColor picks up the tier accent; the sail carries a lighter wash of it. */
+const BOATS = {
+  // Ngalawa — slim outrigger canoe, one small triangular sail
+  ngalawa: `<svg viewBox="0 0 64 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 31 C20 39 44 39 54 31 L50 30 L14 30 Z" fill="currentColor" fill-opacity=".22"/>
+    <path d="M32 9 L32 30" stroke-width="2"/>
+    <path d="M32 10 L45 28 L32 28 Z" fill="currentColor" fill-opacity=".45" stroke="currentColor" stroke-width="1.4"/>
+    <path d="M8 30 L56 30" stroke-opacity=".5"/>
+  </svg>`,
+  // Mashua — wooden dhow, fuller hull, one broad lateen sail
+  mashua: `<svg viewBox="0 0 64 48" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 32 C18 41 46 41 56 32 L52 30 L12 30 Z" fill="currentColor" fill-opacity=".24"/>
+    <path d="M29 5 L29 30" stroke-width="2.4"/>
+    <path d="M29 6 L48 28 L29 28 Z" fill="currentColor" fill-opacity=".48" stroke="currentColor" stroke-width="1.6"/>
+    <path d="M29 8 L16 24 L29 24 Z" fill="currentColor" fill-opacity=".28" stroke="currentColor" stroke-width="1.4"/>
+    <path d="M8 30 L56 30" stroke-opacity=".5"/>
+  </svg>`,
+  // Dau — larger trading dhow, tall mast, big billowing sail
+  dau: `<svg viewBox="0 0 64 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6 34 C16 43 48 43 58 34 L54 31 L10 31 Z" fill="currentColor" fill-opacity=".26"/>
+    <path d="M25 3 L25 31" stroke-width="2.6"/>
+    <path d="M25 4 C40 10 50 20 51 29 L25 29 Z" fill="currentColor" fill-opacity=".50" stroke="currentColor" stroke-width="1.7"/>
+    <path d="M25 6 C16 12 12 20 11 24 L25 24 Z" fill="currentColor" fill-opacity=".30" stroke="currentColor" stroke-width="1.4"/>
+    <path d="M6 31 L58 31" stroke-opacity=".5"/>
+  </svg>`,
+  // Meli — deep-sea vessel, tall hull, superstructure, funnel
+  meli: `<svg viewBox="0 0 64 48" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 32 L60 32 L54 40 L10 40 Z" fill="currentColor" fill-opacity=".30"/>
+    <path d="M14 32 L14 22 L44 22 L44 32 Z" fill="currentColor" fill-opacity=".22"/>
+    <path d="M22 22 L22 15 L38 15 L38 22 Z" fill="currentColor" fill-opacity=".16"/>
+    <path d="M30 15 L30 8 L36 8 L36 15 Z" fill="currentColor" fill-opacity=".40"/>
+    <path d="M4 32 L60 32" stroke-opacity=".5"/>
+    <circle cx="19" cy="27" r="1.3" fill="currentColor" stroke="none"/>
+    <circle cx="27" cy="27" r="1.3" fill="currentColor" stroke="none"/>
+    <circle cx="35" cy="27" r="1.3" fill="currentColor" stroke="none"/>
+  </svg>`
+};
+/* Stage wording depends on how the order actually travels.
+   Stage 0 (awaiting payment) is shared across every delivery type. */
+const PAY_STAGE = {sw:"Inasubiri malipo", en:"Awaiting payment", pic:null};
+const CHAINS = {
+  upcountry: [
+    {sw:"Imethibitishwa", en:"Order confirmed", pic:null},
+    {sw:"Imefungwa",      en:"Packed on ice",   pic:CDN+"ETS.jpg?v=1776561005"},
+    {sw:"Njiani",         en:"On the road",     pic:null},
+    {sw:"Imefika",        en:"Arrived",         pic:null}
+  ],
+  mombasa: [
+    {sw:"Imethibitishwa", en:"Order confirmed",             pic:null},
+    {sw:"Inaandaliwa",    en:"Being cleaned & prepared",     pic:null},
+    {sw:"Njiani",         en:"Rider on the way",             pic:null},
+    {sw:"Imefika",        en:"Delivered to you",             pic:null}
+  ],
+  pickup: [
+    {sw:"Imethibitishwa", en:"Order confirmed",           pic:null},
+    {sw:"Imefungwa",      en:"Packed on ice",             pic:CDN+"ETS.jpg?v=1776561005"},
+    {sw:"Tayari",         en:"Ready at the shop",         pic:null},
+    {sw:"Imechukuliwa",   en:"Collected",                 pic:null}
+  ]
+};
+let STAGES = CHAINS.upcountry;
+
+const $ = id => document.getElementById(id);
+/* Compare on letters and numbers only — hyphens, spaces and case never matter */
+const tidy = s => s.toUpperCase().replace(/[^A-Z0-9]/g,'');
+
+function drawChain(stage){
+  return STAGES.map((s,i)=>{
+    const n = i + 1;
+    const cls = n < stage ? 'past' : n === stage ? 'now' : '';
+    const pic = s.pic && n <= stage
+      ? `<img class="stage-pic" src="${s.pic}" alt="" loading="lazy" onerror="this.remove()">`
+      : `<span></span>`;
+    return `<div class="stage ${cls}">
+      <div class="rail"><div class="dot"></div></div>
+      <div><div class="stage-sw">${s.sw}</div><div class="stage-en">${s.en}</div></div>
+      ${pic}
+    </div>`;
+  }).join('');
+}
+
+async function track(){
+  const o = $('ord').value, c = $('code').value;
+  $('result').classList.remove('on');
+  $('miss').classList.remove('on');
+  if(!tidy(o) || !tidy(c)){ showMiss('Enter both your order number and tracking code.'); return; }
+
+  const btn = $('go'); btn.disabled = true; const label = btn.textContent; btn.textContent = 'Checking…';
+
+  let rows, err;
+  try{
+    ({ data: rows, error: err } = await sb.rpc('track_order', { p_order: o, p_code: c }));
+  }catch(e){ err = e; }
+
+  btn.disabled = false; btn.textContent = label;
+
+  if(err){
+    showMiss('Could not reach the tracker just now. Check your connection and try again.');
+    return;
+  }
+  const hit = rows && rows[0];
+  if(!hit){ showMiss(); return; }
+
+  const dt = hit.delivery_type || 'upcountry';
+  STAGES = CHAINS[dt] || CHAINS.upcountry;
+  document.querySelector('.chain-hd').textContent =
+    dt === 'mombasa' ? 'Safari ya samaki · Local delivery'
+    : dt === 'pickup' ? 'Safari ya samaki · Collection'
+    : 'Safari ya samaki · Cold chain';
+
+  const name = hit.customer_name ? hit.customer_name.split(' ')[0] : null;
+  $('rOrd').textContent   = hit.order_number;
+  $('rName').textContent  = name ? `${name}'s order` : 'Your order';
+  $('rItems').textContent = hit.items || '—';
+  $('rPhone').innerHTML   = hit.contact
+    ? hit.contact
+    : '<span class="warn">Not on file — please send us your number</span>';
+  $('rDest').textContent  = hit.destination || '—';
+  const ago = (iso) => {
+    if(!iso) return '';
+    const mins = Math.max(0, Math.floor((Date.now() - new Date(iso)) / 60000));
+    if(mins < 60)   return mins + ' minutes ago';
+    const h = Math.floor(mins/60);
+    if(h < 24)      return h + (h===1 ? ' hour ago' : ' hours ago');
+    const d = Math.floor(h/24);
+    return d + (d===1 ? ' day ago' : ' days ago');
+  };
+  const when = (iso) => iso ? new Date(iso).toLocaleString('en-GB',
+    { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : '';
+
+  $('rDate').textContent = hit.placed_at
+    ? `${when(hit.placed_at)} · ${ago(hit.placed_at)}`
+    : (hit.date_ordered
+        ? new Date(hit.date_ordered + 'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})
+        : '—');
+
+  /* Rider card and note: only present once the order is moving and paid.
+     Unpaid orders let the awaiting-payment branch below own rExtra. */
+  const extra = $('rExtra');
+  let bits = '';
+  if(!hit.awaiting_payment){
+    if(hit.dispatched_at && hit.stage >= 3){
+      bits += `<div class="sent">${dt==='pickup' ? 'Ready since' : 'Left Mombasa'} ${when(hit.dispatched_at)} · ${ago(hit.dispatched_at)}</div>`;
+    }
+    if(hit.eta_note) bits += `<div class="eta">${hit.eta_note}</div>`;
+    if(hit.rider_name || hit.rider_phone){
+      const ph = hit.rider_phone
+        ? `<a href="tel:${hit.rider_phone.replace(/\s/g,'')}">${hit.rider_phone}</a>` : '';
+      bits += `<div class="rider"><span class="rider-l">${dt==='mombasa'?'Your rider':'Carried by'}</span>
+               <span class="rider-v">${hit.rider_name || 'Rider'}${ph ? ' · '+ph : ''}</span></div>`;
+    }
+    extra.innerHTML = bits;
+    extra.classList.toggle('hidden', !bits);
+  }
+
+  const b = $('rBadge');
+  const cbtn = $('confirmBtn');
+  cbtn.classList.add('hidden');
+  cbtn.disabled = false;
+  cbtn.textContent = "✓ Nimepokea · I've received it";
+
+  if(hit.awaiting_payment){
+    /* Unpaid: honest status, no confirmed promise, till number shown */
+    b.className = 'badge pay'; b.textContent = 'Inasubiri malipo';
+    $('rChain').innerHTML =
+      `<div class="stage now">
+         <div class="rail"><div class="dot"></div></div>
+         <div><div class="stage-sw">${PAY_STAGE.sw}</div><div class="stage-en">${PAY_STAGE.en}</div></div>
+         <span></span>
+       </div>` +
+      STAGES.map((s,i)=>`<div class="stage">
+         <div class="rail"><div class="dot"></div></div>
+         <div><div class="stage-sw">${s.sw}</div><div class="stage-en">${s.en}</div></div><span></span>
+       </div>`).join('');
+    $('rExtra').innerHTML =
+      `<div class="pay-note">
+         <strong>Lipa kukamilisha oda yako · Pay to confirm your order</strong>
+         Lipa na M-Pesa — Buy Goods Till <b>9948037</b> (Hemed Yakub).
+         Ukisha lipa, oda yako itathibitishwa hapa moja kwa moja.
+       </div>`;
+    $('rExtra').classList.remove('hidden');
+  } else if(hit.stage === -1){
+    b.className = 'badge void'; b.textContent = 'Imesitishwa';
+    $('rChain').innerHTML = '<div class="stage"><div class="rail"><div class="dot"></div></div><div><div class="stage-sw">Imesitishwa</div><div class="stage-en">This order was cancelled</div></div><span></span></div>';
+  } else if(hit.stage >= 4){
+    b.className = 'badge done'; b.textContent = 'Imefika';
+    $('rChain').innerHTML = drawChain(4);
+  } else {
+    b.className = 'badge live'; b.textContent = STAGES[hit.stage-1].sw;
+    $('rChain').innerHTML = drawChain(hit.stage);
+    if(hit.stage === 3) cbtn.classList.remove('hidden');
+  }
+  $('result').classList.add('on');
+
+  /* Loyalty — the fleet. Ngalawa · Mashua · Dau · Meli, boats that grow.
+     Count only, no money — safe on a forwarded link. */
+  const loyal = $('rLoyal');
+  loyal.classList.add('hidden');
+  try{
+    const { data: L } = await sb.rpc('order_loyalty', { p_order: o, p_code: c });
+    const row = L && L[0];
+    const n = row ? row.total_orders : 1;
+    if(n > 1){
+      const first = row.display_name ? row.display_name.split(' ')[0] : null;
+      const tier =
+        n >= 20 ? {key:'meli',    name:'Meli',    tag:'Deep-sea vessel'} :
+        n >= 10 ? {key:'dau',     name:'Dau',     tag:'Trade-route dhow'} :
+        n >= 5  ? {key:'mashua',  name:'Mashua',  tag:'Wooden dhow-boat'} :
+                  {key:'ngalawa', name:'Ngalawa', tag:'Outrigger canoe'};
+      loyal.className = 'loyalty tier-' + tier.key;
+      loyal.innerHTML =
+        `<div class="vessel">${BOATS[tier.key]}</div>
+         <div class="seal-txt">
+           <div class="seal-hi">${first ? 'Karibu tena, '+first : 'Karibu tena'}</div>
+           <div class="seal-sub"><b>${tier.name}</b> · ${tier.tag} · ${n} orders</div>
+         </div>`;
+      loyal.classList.remove('hidden');
+    }
+  }catch(e){ /* loyalty is a bonus; never block the tracker on it */ }
+  $('waLink').href = 'https://wa.me/254787668888?text=' +
+    encodeURIComponent(`Hi Mombasafish, I need help with order ${hit.order_number}.`);
+}
+
+function showMiss(msg){
+  const m = $('miss');
+  m.querySelector('strong').textContent = msg ? 'Check again' : 'No order matches those details.';
+  m.querySelector('span').textContent = msg ||
+    'Check the order number and code against your receipt. Both must match exactly.';
+  m.classList.add('on');
+}
+
+$('go').addEventListener('click', track);
+['ord','code'].forEach(id => $(id).addEventListener('keydown', e => { if(e.key==='Enter') track(); }));
+
+/* Customer confirms receipt. Two taps, so a stray thumb doesn't close an order. */
+let armed = false;
+$('confirmBtn').addEventListener('click', async () => {
+  const btn = $('confirmBtn');
+  if(!armed){
+    armed = true;
+    btn.textContent = 'Tap again to confirm';
+    setTimeout(()=>{ if(armed){ armed=false; btn.textContent="✓ Nimepokea · I've received it"; } }, 5000);
+    return;
+  }
+  armed = false;
+  btn.disabled = true; btn.textContent = 'Saving…';
+  const { data, error } = await sb.rpc('confirm_receipt', {
+    p_order: $('ord').value, p_code: $('code').value
+  });
+  if(error || !data || !data.length){
+    btn.disabled = false;
+    btn.textContent = 'Could not save — try again';
+    return;
+  }
+  btn.textContent = 'Asante! Marked as received';
+  setTimeout(track, 900);
+});
+
+/* Copy a ready-to-send deep link for the order on screen */
+$('copyBtn').addEventListener('click', async () => {
+  const link = `${location.origin}${location.pathname}?order=${encodeURIComponent($('rOrd').textContent)}&code=${encodeURIComponent(tidy($('code').value))}`;
+  const btn = $('copyBtn');
+  try{
+    await navigator.clipboard.writeText(link);
+  }catch{
+    const t = document.createElement('textarea');
+    t.value = link; t.style.position='fixed'; t.style.opacity='0';
+    document.body.appendChild(t); t.select();
+    document.execCommand('copy'); t.remove();
+  }
+  btn.textContent = 'Link copied';
+  btn.classList.add('ok');
+  setTimeout(()=>{ btn.textContent='Copy tracking link'; btn.classList.remove('ok'); }, 2200);
+});
+
+const q = new URLSearchParams(location.search);
+if(q.get('order') && q.get('code')){
+  $('ord').value = q.get('order'); $('code').value = q.get('code'); track();
+}
+</script>
+</body>
+</html>
