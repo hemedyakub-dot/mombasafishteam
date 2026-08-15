@@ -5,15 +5,20 @@
   # Reserved for the Notion sync function (added in the next step).
   functions = "netlify/functions"
 
-# Never cache the page itself, so order updates appear immediately.
+# Never cache the pages themselves, so updates appear immediately.
 [[headers]]
   for = "/index.html"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 
+[[headers]]
+  for = "/refund.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
 # Images are versioned by filename — cache them hard.
 [[headers]]
-  for = "/img/*"
+  for = "/*.webp"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
