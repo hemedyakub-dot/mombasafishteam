@@ -145,6 +145,16 @@ input:focus{outline:none;border-color:var(--foam)}
 .fish.is2 .fstate{background:var(--foam);color:var(--abyss)}
 .fish.is2 .fdot{color:var(--foam)}
 .fish.is2 .fname{color:var(--foam)}
+.fish.open{border-color:var(--foam);border-bottom-left-radius:0;border-bottom-right-radius:0}
+.fishwrap{margin-bottom:2px}
+.fpick{display:flex;flex-direction:column;gap:0;border:1px solid var(--foam);border-top:none;
+  border-radius:0 0 6px 6px;overflow:hidden;margin-bottom:6px}
+.fopt{text-align:left;padding:11px 14px;background:rgba(3,42,46,.9);color:var(--sand);
+  border:none;border-top:1px solid rgba(127,212,193,.15);cursor:pointer;font-family:inherit;
+  font-size:13px}
+.fopt:first-child{border-top:none}
+.fopt:hover{background:rgba(127,212,193,.12)}
+.fopt.on{background:rgba(127,212,193,.2);color:var(--foam);font-weight:600}
 .items-progress{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:4px;letter-spacing:.04em}
 .all-ready{font-family:var(--mono);font-size:11px;color:var(--foam);margin-top:4px;letter-spacing:.04em;font-weight:600}
 .seed-btn{margin-top:8px;padding:9px 12px;width:100%;border:1px dashed var(--faint);background:transparent;
@@ -370,14 +380,20 @@ const ITEM_STATE = {
   2: ['Packed',          'is2']
 };
 
-async function cycleItem(id, orderNo){
+let openItem = null;   // id of the item whose state-picker is open
+
+function toggleItem(id){
+  openItem = (openItem === id) ? null : id;
+  render();
+}
+
+async function pickItem(id, orderNo, newState){
   const list = itemsByOrder[orderNo] || [];
   const it = list.find(x => x.id === id);
   if(!it) return;
-  const next = (it.state + 1) % 3;          // not caught → on ice → packed → (back to not caught)
   const prev = it.state;
-  it.state = next; render();                 // optimistic
-  const { error } = await sb.rpc('set_item_state', { p_item:id, p_state:next });
+  it.state = newState; openItem = null; render();       // optimistic
+  const { error } = await sb.rpc('set_item_state', { p_item:id, p_state:newState });
   if(error){ it.state = prev; render(); note(error.message,'err'); }
 }
 
@@ -493,11 +509,20 @@ function render(){
       const rows = myItems.map(it => {
         const [txt, cls2] = ITEM_STATE[it.state];
         const dot = it.state===2 ? '✓' : (it.state===1 ? '❄' : '○');
-        return `<button class="fish ${cls2}" onclick="cycleItem(${it.id},'${o.order_number}')">
-                  <span class="fdot">${dot}</span>
-                  <span class="fname">${it.item_name}</span>
-                  <span class="fstate">${txt}</span>
-                </button>`;
+        const isOpen = openItem === it.id;
+        const picker = isOpen ? `
+          <div class="fpick">
+            <button class="fopt ${it.state===0?'on':''}" onclick="event.stopPropagation();pickItem(${it.id},'${o.order_number}',0)">○ Not yet caught</button>
+            <button class="fopt ${it.state===1?'on':''}" onclick="event.stopPropagation();pickItem(${it.id},'${o.order_number}',1)">❄ On ice</button>
+            <button class="fopt ${it.state===2?'on':''}" onclick="event.stopPropagation();pickItem(${it.id},'${o.order_number}',2)">✓ Packed</button>
+          </div>` : '';
+        return `<div class="fishwrap">
+          <button class="fish ${cls2} ${isOpen?'open':''}" onclick="toggleItem(${it.id})">
+            <span class="fdot">${dot}</span>
+            <span class="fname">${it.item_name}</span>
+            <span class="fstate">${txt}</span>
+          </button>${picker}
+        </div>`;
       }).join('');
       const allPacked = myItems.every(x => x.state===2);
       const readyNote = allPacked
