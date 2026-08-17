@@ -702,9 +702,9 @@ function renderBasket(items){
   const packed = items.filter(i=>i.state===2).length;
   const atSea  = items.filter(i=>i.state===0).length;
   const IST = {
-    0:['Bado baharini','Still at sea','b0','○'],
-    1:['Kwenye barafu','On ice','b1','❄'],
-    2:['Imefungwa','Packed','b2','✓']
+    0:['Bado baharini','Not yet caught · at sea','b0','○'],
+    1:['Imevuliwa · inasafishwa','Caught · being cleaned','b1','🔪'],
+    2:['Imewekwa barafu · imefungwa','Iced & packed','b2','✓']
   };
   const rows = items.map(it=>{
     const [sw,en,cls,dot] = IST[it.state] || IST[0];
@@ -715,8 +715,8 @@ function renderBasket(items){
     </div>`;
   }).join('');
   const summary = atSea > 0
-    ? `<div class="bsum">${packed}/${items.length} tayari · ${atSea} bado inavuliwa <i>(${packed} of ${items.length} ready, ${atSea} still being caught)</i></div>`
-    : `<div class="bsum done">✓ Vyote tayari · Everything packed and ready</div>`;
+    ? `<div class="bsum">${packed}/${items.length} tayari · ${atSea} bado baharini <i>(${packed} of ${items.length} iced & packed, ${atSea} still at sea)</i></div>`
+    : `<div class="bsum done">✓ Vyote vimewekwa barafu · Everything iced, packed & ready</div>`;
   box.innerHTML = `<div class="btitle">Mzigo wako · item by item</div>${rows}${summary}`;
 }
 

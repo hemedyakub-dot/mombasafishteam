@@ -386,9 +386,9 @@ async function load(){
 }
 
 const ITEM_STATE = {
-  0: ['Not yet caught', 'is0'],
-  1: ['On ice',          'is1'],
-  2: ['Packed',          'is2']
+  0: ['Not yet caught · at sea', 'is0'],
+  1: ['Caught · to be cleaned',   'is1'],
+  2: ['Iced & packed',            'is2']
 };
 
 let openItem = null;   // id of the item whose state-picker is open
@@ -536,13 +536,13 @@ function render(){
     } else if(myItems.length){
       const rows = myItems.map(it => {
         const [txt, cls2] = ITEM_STATE[it.state];
-        const dot = it.state===2 ? '✓' : (it.state===1 ? '❄' : '○');
+        const dot = it.state===2 ? '✓' : (it.state===1 ? '🔪' : '○');
         const isOpen = openItem === it.id;
         const picker = isOpen ? `
           <div class="fpick">
-            <button class="fopt ${it.state===0?'on':''}" data-pick="0" data-item="${it.id}" data-order="${o.order_number}">○ Not yet caught</button>
-            <button class="fopt ${it.state===1?'on':''}" data-pick="1" data-item="${it.id}" data-order="${o.order_number}">❄ On ice</button>
-            <button class="fopt ${it.state===2?'on':''}" data-pick="2" data-item="${it.id}" data-order="${o.order_number}">✓ Packed</button>
+            <button class="fopt ${it.state===0?'on':''}" data-pick="0" data-item="${it.id}" data-order="${o.order_number}">○ Not yet caught · at sea</button>
+            <button class="fopt ${it.state===1?'on':''}" data-pick="1" data-item="${it.id}" data-order="${o.order_number}">🔪 Caught · to be cleaned</button>
+            <button class="fopt ${it.state===2?'on':''}" data-pick="2" data-item="${it.id}" data-order="${o.order_number}">✓ Iced & packed</button>
           </div>` : '';
         return `<div class="fishwrap">
           <button class="fish ${cls2} ${isOpen?'open':''}" data-fish="${it.id}">
@@ -554,8 +554,8 @@ function render(){
       }).join('');
       const allPacked = myItems.every(x => x.state===2);
       const readyNote = allPacked
-        ? `<div class="all-ready">✓ All items packed — ready to dispatch</div>`
-        : `<div class="items-progress">${myItems.filter(x=>x.state===2).length}/${myItems.length} packed · ${myItems.filter(x=>x.state===0).length} still to catch</div>`;
+        ? `<div class="all-ready">✓ All iced & packed — ready to dispatch</div>`
+        : `<div class="items-progress">${myItems.filter(x=>x.state===2).length}/${myItems.length} packed · ${myItems.filter(x=>x.state===0).length} still at sea</div>`;
       itemsBlock = `<div class="checklist">${rows}${readyNote}</div>`;
     } else {
       itemsBlock = `${o.items ? `<div class="items">${o.items}</div>` : ''}
