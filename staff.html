@@ -164,7 +164,13 @@ input:focus{outline:none;border-color:var(--foam)}
 .acts{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
 .act{flex:1;min-width:120px;padding:11px;border:1px solid var(--faint);background:transparent;border-radius:3px;color:var(--sand);font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
 .act:hover{border-color:var(--foam);color:var(--foam)}
+.act.locked{background:transparent;border:1px dashed var(--faint);color:var(--dim);
+  cursor:not-allowed;font-weight:500;text-transform:none;letter-spacing:.02em}
+.act.locked:hover{border-color:var(--faint);color:var(--dim)}
 .act.go{background:var(--catch);border-color:var(--catch);color:var(--abyss);font-weight:600}
+.act.go.locked{background:transparent;border:1px dashed var(--faint);color:var(--dim);
+  cursor:not-allowed;font-weight:500;text-transform:none;letter-spacing:.02em}
+.act.go.locked:hover{border-color:var(--faint);color:var(--dim)}
 .act.go:hover{background:#ffc76d;color:var(--abyss)}
 .act:disabled{opacity:.45;cursor:not-allowed}
 
@@ -458,12 +464,27 @@ function render(){
     let [label, cls] = STAGE[o.stage] || ['—','p1'];
     if(unpaid){ label = 'Awaiting payment'; cls = 'pPay'; }
     const dt = o.delivery_type || 'upcountry';
+    // Dispatch is only allowed once EVERY item is packed. If any fish is still
+    // "at sea" or "on ice", the button is locked — you can't send a half-full box.
+    const hasItems = myItems.length > 0;
+    const allItemsPacked = hasItems ? myItems.every(x => x.state === 2) : true;
+    const notPacked = hasItems ? myItems.filter(x => x.state !== 2).length : 0;
+    const dispatchBtn = allItemsPacked
+      ? `<button class="act go" data-d="${o.order_number}">Dispatch →</button>`
+      : `<button class="act go locked" disabled title="Pack all items first">🔒 Dispatch (${notPacked} item${notPacked>1?'s':''} not packed)</button>`;
+
     let acts = '';
     if(unpaid){
       acts = '';  // no packing or dispatch until paid — prevents accidental sourcing
-    } else if(o.stage===1) acts = `<button class="act" data-s="2" data-o="${o.order_number}">Mark ${dt==='mombasa'?'prepared':'packed'}</button>
-                            <button class="act go" data-d="${o.order_number}">Dispatch →</button>`;
-    else if(o.stage===2) acts = `<button class="act go" data-d="${o.order_number}">Dispatch →</button>`;
+    } else if(o.stage===1){
+      // "Mark packed" for the whole order is only offered once all items are packed.
+      // Until then, staff pack fish-by-fish using the checklist above.
+      const markBtn = allItemsPacked
+        ? `<button class="act" data-s="2" data-o="${o.order_number}">Mark ${dt==='mombasa'?'prepared':'packed'}</button>`
+        : `<button class="act locked" disabled title="Pack all items first">🔒 Pack all items to continue</button>`;
+      acts = `${markBtn}${allItemsPacked ? dispatchBtn : ''}`;
+    }
+    else if(o.stage===2) acts = dispatchBtn;
     else if(o.stage===3) acts = `<button class="act" data-s="4" data-o="${o.order_number}">Mark ${dt==='pickup'?'collected':'arrived'}</button>`;
     const rider = (o.stage>=3 && (o.rider_name||o.rider_phone))
       ? `<div class="items">🛵 ${o.rider_name||'Rider'}${o.rider_phone?' · '+o.rider_phone:''}</div>` : '';
