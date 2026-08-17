@@ -369,13 +369,18 @@ async function load(){
   const nums = orders.map(o => o.order_number);
   itemsByOrder = {};
   if(nums.length){
-    const { data: items } = await sb.from('mfm_order_items')
-      .select('id, order_number, item_name, state, sort_order')
-      .in('order_number', nums)
-      .order('sort_order', { ascending:true });
-    (items || []).forEach(it => {
-      (itemsByOrder[it.order_number] ||= []).push(it);
-    });
+    try{
+      const { data: items } = await sb.from('mfm_order_items')
+        .select('id, order_number, item_name, state, sort_order')
+        .in('order_number', nums)
+        .order('sort_order', { ascending:true });
+      (items || []).forEach(function(it){
+        if(!itemsByOrder[it.order_number]) itemsByOrder[it.order_number] = [];
+        itemsByOrder[it.order_number].push(it);
+      });
+    }catch(e){
+      itemsByOrder = {};
+    }
   }
   render();
 }
@@ -464,6 +469,9 @@ function render(){
     let [label, cls] = STAGE[o.stage] || ['—','p1'];
     if(unpaid){ label = 'Awaiting payment'; cls = 'pPay'; }
     const dt = o.delivery_type || 'upcountry';
+    // Per-item states for this order — defined up-front because both the
+    // dispatch lock and the checklist below depend on it.
+    const myItems = itemsByOrder[o.order_number] || [];
     // Dispatch is only allowed once EVERY item is packed. If any fish is still
     // "at sea" or "on ice", the button is locked — you can't send a half-full box.
     const hasItems = myItems.length > 0;
@@ -522,7 +530,6 @@ function render(){
 
     // Per-item checklist — each fish tick-able through Not caught → On ice → Packed.
     // Only shown for paid orders (unpaid shouldn't be sourced at all).
-    const myItems = itemsByOrder[o.order_number] || [];
     let itemsBlock;
     if(unpaid){
       itemsBlock = o.items ? `<div class="items">${o.items}</div>` : '';
@@ -593,7 +600,7 @@ async function renderRepeats(){
   }
   // group by first name; only show names appearing more than once
   const groups = {};
-  repeatsData.forEach(r => { (groups[r.first_name] ||= []).push(r); });
+  repeatsData.forEach(function(r){ if(!groups[r.first_name]) groups[r.first_name]=[]; groups[r.first_name].push(r); });
   const dupes = Object.entries(groups).filter(([,rows]) => rows.length > 1);
 
   if(!dupes.length){
