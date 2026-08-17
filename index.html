@@ -290,6 +290,26 @@ h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01
 .rider-v a{color:var(--foam);text-decoration:none;border-bottom:1px solid rgba(127,212,193,.4)}
 .detail{border-top:1px solid var(--sand-faint);padding:20px 22px}
 .row{display:flex;justify-content:space-between;gap:20px;padding:7px 0;font-size:14px}
+.basket{margin:10px 0 4px}
+.btitle{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--foam);margin:6px 0 10px}
+.bitem{display:flex;align-items:center;gap:11px;padding:10px 12px;margin-bottom:7px;
+  border-radius:7px;border:1px solid rgba(242,237,227,.1)}
+.bdot{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.bname{flex:1;font-size:14px;font-weight:500}
+.bstate{text-align:right;flex-shrink:0;line-height:1.25}
+.bstate b{display:block;font-size:12px;font-weight:600}
+.bstate i{font-style:normal;font-size:10px;opacity:.65;font-family:'IBM Plex Mono',monospace}
+.bitem.b0{opacity:.62}
+.bitem.b0 .bdot,.bitem.b0 .bstate b{color:var(--sand)}
+.bitem.b1{border-color:rgba(127,212,193,.35);background:rgba(127,212,193,.06)}
+.bitem.b1 .bdot,.bitem.b1 .bstate b{color:var(--foam)}
+.bitem.b2{border-color:rgba(127,212,193,.55);background:rgba(127,212,193,.12)}
+.bitem.b2 .bdot,.bitem.b2 .bstate b{color:var(--foam)}
+.bsum{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--sand);
+  margin-top:8px;padding-top:8px;border-top:1px solid rgba(242,237,227,.1)}
+.bsum i{font-style:normal;opacity:.6;font-size:11px}
+.bsum.done{color:var(--foam)}
 .row dt{
   font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
   color:var(--sand-dim);flex-shrink:0;padding-top:2px;
@@ -410,6 +430,7 @@ h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01
         <div class="detail">
           <dl>
             <div class="row"><dt>Mzigo · Your catch</dt><dd id="rItems"></dd></div>
+            <div id="rBasket" class="basket" style="display:none"></div>
             <div class="row"><dt>Simu · Contact</dt><dd id="rPhone"></dd></div>
             <div class="row"><dt>Inakwenda · Destination</dt><dd id="rDest"></dd></div>
             <div class="row"><dt>Tarehe · Ordered</dt><dd id="rDate"></dd></div>
@@ -555,6 +576,13 @@ async function track(){
   const name = hit.customer_name ? hit.customer_name.split(' ')[0] : null;
   $('rOrd').textContent   = hit.order_number;
   $('rName').textContent  = name ? `${name}'s order` : 'Your order';
+
+  // Honest basket: if this order has per-item tracking, show each fish's state.
+  try{
+    const { data: items } = await sb.rpc('order_items', { p_order:o, p_code:c });
+    renderBasket(items || []);
+  }catch(e){ renderBasket([]); }
+
   $('rItems').textContent = hit.items || '—';
   $('rPhone').innerHTML   = hit.contact
     ? hit.contact
@@ -663,6 +691,33 @@ async function track(){
   }catch(e){ /* loyalty is a bonus; never block the tracker on it */ }
   $('waLink').href = 'https://wa.me/254787668888?text=' +
     encodeURIComponent(`Hi Mombasafish, I need help with order ${hit.order_number}.`);
+}
+
+function renderBasket(items){
+  const box = document.getElementById('rBasket');
+  const line = document.getElementById('rItems');
+  if(!items.length){ box.style.display='none'; line.style.display=''; return; }
+  line.style.display = 'none';
+  box.style.display = '';
+  const packed = items.filter(i=>i.state===2).length;
+  const atSea  = items.filter(i=>i.state===0).length;
+  const IST = {
+    0:['Bado baharini','Still at sea','b0','○'],
+    1:['Kwenye barafu','On ice','b1','❄'],
+    2:['Imefungwa','Packed','b2','✓']
+  };
+  const rows = items.map(it=>{
+    const [sw,en,cls,dot] = IST[it.state] || IST[0];
+    return `<div class="bitem ${cls}">
+      <span class="bdot">${dot}</span>
+      <span class="bname">${it.item_name}</span>
+      <span class="bstate"><b>${sw}</b><i>${en}</i></span>
+    </div>`;
+  }).join('');
+  const summary = atSea > 0
+    ? `<div class="bsum">${packed}/${items.length} tayari · ${atSea} bado inavuliwa <i>(${packed} of ${items.length} ready, ${atSea} still being caught)</i></div>`
+    : `<div class="bsum done">✓ Vyote tayari · Everything packed and ready</div>`;
+  box.innerHTML = `<div class="btitle">Mzigo wako · item by item</div>${rows}${summary}`;
 }
 
 function showMiss(msg){

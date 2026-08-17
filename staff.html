@@ -125,6 +125,32 @@ input:focus{outline:none;border-color:var(--foam)}
   color:#F0C070;font-family:var(--mono);font-size:11px;letter-spacing:.05em;
 }
 
+.checklist{margin:12px 0 4px;display:flex;flex-direction:column;gap:6px}
+.fish{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:10px 12px;border-radius:6px;border:1px solid var(--faint);
+  background:transparent;color:var(--sand);cursor:pointer;font-family:inherit;font-size:14px;
+  transition:background .15s,border-color .15s}
+.fish:hover{border-color:var(--foam)}
+.fdot{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.fname{flex:1;font-weight:500}
+.fstate{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  padding:3px 8px;border-radius:100px;flex-shrink:0}
+.fish.is0{opacity:.7}
+.fish.is0 .fstate{background:rgba(242,237,227,.12);color:var(--dim)}
+.fish.is0 .fdot{color:var(--dim)}
+.fish.is1{border-color:rgba(127,212,193,.4)}
+.fish.is1 .fstate{background:rgba(127,212,193,.18);color:var(--foam)}
+.fish.is1 .fdot{color:var(--foam)}
+.fish.is2{border-color:var(--foam);background:rgba(127,212,193,.08)}
+.fish.is2 .fstate{background:var(--foam);color:var(--abyss)}
+.fish.is2 .fdot{color:var(--foam)}
+.fish.is2 .fname{color:var(--foam)}
+.items-progress{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:4px;letter-spacing:.04em}
+.all-ready{font-family:var(--mono);font-size:11px;color:var(--foam);margin-top:4px;letter-spacing:.04em;font-weight:600}
+.seed-btn{margin-top:8px;padding:9px 12px;width:100%;border:1px dashed var(--faint);background:transparent;
+  color:var(--dim);border-radius:6px;cursor:pointer;font-family:var(--mono);font-size:11px;
+  letter-spacing:.06em;text-transform:uppercase}
+.seed-btn:hover{border-color:var(--foam);color:var(--foam)}
 .acts{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
 .act{flex:1;min-width:120px;padding:11px;border:1px solid var(--faint);background:transparent;border-radius:3px;color:var(--sand);font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
 .act:hover{border-color:var(--foam);color:var(--foam)}
@@ -314,13 +340,52 @@ async function boot(){
 }
 let isOwner = false;
 
+let itemsByOrder = {};
+
 async function load(){
   const { data, error } = await sb.from('mfm_orders')
     .select('order_number, tracking_code, customer_name, contact, destination, items, stage, status, created_at, stage_changed_at, dispatched_at, delivery_type, rider_name, rider_phone, eta_note')
     .order('date_ordered', { ascending:true });
   if(error){ note(error.message,'err'); return; }
   orders = data || [];
+
+  // Pull per-item states for all visible orders in one query
+  const nums = orders.map(o => o.order_number);
+  itemsByOrder = {};
+  if(nums.length){
+    const { data: items } = await sb.from('mfm_order_items')
+      .select('id, order_number, item_name, state, sort_order')
+      .in('order_number', nums)
+      .order('sort_order', { ascending:true });
+    (items || []).forEach(it => {
+      (itemsByOrder[it.order_number] ||= []).push(it);
+    });
+  }
   render();
+}
+
+const ITEM_STATE = {
+  0: ['Not yet caught', 'is0'],
+  1: ['On ice',          'is1'],
+  2: ['Packed',          'is2']
+};
+
+async function cycleItem(id, orderNo){
+  const list = itemsByOrder[orderNo] || [];
+  const it = list.find(x => x.id === id);
+  if(!it) return;
+  const next = (it.state + 1) % 3;          // not caught → on ice → packed → (back to not caught)
+  const prev = it.state;
+  it.state = next; render();                 // optimistic
+  const { error } = await sb.rpc('set_item_state', { p_item:id, p_state:next });
+  if(error){ it.state = prev; render(); note(error.message,'err'); }
+}
+
+async function seedItems(orderNo){
+  const { data, error } = await sb.rpc('mfm_seed_items', { p_order:orderNo });
+  if(error){ note(error.message,'err'); return; }
+  note(`${data} items added for ${orderNo}.`);
+  await load();
 }
 
 const DTYPE = { mombasa:'Mombasa', upcountry:'Upcountry', pickup:'Pickup' };
@@ -418,6 +483,32 @@ function render(){
       : '';
     const placed = `<div class="placed">Ordered ${stamp(o.created_at)}${since ? ' · ' + since.text : ''}</div>`;
 
+    // Per-item checklist — each fish tick-able through Not caught → On ice → Packed.
+    // Only shown for paid orders (unpaid shouldn't be sourced at all).
+    const myItems = itemsByOrder[o.order_number] || [];
+    let itemsBlock;
+    if(unpaid){
+      itemsBlock = o.items ? `<div class="items">${o.items}</div>` : '';
+    } else if(myItems.length){
+      const rows = myItems.map(it => {
+        const [txt, cls2] = ITEM_STATE[it.state];
+        const dot = it.state===2 ? '✓' : (it.state===1 ? '❄' : '○');
+        return `<button class="fish ${cls2}" onclick="cycleItem(${it.id},'${o.order_number}')">
+                  <span class="fdot">${dot}</span>
+                  <span class="fname">${it.item_name}</span>
+                  <span class="fstate">${txt}</span>
+                </button>`;
+      }).join('');
+      const allPacked = myItems.every(x => x.state===2);
+      const readyNote = allPacked
+        ? `<div class="all-ready">✓ All items packed — ready to dispatch</div>`
+        : `<div class="items-progress">${myItems.filter(x=>x.state===2).length}/${myItems.length} packed · ${myItems.filter(x=>x.state===0).length} still to catch</div>`;
+      itemsBlock = `<div class="checklist">${rows}${readyNote}</div>`;
+    } else {
+      itemsBlock = `${o.items ? `<div class="items">${o.items}</div>` : ''}
+        <button class="seed-btn" onclick="seedItems('${o.order_number}')">＋ Track items individually</button>`;
+    }
+
     // Unpaid: no notify-dispatch message; instead a clear "send payment link" prompt
     const payUrl = `https://mombasafishteam.netlify.app/?order=${encodeURIComponent(o.order_number)}&code=${encodeURIComponent(o.tracking_code||'')}`;
     const payMsg = `Habari ${first}, oda yako ${o.order_number} imepokelewa. Tafadhali lipa na M-Pesa Buy Goods Till 9948037 (Hemed Yakub) kukamilisha. Fuatilia hapa: ${payUrl}`;
@@ -437,7 +528,7 @@ function render(){
       </div>
       ${placed}
       ${contact}
-      ${o.items ? `<div class="items">${o.items}</div>` : ''}
+      ${itemsBlock}
       ${rider}
       ${unpaid ? payBlock : notify}
       ${acts ? `<div class="acts">${acts}</div>` : ''}
