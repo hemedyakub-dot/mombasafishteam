@@ -540,12 +540,12 @@ function render(){
         const isOpen = openItem === it.id;
         const picker = isOpen ? `
           <div class="fpick">
-            <button class="fopt ${it.state===0?'on':''}" onclick="event.stopPropagation();pickItem(${it.id},'${o.order_number}',0)">○ Not yet caught</button>
-            <button class="fopt ${it.state===1?'on':''}" onclick="event.stopPropagation();pickItem(${it.id},'${o.order_number}',1)">❄ On ice</button>
-            <button class="fopt ${it.state===2?'on':''}" onclick="event.stopPropagation();pickItem(${it.id},'${o.order_number}',2)">✓ Packed</button>
+            <button class="fopt ${it.state===0?'on':''}" data-pick="0" data-item="${it.id}" data-order="${o.order_number}">○ Not yet caught</button>
+            <button class="fopt ${it.state===1?'on':''}" data-pick="1" data-item="${it.id}" data-order="${o.order_number}">❄ On ice</button>
+            <button class="fopt ${it.state===2?'on':''}" data-pick="2" data-item="${it.id}" data-order="${o.order_number}">✓ Packed</button>
           </div>` : '';
         return `<div class="fishwrap">
-          <button class="fish ${cls2} ${isOpen?'open':''}" onclick="toggleItem(${it.id})">
+          <button class="fish ${cls2} ${isOpen?'open':''}" data-fish="${it.id}">
             <span class="fdot">${dot}</span>
             <span class="fname">${it.item_name}</span>
             <span class="fstate">${txt}</span>
@@ -559,7 +559,7 @@ function render(){
       itemsBlock = `<div class="checklist">${rows}${readyNote}</div>`;
     } else {
       itemsBlock = `${o.items ? `<div class="items">${o.items}</div>` : ''}
-        <button class="seed-btn" onclick="seedItems('${o.order_number}')">＋ Track items individually</button>`;
+        <button class="seed-btn" data-seed="${o.order_number}">＋ Track items individually</button>`;
     }
 
     // Unpaid: no notify-dispatch message; instead a clear "send payment link" prompt
@@ -709,8 +709,23 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>{
 }));
 
 $('list').addEventListener('click', e=>{
+  // Item state pick (from the 3-button picker)
+  const pick = e.target.closest('[data-pick]');
+  if(pick){
+    e.stopPropagation();
+    pickItem(Number(pick.dataset.item), pick.dataset.order, Number(pick.dataset.pick));
+    return;
+  }
+  // Tap a fish to open/close its state picker
+  const fish = e.target.closest('[data-fish]');
+  if(fish){ toggleItem(Number(fish.dataset.fish)); return; }
+  // Seed items for an order that has none yet
+  const seed = e.target.closest('[data-seed]');
+  if(seed){ seedItems(seed.dataset.seed); return; }
+  // Dispatch
   const d = e.target.closest('[data-d]');
   if(d){ openSheet(d.dataset.d); return; }
+  // Stage change (Mark packed / arrived etc.)
   const b = e.target.closest('.act');
   if(b && b.dataset.s) setStage(b.dataset.o, Number(b.dataset.s), b);
 });
