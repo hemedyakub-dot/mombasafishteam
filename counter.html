@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Counter POS · Mombasafish</title>
+<style>
+  :root{
+    --abyss:#032A2E; --deep:#07474C; --foam:#7FD4C1; --catch:#FFB84D;
+    --coral:#FF6B5A; --sand:#F2EDE3; --dim:#9db0ad; --faint:rgba(242,237,227,.15);
+    --green:#22c55e; --mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--abyss);color:var(--sand);
+    font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;
+    padding-bottom:180px}
+  /* ---------- sign in ---------- */
+  #login{max-width:380px;margin:60px auto;padding:0 22px}
+  .brand{font-family:'Archivo Black',Impact,sans-serif;font-size:24px;text-align:center;letter-spacing:.5px}
+  .brand .b{color:var(--foam)}
+  .tag{font-family:var(--mono);font-size:11px;color:var(--catch);letter-spacing:.15em;
+    text-transform:uppercase;text-align:center;margin:6px 0 26px}
+  label{display:block;font-size:12px;color:var(--dim);margin:14px 0 5px;font-family:var(--mono);
+    letter-spacing:.06em;text-transform:uppercase}
+  input{width:100%;padding:13px;border-radius:8px;border:1px solid var(--faint);
+    background:#062f33;color:var(--sand);font-size:16px;font-family:inherit}
+  .btn{width:100%;margin-top:20px;padding:15px;border:none;border-radius:8px;background:var(--foam);
+    color:var(--abyss);font-weight:700;font-size:16px;font-family:var(--mono);letter-spacing:.05em;
+    text-transform:uppercase;cursor:pointer}
+  /* ---------- header ---------- */
+  header{position:sticky;top:0;z-index:20;background:rgba(3,42,46,.96);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--faint);padding:12px 16px}
+  .htop{display:flex;justify-content:space-between;align-items:center}
+  .htitle{font-family:'Archivo Black',sans-serif;font-size:15px;letter-spacing:.3px}
+  .hstaff{font-size:11px;color:var(--dim);font-family:var(--mono)}
+  .pill{margin-top:9px;display:flex;gap:8px}
+  .stat{flex:1;background:var(--deep);border:1px solid var(--faint);border-radius:8px;padding:8px 10px;text-align:center}
+  .stat b{display:block;font-size:17px;font-family:var(--mono);color:var(--foam)}
+  .stat span{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
+  /* ---------- product grid ---------- */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:14px 16px}
+  .prod{min-height:78px;border:1px solid var(--faint);border-radius:11px;background:var(--deep);
+    color:var(--sand);text-align:left;padding:11px 12px;cursor:pointer;display:flex;
+    flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+  .prod:active{transform:scale(.97)}
+  .prod .pn{font-weight:600;font-size:14px;line-height:1.15}
+  .prod .psw{font-size:11px;color:var(--foam);font-family:var(--mono)}
+  .prod .pp{font-size:13px;color:var(--catch);font-family:var(--mono);margin-top:4px}
+  .prod .pstock{position:absolute;top:8px;right:9px;font-size:9px;font-family:var(--mono);
+    color:var(--dim);text-transform:uppercase}
+  .prod.out{opacity:.4;pointer-events:none}
+  .prod.low .pstock{color:var(--catch)}
+  /* ---------- cart drawer ---------- */
+  #cart{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#04211f;
+    border-top:2px solid var(--foam);border-radius:16px 16px 0 0;max-height:62vh;display:flex;flex-direction:column}
+  .chandle{width:40px;height:4px;background:var(--faint);border-radius:2px;margin:8px auto 4px}
+  .clist{overflow-y:auto;padding:4px 16px;flex:1}
+  .cempty{text-align:center;color:var(--dim);padding:22px;font-size:13px}
+  .cItem{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--faint)}
+  .cItem .ci-n{flex:1;font-size:14px}
+  .cItem .ci-n small{display:block;color:var(--dim);font-family:var(--mono);font-size:11px}
+  .qbtn{width:30px;height:30px;border-radius:7px;border:1px solid var(--faint);background:transparent;
+    color:var(--foam);font-size:17px;cursor:pointer;flex-shrink:0}
+  .ci-q{min-width:44px;text-align:center;font-family:var(--mono);font-size:13px}
+  .ci-line{min-width:64px;text-align:right;font-family:var(--mono);font-size:13px;color:var(--catch)}
+  .ci-x{background:none;border:none;color:var(--coral);font-size:15px;cursor:pointer;padding:4px}
+  .cfoot{padding:12px 16px 18px;border-top:1px solid var(--faint)}
+  .pay{display:flex;gap:8px;margin-bottom:10px}
+  .paybtn{flex:1;padding:11px;border-radius:8px;border:1px solid var(--faint);background:transparent;
+    color:var(--sand);font-family:var(--mono);font-size:13px;cursor:pointer;text-transform:uppercase;letter-spacing:.05em}
+  .paybtn.on{border-color:var(--foam);background:rgba(127,212,193,.15);color:var(--foam);font-weight:700}
+  .checkout{width:100%;padding:16px;border:none;border-radius:10px;background:var(--green);color:#04211f;
+    font-weight:800;font-size:17px;font-family:var(--mono);letter-spacing:.03em;cursor:pointer}
+  .checkout:disabled{background:var(--faint);color:var(--dim);cursor:not-allowed}
+  /* ---------- weight keypad modal ---------- */
+  .modal{position:fixed;inset:0;z-index:50;background:rgba(2,20,20,.75);display:none;
+    align-items:flex-end}
+  .modal.show{display:flex}
+  .sheet{background:#04211f;border-radius:16px 16px 0 0;width:100%;padding:18px 18px 26px;border-top:2px solid var(--foam)}
+  .sheet h3{margin:4px 0 2px;font-size:17px}
+  .sheet .sub{color:var(--dim);font-size:12px;font-family:var(--mono);margin-bottom:12px}
+  .wdisp{font-family:var(--mono);font-size:32px;text-align:center;color:var(--foam);
+    background:#062f33;border-radius:10px;padding:14px;margin-bottom:4px}
+  .wcalc{text-align:center;font-family:var(--mono);font-size:13px;color:var(--catch);margin-bottom:12px}
+  .keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .key{padding:16px;border-radius:9px;border:1px solid var(--faint);background:var(--deep);
+    color:var(--sand);font-size:20px;font-family:var(--mono);cursor:pointer}
+  .key:active{background:var(--foam);color:var(--abyss)}
+  .key.wide{grid-column:span 2}
+  .addbtn{width:100%;margin-top:10px;padding:15px;border:none;border-radius:10px;background:var(--foam);
+    color:var(--abyss);font-weight:800;font-family:var(--mono);font-size:16px;text-transform:uppercase;cursor:pointer}
+  /* toast */
+  #toast{position:fixed;top:70px;left:50%;transform:translateX(-50%) translateY(-20px);z-index:80;
+    background:var(--green);color:#04211f;padding:13px 22px;border-radius:10px;font-weight:700;
+    font-family:var(--mono);opacity:0;transition:.25s;pointer-events:none;text-align:center}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #toast.err{background:var(--coral);color:#2a0a08}
+  .hide{display:none!important}
+  .cashrow{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:14px}
+  .cashrow b{font-family:var(--mono);font-size:16px}
+  .linkbar{text-align:center;padding:14px;font-size:12px;font-family:var(--mono)}
+  .linkbar a{color:var(--foam);text-decoration:none;margin:0 8px}
+</style>
+</head>
+<body>
+
+<!-- ============ SIGN IN ============ -->
+<div id="login">
+  <div class="brand">MOMBASA<span class="b">FISH</span></div>
+  <div class="tag">Counter POS · Duka</div>
+  <label>Email</label>
+  <input id="email" type="email" autocomplete="username" placeholder="you@mombasafish.com">
+  <label>Password</label>
+  <input id="pw" type="password" autocomplete="current-password" placeholder="••••••••">
+  <button class="btn" id="signin">Sign in</button>
+  <div id="lerr" style="color:var(--coral);font-size:13px;margin-top:12px;text-align:center"></div>
+</div>
+
+<!-- ============ POS APP ============ -->
+<div id="app" class="hide">
+  <header>
+    <div class="htop">
+      <div class="htitle">MOMBASAFISH COUNTER</div>
+      <div class="hstaff" id="who">—</div>
+    </div>
+    <div class="pill">
+      <div class="stat"><b id="dTotal">0</b><span>Today KES</span></div>
+      <div class="stat"><b id="dCount">0</b><span>Sales</span></div>
+      <div class="stat"><button class="qbtn" id="viewSales" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">SALES</button></div>
+      <div class="stat"><button class="qbtn" id="cashUp" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">CASH-UP</button></div>
+      <div class="stat"><button class="qbtn" id="signout" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">EXIT</button></div>
+    </div>
+    <div id="qbadge" class="hide" style="margin-top:8px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--catch);background:rgba(255,184,77,.12);border:1px solid rgba(255,184,77,.35);border-radius:7px;padding:6px"></div>
+  </header>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="linkbar">
+    <a href="./staff.html">→ Dispatch app</a>
+  </div>
+
+  <!-- cart -->
+  <div id="cart">
+    <div class="chandle"></div>
+    <div class="clist" id="clist">
+      <div class="cempty">Tap a fish to start a sale</div>
+    </div>
+    <div class="cfoot">
+      <div class="pay">
+        <button class="paybtn on" id="payMpesa" data-pay="mpesa">● M-Pesa Till</button>
+        <button class="paybtn" id="payCash" data-pay="cash">Cash</button>
+      </div>
+      <button class="checkout" id="checkout" disabled>COMPLETE SALE — KES 0</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TODAY'S SALES (with void) ============ -->
+<div class="modal" id="smodal">
+  <div class="sheet" style="max-height:82vh;overflow-y:auto">
+    <h3>Today's sales</h3>
+    <div class="sub" id="ssub" style="color:var(--dim);font-family:var(--mono);font-size:12px;margin-bottom:10px">—</div>
+    <div id="slist"></div>
+    <button class="addbtn" id="sclose" style="background:transparent;color:var(--dim);margin-top:10px">Close</button>
+  </div>
+</div>
+
+<!-- ============ CASH-UP ============ -->
+<div class="modal" id="cmodal">
+  <div class="sheet" style="max-height:88vh;overflow-y:auto">
+    <h3>End-of-day cash-up</h3>
+    <div class="sub" style="color:var(--dim);font-family:var(--mono);font-size:12px;margin-bottom:12px">Count the drawer and check it against the system.</div>
+    <label>Opening float (KES in drawer at start)</label>
+    <input id="cFloat" type="number" inputmode="numeric" value="0" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:16px;font-family:inherit">
+    <button class="addbtn" id="cCalc" style="margin-top:12px">Calculate expected</button>
+    <div id="cResult" class="hide" style="margin-top:16px">
+      <div class="cashrow"><span>Opening float</span><b id="rFloat">0</b></div>
+      <div class="cashrow"><span>Cash sales today</span><b id="rCashSales">0</b></div>
+      <div class="cashrow" style="border-top:1px solid var(--faint);padding-top:8px"><span>Expected in drawer</span><b id="rExpected" style="color:var(--foam)">0</b></div>
+      <div class="cashrow" style="margin-top:6px"><span>M-Pesa (separate)</span><b id="rMpesa" style="color:var(--green)">0</b></div>
+      <label style="margin-top:14px">Count the actual cash in the drawer</label>
+      <input id="cCounted" type="number" inputmode="numeric" placeholder="Counted cash" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:16px;font-family:inherit">
+      <div id="cVar" class="hide" style="margin-top:12px;padding:12px;border-radius:8px;text-align:center;font-family:var(--mono)"></div>
+      <label style="margin-top:12px">Note (optional)</label>
+      <input id="cNote" placeholder="e.g. gave change shortage" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit">
+      <button class="addbtn" id="cSave" style="margin-top:14px">Finalize &amp; save cash-up</button>
+    </div>
+    <button class="addbtn" id="cClose" style="background:transparent;color:var(--dim);margin-top:8px">Close</button>
+  </div>
+</div>
+
+<!-- ============ WEIGHT KEYPAD ============ -->
+<div class="modal" id="wmodal">
+  <div class="sheet">
+    <h3 id="wname">—</h3>
+    <div class="sub" id="wsub">Enter weight in kg</div>
+    <div class="wdisp" id="wdisp">0</div>
+    <div class="wcalc" id="wcalc">KES 0</div>
+    <div class="keys">
+      <button class="key" data-k="1">1</button>
+      <button class="key" data-k="2">2</button>
+      <button class="key" data-k="3">3</button>
+      <button class="key" data-k="4">4</button>
+      <button class="key" data-k="5">5</button>
+      <button class="key" data-k="6">6</button>
+      <button class="key" data-k="7">7</button>
+      <button class="key" data-k="8">8</button>
+      <button class="key" data-k="9">9</button>
+      <button class="key" data-k=".">.</button>
+      <button class="key" data-k="0">0</button>
+      <button class="key" data-k="del">⌫</button>
+    </div>
+    <button class="addbtn" id="wadd">Add to cart</button>
+    <button class="addbtn" id="wcancel" style="background:transparent;color:var(--dim);margin-top:6px">Cancel</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const SUPABASE_URL = 'https://tcpqbrchpxpshmqprbkv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_7YLqP3JMq8AFZQl4XF--bw_itOMj1gA';
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+const $ = id => document.getElementById(id);
+
+let products = [], cart = [], payment = 'mpesa', staffName = '—', pending = null;
+
+/* ---------- auth ---------- */
+async function boot(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(session){ showApp(session); }
+}
+async function signIn(){
+  const email = $('email').value.trim(), pw = $('pw').value;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+  if(error){ $('lerr').textContent = error.message; return; }
+  showApp(data.session);
+}
+async function showApp(session){
+  staffName = (session.user.email||'staff').split('@')[0];
+  $('who').textContent = staffName;
+  $('login').classList.add('hide');
+  $('app').classList.remove('hide');
+  await loadProducts();
+  await loadTodayStats();
+}
+
+/* ---------- products ---------- */
+async function loadProducts(){
+  const { data, error } = await sb.from('mfm_shop_products')
+    .select('*').eq('active', true).order('sort_order', { ascending:true });
+  if(error){ toast(error.message, true); return; }
+  products = data || [];
+  renderGrid();
+}
+function renderGrid(){
+  $('grid').innerHTML = products.map(function(p){
+    const out = (!p.in_stock || p.stock_qty <= 0);
+    const low = (!out && p.stock_qty <= 2);
+    const stockTxt = out ? 'OUT' : (p.stock_qty + (p.sale_unit==='kg'?'kg':''));
+    return `<button class="prod ${out?'out':''} ${low?'low':''}" data-id="${p.id}">
+      <span class="pstock">${stockTxt}</span>
+      <div>
+        <div class="pn">${p.name}</div>
+        <div class="psw">${p.sw_name||''}</div>
+      </div>
+      <div class="pp">KES ${fmt(p.price)}/${p.sale_unit}</div>
+    </button>`;
+  }).join('');
+}
+
+/* ---------- tapping a product ---------- */
+function onProductTap(id){
+  const p = products.find(x => x.id === id);
+  if(!p) return;
+  if(p.catch_weight){ openKeypad(p); }
+  else { addToCart(p, 1); }   // fixed pack: 1 unit per tap
+}
+
+/* ---------- weight keypad ---------- */
+let wbuf = '0';
+function openKeypad(p){
+  pending = p; wbuf = '0';
+  $('wname').textContent = p.name + (p.sw_name?` · ${p.sw_name}`:'');
+  $('wsub').textContent = `KES ${fmt(p.price)} per kg — enter weight`;
+  updateWDisp();
+  $('wmodal').classList.add('show');
+}
+function updateWDisp(){
+  $('wdisp').textContent = wbuf;
+  const w = parseFloat(wbuf)||0;
+  $('wcalc').textContent = 'KES ' + fmt(Math.round(w * (pending?pending.price:0)));
+}
+function keyPress(k){
+  if(k==='del'){ wbuf = wbuf.length>1 ? wbuf.slice(0,-1) : '0'; }
+  else if(k==='.'){ if(!wbuf.includes('.')) wbuf += '.'; }
+  else {
+    // Limit to 1 decimal place — weights read to 100g at the counter
+    const dot = wbuf.indexOf('.');
+    if(dot !== -1 && wbuf.length - dot > 1) return;  // already has 1 decimal, ignore further digits
+    wbuf = (wbuf==='0') ? k : wbuf + k;
+  }
+  updateWDisp();
+}
+function confirmWeight(){
+  let w = parseFloat(wbuf)||0;
+  w = Math.round(w * 10) / 10;   // round to 1 decimal (100g precision)
+  if(w <= 0){ toast('Enter a weight', true); return; }
+  addToCart(pending, w);
+  $('wmodal').classList.remove('show');
+}
+
+/* ---------- cart ---------- */
+function addToCart(p, qty){
+  const existing = cart.find(c => c.id === p.id && !p.catch_weight);
+  if(existing && !p.catch_weight){ existing.qty += qty; }
+  else { cart.push({ id:p.id, name:p.name, sw:p.sw_name, price:p.price, unit:p.sale_unit, qty:qty, cw:p.catch_weight }); }
+  renderCart();
+}
+function renderCart(){
+  if(!cart.length){
+    $('clist').innerHTML = '<div class="cempty">Tap a fish to start a sale</div>';
+    $('checkout').disabled = true;
+    $('checkout').textContent = 'COMPLETE SALE — KES 0';
+    return;
+  }
+  $('clist').innerHTML = cart.map(function(c, i){
+    const line = Math.round(c.qty * c.price);
+    const qctl = c.cw
+      ? `<span class="ci-q">${c.qty}${c.unit}</span>`
+      : `<button class="qbtn" data-dec="${i}">−</button><span class="ci-q">${c.qty}</span><button class="qbtn" data-inc="${i}">+</button>`;
+    return `<div class="cItem">
+      <div class="ci-n">${c.name}<small>KES ${fmt(c.price)}/${c.unit}</small></div>
+      ${qctl}
+      <span class="ci-line">${fmt(line)}</span>
+      <button class="ci-x" data-rm="${i}">✕</button>
+    </div>`;
+  }).join('');
+  const total = cartTotal();
+  $('checkout').disabled = false;
+  $('checkout').textContent = `COMPLETE SALE — KES ${fmt(total)}`;
+}
+function cartTotal(){ return cart.reduce((s,c)=> s + Math.round(c.qty*c.price), 0); }
+
+/* ---------- checkout ---------- */
+let busy = false;
+async function checkout(){
+  if(busy || !cart.length) return;
+  busy = true; $('checkout').disabled = true;
+  const items = cart.map(c => ({ id:c.id, name:c.name, qty:c.qty, unit:c.unit, price:c.price, line:Math.round(c.qty*c.price) }));
+  const total = cartTotal();
+
+  // If the browser knows it's offline, queue immediately — don't even try.
+  if(!navigator.onLine){
+    queueAdd({ payment, items, staff: staffName, total, at: Date.now() });
+    toast(`✓ Saved offline — KES ${fmt(total)} (will sync)`);
+    if(navigator.vibrate) navigator.vibrate(60);
+    cart = []; renderCart(); deductLocalStock(items);
+    busy = false; return;
+  }
+
+  try{
+    const { data, error } = await sb.rpc('record_counter_sale', {
+      p_payment: payment, p_items: items, p_staff_name: staffName
+    });
+    if(error) throw error;
+    toast(`✓ Sale ${data} — KES ${fmt(total)}`);
+    if(navigator.vibrate) navigator.vibrate(60);
+    cart = []; renderCart();
+    await loadProducts(); await loadTodayStats();
+  }catch(e){
+    // Network/server failed mid-sale → queue it rather than lose it.
+    queueAdd({ payment, items, staff: staffName, total, at: Date.now() });
+    toast(`✓ Saved offline — KES ${fmt(total)} (will sync)`);
+    if(navigator.vibrate) navigator.vibrate(60);
+    cart = []; renderCart(); deductLocalStock(items);
+  }
+  busy = false;
+}
+// Optimistically drop local stock so the grid stays believable while offline
+function deductLocalStock(items){
+  items.forEach(it => {
+    const p = products.find(x => x.id === it.id);
+    if(p){ p.stock_qty = Math.max(0, p.stock_qty - it.qty); if(p.stock_qty<=0) p.in_stock=false; }
+  });
+  renderGrid();
+}
+
+/* ---------- today stats ---------- */
+async function loadTodayStats(){
+  const start = new Date(); start.setHours(0,0,0,0);
+  const { data } = await sb.from('mfm_counter_sales')
+    .select('total').gte('created_at', start.toISOString());
+  const rows = data || [];
+  $('dTotal').textContent = fmt(rows.reduce((s,r)=> s + Number(r.total), 0));
+  $('dCount').textContent = rows.length;
+}
+
+/* ---------- helpers ---------- */
+function fmt(n){ return Number(n||0).toLocaleString('en-KE'); }
+let toastT;
+function toast(msg, err){
+  const t = $('toast'); t.textContent = msg; t.className = 'show' + (err?' err':'');
+  clearTimeout(toastT); toastT = setTimeout(()=> t.className = '', 2200);
+}
+
+/* ---------- today's sales + void ---------- */
+async function openSales(){
+  $('smodal').classList.add('show');
+  $('slist').innerHTML = '<div class="cempty">Loading…</div>';
+  try{
+    const { data, error } = await sb.rpc('shop_today_sales');
+    if(error) throw error;
+    const rows = data || [];
+    const live = rows.filter(r => !r.voided);
+    $('ssub').textContent = `${live.length} sales · KES ${fmt(live.reduce((s,r)=>s+Number(r.total),0))}`;
+    if(!rows.length){ $('slist').innerHTML = '<div class="cempty">No sales yet today</div>'; return; }
+    $('slist').innerHTML = rows.map(function(r){
+      const names = (r.items||[]).map(i => `${i.name} ${i.qty}${i.unit||''}`).join(', ');
+      const t = new Date(r.created_at).toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'});
+      return `<div class="cItem" style="${r.voided?'opacity:.45':''}">
+        <div class="ci-n">${r.sale_ref} <small>${t} · ${r.payment} · ${names}</small></div>
+        <span class="ci-line">${fmt(r.total)}</span>
+        ${r.voided
+          ? '<span style="color:var(--coral);font-family:var(--mono);font-size:11px">VOID</span>'
+          : `<button class="ci-x" data-void="${r.id}" style="color:var(--coral);font-family:var(--mono);font-size:11px;border:1px solid var(--coral);border-radius:6px;padding:4px 8px">VOID</button>`}
+      </div>`;
+    }).join('');
+  }catch(e){ $('slist').innerHTML = `<div class="cempty">${e.message}</div>`; }
+}
+async function voidSale(id){
+  const reason = prompt('Reason for voiding this sale? (required)');
+  if(reason === null) return;
+  if(!reason.trim()){ toast('A reason is required to void', true); return; }
+  const { error } = await sb.rpc('void_counter_sale', { p_sale_id:id, p_by:staffName, p_reason:reason.trim() });
+  if(error){ toast(error.message, true); return; }
+  toast('Sale voided · stock returned');
+  await openSales(); await loadProducts(); await loadTodayStats();
+}
+
+/* ---------- cash-up ---------- */
+async function calcCashup(){
+  const flt = parseFloat($('cFloat').value) || 0;
+  try{
+    const { data, error } = await sb.rpc('shop_cashup_expected', { p_float: flt });
+    if(error) throw error;
+    const r = (data && data[0]) || {};
+    $('rFloat').textContent = fmt(flt);
+    $('rCashSales').textContent = fmt(r.cash_sales);
+    $('rExpected').textContent = fmt(r.expected_cash);
+    $('rMpesa').textContent = fmt(r.mpesa_total);
+    $('cResult').classList.remove('hide');
+  }catch(e){ toast(e.message, true); }
+}
+function showVariance(){
+  const counted = parseFloat($('cCounted').value);
+  if(isNaN(counted)) { $('cVar').classList.add('hide'); return; }
+  const expected = parseFloat($('rExpected').textContent.replace(/,/g,'')) || 0;
+  const v = counted - expected;
+  const el = $('cVar'); el.classList.remove('hide');
+  if(v === 0){ el.style.background='rgba(34,197,94,.15)'; el.style.color='var(--green)'; el.textContent='✓ Balances exactly'; }
+  else if(v < 0){ el.style.background='rgba(255,107,90,.15)'; el.style.color='var(--coral)'; el.textContent=`SHORT by KES ${fmt(Math.abs(v))}`; }
+  else { el.style.background='rgba(255,184,77,.15)'; el.style.color='var(--catch)'; el.textContent=`OVER by KES ${fmt(v)}`; }
+}
+async function saveCashup(){
+  const flt = parseFloat($('cFloat').value) || 0;
+  const counted = parseFloat($('cCounted').value);
+  if(isNaN(counted)){ toast('Count the drawer first', true); return; }
+  try{
+    const { data, error } = await sb.rpc('record_cashup', {
+      p_float: flt, p_counted: counted, p_by: staffName, p_note: $('cNote').value.trim() || null
+    });
+    if(error) throw error;
+    const r = (data && data[0]) || {};
+    const v = Number(r.cash_variance);
+    toast(v===0 ? '✓ Cash-up saved · balanced' : `Cash-up saved · ${v<0?'short':'over'} ${fmt(Math.abs(v))}`);
+    $('cmodal').classList.remove('show');
+  }catch(e){ toast(e.message, true); }
+}
+
+/* ---------- offline queue ----------
+   If a sale can't reach Supabase, it's held in localStorage and retried
+   when the connection returns. The counter never blocks on a customer. */
+const QKEY = 'mfm_pos_queue';
+function queueGet(){ try{ return JSON.parse(localStorage.getItem(QKEY) || '[]'); }catch(e){ return []; } }
+function queueSet(q){ try{ localStorage.setItem(QKEY, JSON.stringify(q)); }catch(e){} }
+function queueAdd(sale){ const q = queueGet(); q.push(sale); queueSet(q); updateQueueBadge(); }
+function updateQueueBadge(){
+  const n = queueGet().length;
+  const el = $('qbadge');
+  if(!el) return;
+  if(n > 0){ el.classList.remove('hide'); el.textContent = `⏳ ${n} sale${n>1?'s':''} to sync`; }
+  else el.classList.add('hide');
+}
+async function flushQueue(){
+  let q = queueGet();
+  if(!q.length) return;
+  const remaining = [];
+  for(const sale of q){
+    try{
+      const { error } = await sb.rpc('record_counter_sale', {
+        p_payment: sale.payment, p_items: sale.items, p_staff_name: sale.staff
+      });
+      if(error) remaining.push(sale);   // still failing — keep it
+    }catch(e){ remaining.push(sale); }
+  }
+  queueSet(remaining); updateQueueBadge();
+  if(remaining.length < q.length){
+    toast(`✓ Synced ${q.length - remaining.length} offline sale${q.length-remaining.length>1?'s':''}`);
+    await loadProducts(); await loadTodayStats();
+  }
+}
+
+/* ---------- events (delegated, module-safe) ---------- */
+$('signin').addEventListener('click', signIn);
+$('pw').addEventListener('keydown', e => { if(e.key==='Enter') signIn(); });
+$('signout').addEventListener('click', async ()=>{ await sb.auth.signOut(); location.reload(); });
+
+$('grid').addEventListener('click', e => {
+  const b = e.target.closest('[data-id]');
+  if(b) onProductTap(Number(b.dataset.id));
+});
+$('clist').addEventListener('click', e => {
+  const inc = e.target.closest('[data-inc]'), dec = e.target.closest('[data-dec]'), rm = e.target.closest('[data-rm]');
+  if(inc){ cart[+inc.dataset.inc].qty++; renderCart(); }
+  else if(dec){ const i=+dec.dataset.dec; cart[i].qty--; if(cart[i].qty<=0) cart.splice(i,1); renderCart(); }
+  else if(rm){ cart.splice(+rm.dataset.rm,1); renderCart(); }
+});
+document.querySelectorAll('[data-pay]').forEach(b => b.addEventListener('click', ()=>{
+  payment = b.dataset.pay;
+  document.querySelectorAll('[data-pay]').forEach(x => x.classList.toggle('on', x===b));
+}));
+$('checkout').addEventListener('click', checkout);
+
+// today's sales + void
+$('viewSales').addEventListener('click', openSales);
+$('sclose').addEventListener('click', ()=> $('smodal').classList.remove('show'));
+$('slist').addEventListener('click', e => {
+  const v = e.target.closest('[data-void]');
+  if(v) voidSale(Number(v.dataset.void));
+});
+// cash-up
+$('cashUp').addEventListener('click', ()=>{
+  $('cResult').classList.add('hide'); $('cVar').classList.add('hide');
+  $('cFloat').value = 0; $('cCounted').value = ''; $('cNote').value = '';
+  $('cmodal').classList.add('show');
+});
+$('cCalc').addEventListener('click', calcCashup);
+$('cCounted').addEventListener('input', showVariance);
+$('cSave').addEventListener('click', saveCashup);
+$('cClose').addEventListener('click', ()=> $('cmodal').classList.remove('show'));
+
+// keypad
+document.querySelectorAll('[data-k]').forEach(k => k.addEventListener('click', ()=> keyPress(k.dataset.k)));
+$('wadd').addEventListener('click', confirmWeight);
+$('wcancel').addEventListener('click', ()=> $('wmodal').classList.remove('show'));
+
+boot();
+
+// Offline queue: sync when connection returns, on load, and every 30s as a safety net.
+window.addEventListener('online', flushQueue);
+setInterval(()=>{ if(navigator.onLine) flushQueue(); }, 30000);
+updateQueueBadge();
+flushQueue();
+</script>
+</body>
+</html>
