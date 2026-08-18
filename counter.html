@@ -296,16 +296,16 @@ function keyPress(k){
   if(k==='del'){ wbuf = wbuf.length>1 ? wbuf.slice(0,-1) : '0'; }
   else if(k==='.'){ if(!wbuf.includes('.')) wbuf += '.'; }
   else {
-    // Limit to 1 decimal place — weights read to 100g at the counter
+    // Limit to 3 decimal places — matches a digital scale reading to the gram
     const dot = wbuf.indexOf('.');
-    if(dot !== -1 && wbuf.length - dot > 1) return;  // already has 1 decimal, ignore further digits
+    if(dot !== -1 && wbuf.length - dot > 3) return;  // already 3 decimals, ignore further digits
     wbuf = (wbuf==='0') ? k : wbuf + k;
   }
   updateWDisp();
 }
 function confirmWeight(){
   let w = parseFloat(wbuf)||0;
-  w = Math.round(w * 10) / 10;   // round to 1 decimal (100g precision)
+  w = Math.round(w * 1000) / 1000;   // round to 3 decimals (gram precision)
   if(w <= 0){ toast('Enter a weight', true); return; }
   addToCart(pending, w);
   $('wmodal').classList.remove('show');
