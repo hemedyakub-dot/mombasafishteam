@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Owner Dashboard · Mombasafish</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --abyss:#032A2E; --deep:#07474C; --foam:#7FD4C1; --catch:#FFB84D;
+    --coral:#FF6B5A; --sand:#F2EDE3; --dim:#9db0ad; --faint:rgba(242,237,227,.15);
+    --green:#22c55e; --mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--abyss);color:var(--sand);
+    font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding-bottom:40px}
+  #login{max-width:380px;margin:60px auto;padding:0 22px}
+  .brand{font-family:'Archivo Black',Impact,sans-serif;font-size:24px;text-align:center;letter-spacing:.5px}
+  .brand .b{color:var(--foam)}
+  .tag{font-family:var(--mono);font-size:11px;color:var(--catch);letter-spacing:.15em;
+    text-transform:uppercase;text-align:center;margin:6px 0 26px}
+  label{display:block;font-size:12px;color:var(--dim);margin:12px 0 5px;font-family:var(--mono);letter-spacing:.05em;text-transform:uppercase}
+  input{width:100%;padding:12px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:16px;font-family:inherit}
+  .btn{width:100%;margin-top:18px;padding:14px;border:none;border-radius:8px;background:var(--foam);
+    color:var(--abyss);font-weight:700;font-size:15px;font-family:var(--mono);letter-spacing:.05em;text-transform:uppercase;cursor:pointer}
+  header{position:sticky;top:0;z-index:20;background:rgba(3,42,46,.96);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--faint);padding:13px 16px;display:flex;justify-content:space-between;align-items:center}
+  .htitle{font-family:'Archivo Black',sans-serif;font-size:15px}
+  .hexit{background:none;border:1px solid var(--faint);color:var(--dim);border-radius:6px;padding:6px 12px;font-family:var(--mono);font-size:11px;cursor:pointer}
+  .wrap{padding:16px;max-width:600px;margin:0 auto}
+  h2{font-size:13px;color:var(--foam);font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;margin:24px 0 10px}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .card{background:var(--deep);border:1px solid var(--faint);border-radius:11px;padding:14px}
+  .card.wide{grid-column:span 2}
+  .card b{display:block;font-size:22px;font-family:var(--mono);color:var(--foam)}
+  .card.profit b{color:var(--green)} .card.cost b{color:var(--catch)}
+  .card span{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.04em}
+  .card small{display:block;color:var(--dim);font-size:11px;margin-top:3px;font-family:var(--mono)}
+  .chartbox{background:var(--deep);border:1px solid var(--faint);border-radius:11px;padding:14px;margin-top:6px}
+  .prow{display:flex;align-items:center;gap:11px;background:var(--deep);border:1px solid var(--faint);border-radius:10px;padding:11px 13px;margin-bottom:7px}
+  .pinfo{flex:1;min-width:0}
+  .pinfo .n{font-weight:600;font-size:14px}
+  .pinfo .n small{color:var(--foam);font-family:var(--mono);font-weight:400;font-size:11px;margin-left:5px}
+  .pinfo .m{font-size:11px;color:var(--dim);font-family:var(--mono);margin-top:2px}
+  .pval{text-align:right;font-family:var(--mono);flex-shrink:0}
+  .pval b{font-size:15px;color:var(--foam)}
+  .pval.slow b{color:var(--coral)}
+  .pval span{display:block;font-size:9px;color:var(--dim);text-transform:uppercase}
+  .warn{background:rgba(255,184,77,.12);border:1px solid rgba(255,184,77,.35);border-radius:8px;
+    padding:11px 13px;font-size:12px;color:var(--catch);font-family:var(--mono);margin-top:8px}
+  .tabs{display:flex;gap:6px;margin-bottom:10px}
+  .tab{flex:1;padding:8px;border-radius:7px;border:1px solid var(--faint);background:transparent;color:var(--dim);
+    font-family:var(--mono);font-size:12px;cursor:pointer}
+  .tab.on{border-color:var(--foam);background:rgba(127,212,193,.14);color:var(--foam);font-weight:700}
+  .hide{display:none!important}
+  .linkbar{text-align:center;padding:18px;font-size:12px;font-family:var(--mono)}
+  .linkbar a{color:var(--foam);text-decoration:none;margin:0 8px}
+  #denied{text-align:center;padding:50px 22px;color:var(--coral);font-family:var(--mono)}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="brand">MOMBASA<span class="b">FISH</span></div>
+  <div class="tag">Owner Dashboard</div>
+  <label>Email</label>
+  <input id="email" type="email" autocomplete="username" placeholder="you@mombasafish.com">
+  <label>Password</label>
+  <input id="pw" type="password" autocomplete="current-password" placeholder="••••••••">
+  <button class="btn" id="signin">Sign in</button>
+  <div id="lerr" style="color:var(--coral);font-size:13px;margin-top:12px;text-align:center"></div>
+</div>
+
+<div id="denied" class="hide">
+  This dashboard is owner-only.<br>Your account doesn't have owner access.
+  <div style="margin-top:20px"><button class="hexit" id="denyOut">Sign out</button></div>
+</div>
+
+<div id="app" class="hide">
+  <header>
+    <div class="htitle">OWNER DASHBOARD</div>
+    <button class="hexit" id="signout">EXIT</button>
+  </header>
+  <div class="wrap">
+    <div class="tabs">
+      <button class="tab on" data-days="7">7 days</button>
+      <button class="tab" data-days="30">30 days</button>
+      <button class="tab" data-days="1">Today</button>
+    </div>
+
+    <h2>Sales <span id="perLbl" style="color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">· last 7 days</span></h2>
+    <div class="cards">
+      <div class="card"><b id="kRev">0</b><span>Revenue KES</span></div>
+      <div class="card profit"><b id="kProfit">0</b><span>Profit KES</span></div>
+      <div class="card wide"><b id="kSales">0</b><span>Sales · shop counter</span></div>
+    </div>
+
+    <h2>Revenue trend</h2>
+    <div class="chartbox"><canvas id="trendChart" height="150"></canvas></div>
+
+    <h2>Stock in chiller now</h2>
+    <div class="cards">
+      <div class="card cost"><b id="kStockCost">0</b><span>Value at cost</span></div>
+      <div class="card"><b id="kStockRetail">0</b><span>Value at retail</span></div>
+      <div class="card profit wide"><b id="kLocked">0</b><span>Profit locked in stock</span><small id="kStockNote"></small></div>
+    </div>
+    <div id="costWarn" class="warn hide"></div>
+
+    <h2>Best sellers</h2>
+    <div class="chartbox"><canvas id="bestChart" height="170"></canvas></div>
+
+    <h2>Fast &amp; slow movers</h2>
+    <div id="movers"></div>
+
+    <div class="linkbar">
+      <a href="./shop-admin.html">→ Admin</a> · <a href="./counter.html">→ Counter</a> · <a href="./staff.html">→ Dispatch</a>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const SUPABASE_URL = 'https://tcpqbrchpxpshmqprbkv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_7YLqP3JMq8AFZQl4XF--bw_itOMj1gA';
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+const $ = id => document.getElementById(id);
+let days = 7, trendChart = null, bestChart = null;
+
+async function boot(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(session) gate();
+}
+async function signIn(){
+  const { error } = await sb.auth.signInWithPassword({ email:$('email').value.trim(), password:$('pw').value });
+  if(error){ $('lerr').textContent = error.message; return; }
+  gate();
+}
+async function gate(){
+  // check owner status via an owner-only call; if it throws, deny
+  try{
+    const { error } = await sb.rpc('dash_stock_value');
+    if(error) throw error;
+    $('login').classList.add('hide'); $('denied').classList.add('hide');
+    $('app').classList.remove('hide');
+    loadAll();
+  }catch(e){
+    $('login').classList.add('hide'); $('app').classList.add('hide');
+    $('denied').classList.remove('hide');
+  }
+}
+
+async function loadAll(){
+  await Promise.all([loadTotals(), loadStock(), loadPerformance(), loadTrend()]);
+}
+async function loadTotals(){
+  const { data } = await sb.rpc('dash_sales_totals', { p_days: days });
+  const r = (data && data[0]) || {};
+  $('kRev').textContent = fmt(r.revenue); $('kProfit').textContent = fmt(r.profit); $('kSales').textContent = r.sales||0;
+}
+async function loadStock(){
+  const { data } = await sb.rpc('dash_stock_value');
+  const r = (data && data[0]) || {};
+  $('kStockCost').textContent = fmt(r.stock_cost);
+  $('kStockRetail').textContent = fmt(r.stock_retail);
+  $('kLocked').textContent = fmt(r.locked_profit);
+  $('kStockNote').textContent = `${r.items||0} products · ${r.low_or_out||0} low/out`;
+  if(r.needs_cost > 0){
+    $('costWarn').classList.remove('hide');
+    $('costWarn').textContent = `⚠ ${r.needs_cost} product${r.needs_cost>1?'s':''} missing cost — profit understated. Add costs in Admin.`;
+  } else $('costWarn').classList.add('hide');
+}
+async function loadPerformance(){
+  const { data } = await sb.rpc('dash_product_performance', { p_days: days });
+  const rows = (data || []).filter(r => Number(r.revenue) > 0 || Number(r.stock_qty) > 0);
+  // best sellers chart — top 6 by revenue
+  const top = (data || []).filter(r => Number(r.revenue) > 0).slice(0, 6);
+  drawBest(top);
+  // fast/slow movers list
+  const sold = (data || []).filter(r => Number(r.qty_sold) > 0)
+    .sort((a,b)=> Number(b.qty_sold) - Number(a.qty_sold));
+  const slow = (data || []).filter(r => Number(r.qty_sold) === 0 && Number(r.stock_qty) > 0);
+  let html = '';
+  sold.slice(0,5).forEach(r => {
+    html += `<div class="prow"><div class="pinfo"><div class="n">${r.name}<small>${r.sw_name||''}</small></div>
+      <div class="m">${Number(r.qty_sold)} sold · profit ${fmt(r.profit)}</div></div>
+      <div class="pval"><b>${fmt(r.revenue)}</b><span>revenue</span></div></div>`;
+  });
+  slow.slice(0,4).forEach(r => {
+    html += `<div class="prow"><div class="pinfo"><div class="n">${r.name}<small>${r.sw_name||''}</small></div>
+      <div class="m">not sold this period · ${r.stock_qty} in stock</div></div>
+      <div class="pval slow"><b>SLOW</b><span>not moving</span></div></div>`;
+  });
+  $('movers').innerHTML = html || '<div style="color:var(--dim);font-size:13px;font-family:var(--mono)">No sales in this period yet</div>';
+}
+async function loadTrend(){
+  const { data } = await sb.rpc('dash_daily_revenue', { p_days: days });
+  const rows = data || [];
+  const labels = rows.map(r => new Date(r.day+'T12:00:00').toLocaleDateString('en-KE',{weekday:'short'}));
+  const vals = rows.map(r => Number(r.revenue));
+  drawTrend(labels, vals);
+}
+
+function drawTrend(labels, vals){
+  if(typeof Chart === 'undefined'){ return; }   // chart lib not loaded — skip gracefully
+  if(trendChart) trendChart.destroy();
+  trendChart = new Chart($('trendChart'), {
+    type:'line',
+    data:{ labels, datasets:[{ data:vals, borderColor:'#7FD4C1', backgroundColor:'rgba(127,212,193,.15)',
+      fill:true, tension:.3, pointRadius:3, pointBackgroundColor:'#7FD4C1' }] },
+    options:{ plugins:{legend:{display:false}}, scales:{
+      x:{ticks:{color:'#9db0ad',font:{size:10}},grid:{display:false}},
+      y:{ticks:{color:'#9db0ad',font:{size:10}},grid:{color:'rgba(242,237,227,.08)'}} } }
+  });
+}
+function drawBest(rows){
+  if(typeof Chart === 'undefined'){ return; }
+  if(bestChart) bestChart.destroy();
+  bestChart = new Chart($('bestChart'), {
+    type:'bar',
+    data:{ labels: rows.map(r=>r.name), datasets:[{ data: rows.map(r=>Number(r.revenue)),
+      backgroundColor:'#FFB84D', borderRadius:5 }] },
+    options:{ indexAxis:'y', plugins:{legend:{display:false}}, scales:{
+      x:{ticks:{color:'#9db0ad',font:{size:10}},grid:{color:'rgba(242,237,227,.08)'}},
+      y:{ticks:{color:'#F2EDE3',font:{size:11}},grid:{display:false}} } }
+  });
+}
+
+function fmt(n){ return Number(n||0).toLocaleString('en-KE'); }
+
+$('signin').addEventListener('click', signIn);
+$('pw').addEventListener('keydown', e => { if(e.key==='Enter') signIn(); });
+$('signout').addEventListener('click', async ()=>{ await sb.auth.signOut(); location.reload(); });
+$('denyOut').addEventListener('click', async ()=>{ await sb.auth.signOut(); location.reload(); });
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', ()=>{
+  days = Number(t.dataset.days);
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x===t));
+  $('perLbl').textContent = days===1 ? '· today' : `· last ${days} days`;
+  loadAll();
+}));
+
+boot();
+</script>
+</body>
+</html>
