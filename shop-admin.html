@@ -110,6 +110,9 @@
       <div class="scard cash"><b id="sCash">0</b><span>Cash</span></div>
     </div>
 
+    <h2>Sales history <span style="color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">· last 14 days</span></h2>
+    <div id="history"><div style="color:var(--dim);font-size:13px;font-family:var(--mono)">Loading…</div></div>
+
     <h2>Products &amp; stock</h2>
     <div id="plist"></div>
     <button class="addnew" id="addNew">＋ Add new product</button>
@@ -178,7 +181,28 @@ async function signIn(){
 async function showApp(session){
   staffName = (session.user.email||'staff').split('@')[0];
   $('login').classList.add('hide'); $('app').classList.remove('hide');
-  await loadProducts(); await loadSummary();
+  await loadProducts(); await loadSummary(); await loadHistory();
+}
+
+async function loadHistory(){
+  try{
+    const { data, error } = await sb.rpc('shop_sales_history', { p_days: 14 });
+    if(error) throw error;
+    const rows = data || [];
+    if(!rows.length){ $('history').innerHTML = '<div style="color:var(--dim);font-size:13px;font-family:var(--mono)">No sales recorded yet</div>'; return; }
+    const today = new Date().toLocaleDateString('en-CA', { timeZone:'Africa/Nairobi' });
+    $('history').innerHTML = rows.map(function(r){
+      const isToday = r.day === today;
+      const d = new Date(r.day + 'T12:00:00').toLocaleDateString('en-KE', { weekday:'short', day:'numeric', month:'short' });
+      return `<div class="prow" style="${isToday?'border-color:var(--foam)':''}">
+        <div class="pinfo">
+          <div class="n">${d}${isToday?' <small>today</small>':''}</div>
+          <div class="m">${r.sales} sales · cash ${fmt(r.cash)} · M-Pesa ${fmt(r.mpesa)}${r.voids>0?` · ${r.voids} void`:''}</div>
+        </div>
+        <div class="pstock"><b>${fmt(r.total)}</b><span>KES</span></div>
+      </div>`;
+    }).join('');
+  }catch(e){ $('history').innerHTML = `<div style="color:var(--coral);font-size:13px">${e.message}</div>`; }
 }
 
 async function loadProducts(){

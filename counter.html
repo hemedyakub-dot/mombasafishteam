@@ -389,12 +389,14 @@ function deductLocalStock(items){
 
 /* ---------- today stats ---------- */
 async function loadTodayStats(){
-  const start = new Date(); start.setHours(0,0,0,0);
-  const { data } = await sb.from('mfm_counter_sales')
-    .select('total').gte('created_at', start.toISOString());
-  const rows = data || [];
-  $('dTotal').textContent = fmt(rows.reduce((s,r)=> s + Number(r.total), 0));
-  $('dCount').textContent = rows.length;
+  // Use the same DB function as cash-up so "today" is one consistent Kenyan-day figure.
+  try{
+    const { data, error } = await sb.rpc('shop_today_summary');
+    if(error) throw error;
+    const r = (data && data[0]) || { total:0, cnt:0 };
+    $('dTotal').textContent = fmt(r.total);
+    $('dCount').textContent = r.cnt;
+  }catch(e){ /* non-critical */ }
 }
 
 /* ---------- helpers ---------- */
