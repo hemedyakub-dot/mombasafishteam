@@ -278,17 +278,35 @@ async function saveProduct(){
   if(!name){ toast('Name required', true); return; }
   if(isNaN(price) || price <= 0){ toast('Valid price required', true); return; }
   const stock = parseFloat($('fStock').value) || 0;
-  const rec = {
-    name, sw_name: $('fSw').value.trim() || null, price,
-    sale_unit: fUnit, catch_weight: fCw, active: fActive,
-    stock_qty: stock, in_stock: stock > 0
-  };
   let error;
   if(editing){
-    ({ error } = await sb.from('mfm_shop_products').update(rec).eq('id', editing.id));
+    // Save details WITHOUT stock, so we can route stock through the logged function.
+    const details = {
+      name, sw_name: $('fSw').value.trim() || null, price,
+      sale_unit: fUnit, catch_weight: fCw, active: fActive
+    };
+    ({ error } = await sb.from('mfm_shop_products').update(details).eq('id', editing.id));
+    // If the stock number changed, log the change (audit trail — never a silent set).
+    if(!error && stock !== Number(editing.stock_qty)){
+      const { error: sErr } = await sb.rpc('set_shop_stock_logged', {
+        p_product: editing.id, p_new_qty: stock, p_staff: staffName, p_type: 'correction'
+      });
+      if(sErr) error = sErr;
+    }
   }else{
-    rec.sort_order = (products.length ? Math.max(...products.map(p=>p.sort_order||0)) : 0) + 1;
-    ({ error } = await sb.from('mfm_shop_products').insert(rec));
+    // New product: create with details, then log initial stock as intake if any.
+    const rec = {
+      name, sw_name: $('fSw').value.trim() || null, price,
+      sale_unit: fUnit, catch_weight: fCw, active: fActive,
+      stock_qty: 0, in_stock: false,
+      sort_order: (products.length ? Math.max(...products.map(p=>p.sort_order||0)) : 0) + 1
+    };
+    const { data: created, error: insErr } = await sb.from('mfm_shop_products').insert(rec).select().single();
+    error = insErr;
+    if(!error && stock > 0 && created){
+      const { error: sErr } = await sb.rpc('add_shop_stock', { p_product: created.id, p_qty: stock, p_staff: staffName });
+      if(sErr) error = sErr;
+    }
   }
   if(error){ toast(error.message, true); return; }
   toast(editing ? '✓ Saved' : '✓ Product added');
