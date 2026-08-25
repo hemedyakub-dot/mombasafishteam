@@ -151,9 +151,40 @@
         <button class="paybtn on" id="payMpesa" data-pay="mpesa">● M-Pesa Till</button>
         <button class="paybtn" id="payCash" data-pay="cash">Cash</button>
       </div>
+      <div id="discountRow" style="display:none;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:13px;color:var(--catch);margin-bottom:8px">
+        <span id="discountLabel">Discount</span>
+        <button id="clearDiscount" style="background:none;border:none;color:var(--coral);font-size:12px;cursor:pointer">✕ remove</button>
+      </div>
+      <button id="addDiscount" style="width:100%;padding:9px;margin-bottom:8px;border:1px dashed var(--faint);background:transparent;color:var(--foam);border-radius:8px;font-family:var(--mono);font-size:12px;cursor:pointer;text-transform:uppercase;letter-spacing:.05em">＋ Add discount</button>
       <button class="checkout" id="checkout" disabled>COMPLETE SALE — KES 0</button>
     </div>
   </div>
+
+<!-- ============ DISCOUNT SHEET ============ -->
+<div class="modal" id="dmodal">
+  <div class="sheet">
+    <h3>Add a discount</h3>
+    <div class="sub" style="color:var(--dim);font-family:var(--mono);font-size:12px;margin-bottom:12px">Every discount is logged with your name and reason.</div>
+    <div class="toggle" id="dType">
+      <button class="tbtn on" data-dtype="amount">Amount off total</button>
+      <button class="tbtn" data-dtype="perkg">Lower price/kg</button>
+    </div>
+    <div id="dAmountBox">
+      <label>Discount amount (KES off total)</label>
+      <input id="dAmount" type="number" inputmode="numeric" placeholder="e.g. 200" style="width:100%;padding:13px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:18px;font-family:var(--mono)">
+    </div>
+    <div id="dPerkgBox" style="display:none">
+      <label>Which item?</label>
+      <select id="dItem" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit"></select>
+      <label style="margin-top:10px">New price per kg</label>
+      <input id="dNewPrice" type="number" inputmode="numeric" placeholder="lower price/kg" style="width:100%;padding:13px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:18px;font-family:var(--mono)">
+    </div>
+    <label style="margin-top:12px">Reason (required)</label>
+    <input id="dReason" placeholder="e.g. regular customer / bulk buy" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit">
+    <button class="addbtn" id="dApply" style="margin-top:16px">Apply discount</button>
+    <button class="addbtn" id="dCancel" style="background:transparent;color:var(--dim);margin-top:6px">Cancel</button>
+  </div>
+</div>
 </div>
 
 <!-- ============ TODAY'S SALES (with void) ============ -->
@@ -256,6 +287,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 const $ = id => document.getElementById(id);
 
 let products = [], cart = [], payment = 'mpesa', staffName = '—', pending = null;
+let discount = 0, discountReason = '', dType = 'amount';   // applied discount on current sale
 
 /* ---------- auth ---------- */
 async function boot(){
@@ -368,11 +400,22 @@ function renderCart(){
       <button class="ci-x" data-rm="${i}">✕</button>
     </div>`;
   }).join('');
+  const gross = cartGross();
   const total = cartTotal();
   $('checkout').disabled = false;
   $('checkout').textContent = `COMPLETE SALE — KES ${fmt(total)}`;
+  // discount row visibility
+  if(discount > 0){
+    $('discountRow').style.display = 'flex';
+    $('discountLabel').textContent = `Discount −${fmt(discount)} (${discountReason})`;
+    $('addDiscount').style.display = 'none';
+  } else {
+    $('discountRow').style.display = 'none';
+    $('addDiscount').style.display = cart.length ? 'block' : 'none';
+  }
 }
-function cartTotal(){ return cart.reduce((s,c)=> s + Math.round(c.qty*c.price), 0); }
+function cartGross(){ return cart.reduce((s,c)=> s + Math.round(c.qty*c.price), 0); }
+function cartTotal(){ return Math.max(0, cartGross() - discount); }
 
 /* ---------- checkout ---------- */
 let busy = false;
@@ -380,34 +423,70 @@ async function checkout(){
   if(busy || !cart.length) return;
   busy = true; $('checkout').disabled = true;
   const items = cart.map(c => ({ id:c.id, name:c.name, qty:c.qty, unit:c.unit, price:c.price, line:Math.round(c.qty*c.price) }));
+  const gross = cartGross();
   const total = cartTotal();
+  const saleDiscount = discount, saleReason = discountReason;
 
   // If the browser knows it's offline, queue immediately — don't even try.
   if(!navigator.onLine){
-    queueAdd({ payment, items, staff: staffName, total, at: Date.now() });
+    queueAdd({ payment, items, staff: staffName, total, discount: saleDiscount, reason: saleReason, original: gross, at: Date.now() });
     toast(`✓ Saved offline — KES ${fmt(total)} (will sync)`);
     if(navigator.vibrate) navigator.vibrate(60);
-    cart = []; renderCart(); deductLocalStock(items);
+    cart = []; resetDiscount(); renderCart(); deductLocalStock(items);
     busy = false; return;
   }
 
   try{
     const { data, error } = await sb.rpc('record_counter_sale', {
-      p_payment: payment, p_items: items, p_staff_name: staffName
+      p_payment: payment, p_items: items, p_staff_name: staffName,
+      p_discount: saleDiscount, p_discount_reason: saleReason || null, p_original: gross
     });
     if(error) throw error;
-    toast(`✓ Sale ${data} — KES ${fmt(total)}`);
+    toast(`✓ Sale ${data} — KES ${fmt(total)}${saleDiscount>0?` (−${fmt(saleDiscount)})`:''}`);
     if(navigator.vibrate) navigator.vibrate(60);
-    cart = []; renderCart();
+    cart = []; resetDiscount(); renderCart();
     await loadProducts(); await loadTodayStats();
   }catch(e){
     // Network/server failed mid-sale → queue it rather than lose it.
-    queueAdd({ payment, items, staff: staffName, total, at: Date.now() });
+    queueAdd({ payment, items, staff: staffName, total, discount: saleDiscount, reason: saleReason, original: gross, at: Date.now() });
     toast(`✓ Saved offline — KES ${fmt(total)} (will sync)`);
     if(navigator.vibrate) navigator.vibrate(60);
-    cart = []; renderCart(); deductLocalStock(items);
+    cart = []; resetDiscount(); renderCart(); deductLocalStock(items);
   }
   busy = false;
+}
+function resetDiscount(){ discount = 0; discountReason = ''; }
+
+/* ---------- discount ---------- */
+function openDiscount(){
+  dType = 'amount';
+  document.querySelectorAll('#dType .tbtn').forEach(b => b.classList.toggle('on', b.dataset.dtype==='amount'));
+  $('dAmountBox').style.display = 'block'; $('dPerkgBox').style.display = 'none';
+  $('dAmount').value = ''; $('dNewPrice').value = ''; $('dReason').value = '';
+  $('dItem').innerHTML = cart.map((c,i)=> `<option value="${i}">${c.name} — now ${fmt(c.price)}/${c.unit}</option>`).join('');
+  $('dmodal').classList.add('show');
+}
+function applyDiscount(){
+  const reason = $('dReason').value.trim();
+  if(!reason){ toast('A reason is required', true); return; }
+  let disc = 0;
+  if(dType === 'amount'){
+    disc = parseFloat($('dAmount').value) || 0;
+    if(disc <= 0){ toast('Enter a discount amount', true); return; }
+    if(disc >= cartGross()){ toast("Discount can't exceed the total", true); return; }
+  } else {
+    const i = Number($('dItem').value);
+    const newP = parseFloat($('dNewPrice').value) || 0;
+    const c = cart[i];
+    if(!c){ toast('Pick an item', true); return; }
+    if(newP <= 0 || newP >= c.price){ toast('New price must be lower', true); return; }
+    disc = Math.round(c.qty * (c.price - newP));
+    c.price = newP;
+  }
+  discount = disc; discountReason = reason;
+  $('dmodal').classList.remove('show');
+  renderCart();
+  toast(`Discount applied: −${fmt(disc)}`);
 }
 // Optimistically drop local stock so the grid stays believable while offline
 function deductLocalStock(items){
@@ -582,7 +661,8 @@ async function flushQueue(){
   for(const sale of q){
     try{
       const { error } = await sb.rpc('record_counter_sale', {
-        p_payment: sale.payment, p_items: sale.items, p_staff_name: sale.staff
+        p_payment: sale.payment, p_items: sale.items, p_staff_name: sale.staff,
+        p_discount: sale.discount || 0, p_discount_reason: sale.reason || null, p_original: sale.original || null
       });
       if(error) remaining.push(sale);   // still failing — keep it
     }catch(e){ remaining.push(sale); }
@@ -614,6 +694,18 @@ document.querySelectorAll('[data-pay]').forEach(b => b.addEventListener('click',
   document.querySelectorAll('[data-pay]').forEach(x => x.classList.toggle('on', x===b));
 }));
 $('checkout').addEventListener('click', checkout);
+
+// discount
+$('addDiscount').addEventListener('click', openDiscount);
+$('clearDiscount').addEventListener('click', ()=>{ resetDiscount(); renderCart(); });
+$('dApply').addEventListener('click', applyDiscount);
+$('dCancel').addEventListener('click', ()=> $('dmodal').classList.remove('show'));
+document.querySelectorAll('#dType .tbtn').forEach(b => b.addEventListener('click', ()=>{
+  dType = b.dataset.dtype;
+  document.querySelectorAll('#dType .tbtn').forEach(x => x.classList.toggle('on', x===b));
+  $('dAmountBox').style.display = dType==='amount' ? 'block' : 'none';
+  $('dPerkgBox').style.display = dType==='perkg' ? 'block' : 'none';
+}));
 
 // today's sales + void
 $('viewSales').addEventListener('click', openSales);
