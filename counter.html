@@ -127,6 +127,7 @@
       <div class="stat"><b id="dTotal">0</b><span>Today KES</span></div>
       <div class="stat"><b id="dCount">0</b><span>Sales</span></div>
       <div class="stat"><button class="qbtn" id="viewSales" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">SALES</button></div>
+      <div class="stat"><button class="qbtn" id="addExpense" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">EXPENSE</button></div>
       <div class="stat"><button class="qbtn" id="cashUp" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">CASH-UP</button></div>
       <div class="stat"><button class="qbtn" id="signout" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">EXIT</button></div>
     </div>
@@ -165,6 +166,35 @@
   </div>
 </div>
 
+<!-- ============ ADD EXPENSE ============ -->
+<div class="modal" id="xmodal">
+  <div class="sheet" style="max-height:88vh;overflow-y:auto">
+    <h3>Record an expense</h3>
+    <div class="sub" style="color:var(--dim);font-family:var(--mono);font-size:12px;margin-bottom:12px">Money spent from the shop today — ice, transport, supplies.</div>
+    <label>What was it for?</label>
+    <div class="toggle" id="xCat" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <button class="tbtn on" data-cat="ice">Ice</button>
+      <button class="tbtn" data-cat="transport">Transport</button>
+      <button class="tbtn" data-cat="supplies">Supplies</button>
+      <button class="tbtn" data-cat="wages">Wages</button>
+      <button class="tbtn" data-cat="airtime">Airtime</button>
+      <button class="tbtn" data-cat="other">Other</button>
+    </div>
+    <label style="margin-top:14px">Amount (KES)</label>
+    <input id="xAmount" type="number" inputmode="numeric" placeholder="e.g. 200" style="width:100%;padding:13px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:18px;font-family:var(--mono)">
+    <label style="margin-top:12px">Paid with</label>
+    <div class="toggle" id="xPaid">
+      <button class="tbtn on" data-paid="cash">Cash (from drawer)</button>
+      <button class="tbtn" data-paid="mpesa">M-Pesa</button>
+    </div>
+    <label style="margin-top:12px">Note (optional)</label>
+    <input id="xNote" placeholder="e.g. boda to bus stage" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit">
+    <button class="addbtn" id="xSave" style="margin-top:16px">Save expense</button>
+    <div id="xToday" style="margin-top:16px"></div>
+    <button class="addbtn" id="xClose" style="background:transparent;color:var(--dim);margin-top:8px">Close</button>
+  </div>
+</div>
+
 <!-- ============ CASH-UP ============ -->
 <div class="modal" id="cmodal">
   <div class="sheet" style="max-height:88vh;overflow-y:auto">
@@ -176,6 +206,7 @@
     <div id="cResult" class="hide" style="margin-top:16px">
       <div class="cashrow"><span>Opening float</span><b id="rFloat">0</b></div>
       <div class="cashrow"><span>Cash sales today</span><b id="rCashSales">0</b></div>
+      <div class="cashrow"><span>Less cash expenses</span><b id="rCashExp" style="color:var(--coral)">0</b></div>
       <div class="cashrow" style="border-top:1px solid var(--faint);padding-top:8px"><span>Expected in drawer</span><b id="rExpected" style="color:var(--foam)">0</b></div>
       <div class="cashrow" style="margin-top:6px"><span>M-Pesa (separate)</span><b id="rMpesa" style="color:var(--green)">0</b></div>
       <label style="margin-top:14px">Count the actual cash in the drawer</label>
@@ -441,6 +472,54 @@ async function voidSale(id){
   await openSales(); await loadProducts(); await loadTodayStats();
 }
 
+/* ---------- expenses ---------- */
+let xCat = 'ice', xPaid = 'cash';
+async function openExpense(){
+  xCat = 'ice'; xPaid = 'cash';
+  document.querySelectorAll('#xCat .tbtn').forEach(b => b.classList.toggle('on', b.dataset.cat==='ice'));
+  document.querySelectorAll('#xPaid .tbtn').forEach(b => b.classList.toggle('on', b.dataset.paid==='cash'));
+  $('xAmount').value = ''; $('xNote').value = '';
+  $('xmodal').classList.add('show');
+  loadTodayExpenses();
+}
+async function saveExpense(){
+  const amt = parseFloat($('xAmount').value);
+  if(isNaN(amt) || amt <= 0){ toast('Enter an amount', true); return; }
+  try{
+    const { error } = await sb.rpc('record_shop_expense', {
+      p_category: xCat, p_amount: amt, p_paid_with: xPaid, p_note: $('xNote').value.trim() || null, p_staff: staffName
+    });
+    if(error) throw error;
+    toast(`✓ Expense saved — ${xCat} KES ${fmt(amt)}`);
+    if(navigator.vibrate) navigator.vibrate(40);
+    $('xAmount').value = ''; $('xNote').value = '';
+    loadTodayExpenses();
+  }catch(e){ toast(e.message, true); }
+}
+async function loadTodayExpenses(){
+  try{
+    const { data, error } = await sb.rpc('shop_today_expenses');
+    if(error) throw error;
+    const rows = (data || []).filter(r => !r.voided);
+    if(!rows.length){ $('xToday').innerHTML = ''; return; }
+    const total = rows.reduce((s,r)=> s + Number(r.amount), 0);
+    $('xToday').innerHTML = `<div style="font-family:var(--mono);font-size:12px;color:var(--catch);margin:4px 0 8px">Today's expenses: KES ${fmt(total)}</div>` +
+      rows.map(function(r){
+        const t = new Date(r.created_at).toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'});
+        return `<div class="cItem"><div class="ci-n">${r.category}${r.note?` — ${r.note}`:''}<small>${t} · ${r.paid_with}</small></div>
+          <span class="ci-line">${fmt(r.amount)}</span>
+          <button class="ci-x" data-xvoid="${r.id}" style="color:var(--coral)">✕</button></div>`;
+      }).join('');
+  }catch(e){ $('xToday').innerHTML = ''; }
+}
+async function voidExpense(id){
+  if(!confirm('Remove this expense?')) return;
+  const { error } = await sb.rpc('void_shop_expense', { p_id:id, p_by:staffName });
+  if(error){ toast(error.message, true); return; }
+  toast('Expense removed');
+  loadTodayExpenses();
+}
+
 /* ---------- cash-up ---------- */
 async function calcCashup(){
   const flt = parseFloat($('cFloat').value) || 0;
@@ -450,6 +529,7 @@ async function calcCashup(){
     const r = (data && data[0]) || {};
     $('rFloat').textContent = fmt(flt);
     $('rCashSales').textContent = fmt(r.cash_sales);
+    if($('rCashExp')) $('rCashExp').textContent = fmt(r.cash_expenses);
     $('rExpected').textContent = fmt(r.expected_cash);
     $('rMpesa').textContent = fmt(r.mpesa_total);
     $('cResult').classList.remove('hide');
@@ -541,6 +621,20 @@ $('sclose').addEventListener('click', ()=> $('smodal').classList.remove('show'))
 $('slist').addEventListener('click', e => {
   const v = e.target.closest('[data-void]');
   if(v) voidSale(Number(v.dataset.void));
+});
+// expenses
+$('addExpense').addEventListener('click', openExpense);
+$('xClose').addEventListener('click', ()=> $('xmodal').classList.remove('show'));
+$('xSave').addEventListener('click', saveExpense);
+document.querySelectorAll('#xCat .tbtn').forEach(b => b.addEventListener('click', ()=>{
+  xCat = b.dataset.cat; document.querySelectorAll('#xCat .tbtn').forEach(x => x.classList.toggle('on', x===b));
+}));
+document.querySelectorAll('#xPaid .tbtn').forEach(b => b.addEventListener('click', ()=>{
+  xPaid = b.dataset.paid; document.querySelectorAll('#xPaid .tbtn').forEach(x => x.classList.toggle('on', x===b));
+}));
+$('xToday').addEventListener('click', e => {
+  const v = e.target.closest('[data-xvoid]');
+  if(v) voidExpense(Number(v.dataset.xvoid));
 });
 // cash-up
 $('cashUp').addEventListener('click', ()=>{

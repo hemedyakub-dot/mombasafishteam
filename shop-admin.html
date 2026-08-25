@@ -113,6 +113,9 @@
     <h2>Sales history <span style="color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">· last 14 days</span></h2>
     <div id="history"><div style="color:var(--dim);font-size:13px;font-family:var(--mono)">Loading…</div></div>
 
+    <h2>Today's expenses <span style="color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">· logged by staff</span></h2>
+    <div id="expenses"><div style="color:var(--dim);font-size:13px;font-family:var(--mono)">Loading…</div></div>
+
     <h2>Products &amp; stock</h2>
     <div id="plist"></div>
     <button class="addnew" id="addNew">＋ Add new product</button>
@@ -181,7 +184,26 @@ async function signIn(){
 async function showApp(session){
   staffName = (session.user.email||'staff').split('@')[0];
   $('login').classList.add('hide'); $('app').classList.remove('hide');
-  await loadProducts(); await loadSummary(); await loadHistory();
+  await loadProducts(); await loadSummary(); await loadHistory(); await loadExpenses();
+}
+
+async function loadExpenses(){
+  try{
+    const { data, error } = await sb.rpc('shop_today_expenses');
+    if(error) throw error;
+    const rows = (data || []).filter(r => !r.voided);
+    if(!rows.length){ $('expenses').innerHTML = '<div style="color:var(--dim);font-size:13px;font-family:var(--mono)">No expenses logged today</div>'; return; }
+    const total = rows.reduce((s,r)=> s + Number(r.amount), 0);
+    $('expenses').innerHTML =
+      `<div class="prow" style="border-color:var(--catch)"><div class="pinfo"><div class="n">Total today</div></div>
+        <div class="pstock"><b style="color:var(--catch)">${fmt(total)}</b><span>KES</span></div></div>` +
+      rows.map(function(r){
+        const t = new Date(r.created_at).toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'});
+        return `<div class="prow"><div class="pinfo"><div class="n">${r.category}${r.note?` <small>${r.note}</small>`:''}</div>
+          <div class="m">${t} · ${r.paid_with} · ${r.staff_name||''}</div></div>
+          <div class="pstock"><b>${fmt(r.amount)}</b><span>KES</span></div></div>`;
+      }).join('');
+  }catch(e){ $('expenses').innerHTML = `<div style="color:var(--coral);font-size:13px">${e.message}</div>`; }
 }
 
 async function loadHistory(){
