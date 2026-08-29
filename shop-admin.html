@@ -113,6 +113,9 @@
     <h2>Sales history <span style="color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">· last 14 days</span></h2>
     <div id="history"><div style="color:var(--dim);font-size:13px;font-family:var(--mono)">Loading…</div></div>
 
+    <h2>Stock reconciliation <span style="color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">· today · gaps = investigate</span></h2>
+    <div id="recon"><div style="color:var(--dim);font-size:13px;font-family:var(--mono)">Loading…</div></div>
+
     <h2>Today's discounts <span style="color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0">· given by staff</span></h2>
     <div id="discounts"><div style="color:var(--dim);font-size:13px;font-family:var(--mono)">Loading…</div></div>
 
@@ -187,7 +190,35 @@ async function signIn(){
 async function showApp(session){
   staffName = (session.user.email||'staff').split('@')[0];
   $('login').classList.add('hide'); $('app').classList.remove('hide');
-  await loadProducts(); await loadSummary(); await loadHistory(); await loadExpenses(); await loadDiscounts();
+  await loadProducts(); await loadSummary(); await loadHistory(); await loadExpenses(); await loadDiscounts(); await loadRecon();
+}
+
+async function loadRecon(){
+  try{
+    const { data, error } = await sb.rpc('dash_reconciliation');
+    if(error) throw error;
+    const rows = (data || []).filter(r => Number(r.intake)||Number(r.sold)||Number(r.wasted)||Number(r.opening)||r.counted_yet);
+    if(!rows.length){ $('recon').innerHTML = '<div style="color:var(--dim);font-size:13px;font-family:var(--mono)">No stock movement today yet</div>'; return; }
+    let flagged = 0;
+    const body = rows.map(function(r){
+      const counted = r.counted_yet;
+      const gap = Number(r.gap);
+      const short = counted && gap < -0.001, over = counted && gap > 0.001;
+      if(short) flagged++;
+      const gapTxt = !counted ? '<span style="color:var(--dim)">not counted</span>'
+        : short ? `<span style="color:var(--coral)">⚠ SHORT ${Math.abs(gap)}</span>`
+        : over ? `<span style="color:var(--catch)">OVER +${gap}</span>`
+        : '<span style="color:var(--green)">✓ ok</span>';
+      return `<div class="prow" ${short?'style="border-color:var(--coral)"':''}>
+        <div class="pinfo"><div class="n">${r.name} <small>${r.sw_name||''}</small></div>
+        <div class="m">open ${r.opening} · in ${r.intake} · sold ${r.sold} · waste ${r.wasted} → should ${r.should_be}</div></div>
+        <div class="pstock"><b>${counted? r.counted : '—'}</b><span>${gapTxt}</span></div></div>`;
+    }).join('');
+    const banner = flagged>0
+      ? `<div class="warn" style="margin-bottom:8px">⚠ ${flagged} item${flagged>1?'s':''} short — investigate before closing.</div>`
+      : '';
+    $('recon').innerHTML = banner + body;
+  }catch(e){ $('recon').innerHTML = `<div style="color:var(--coral);font-size:13px">${e.message}</div>`; }
 }
 
 async function loadDiscounts(){

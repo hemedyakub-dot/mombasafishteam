@@ -128,6 +128,8 @@
       <div class="stat"><b id="dCount">0</b><span>Sales</span></div>
       <div class="stat"><button class="qbtn" id="viewSales" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">SALES</button></div>
       <div class="stat"><button class="qbtn" id="addExpense" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">EXPENSE</button></div>
+      <div class="stat"><button class="qbtn" id="addSpoilage" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">SPOILAGE</button></div>
+      <div class="stat"><button class="qbtn" id="stockCount" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">STOCK COUNT</button></div>
       <div class="stat"><button class="qbtn" id="cashUp" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">CASH-UP</button></div>
       <div class="stat"><button class="qbtn" id="signout" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">EXIT</button></div>
     </div>
@@ -223,6 +225,33 @@
     <button class="addbtn" id="xSave" style="margin-top:16px">Save expense</button>
     <div id="xToday" style="margin-top:16px"></div>
     <button class="addbtn" id="xClose" style="background:transparent;color:var(--dim);margin-top:8px">Close</button>
+  </div>
+</div>
+
+<!-- ============ SPOILAGE ============ -->
+<div class="modal" id="smodal">
+  <div class="sheet" style="max-height:88vh;overflow-y:auto">
+    <h3>Log spoiled / wasted fish</h3>
+    <div class="sub" style="color:var(--dim);font-family:var(--mono);font-size:12px;margin-bottom:12px">Record fish that went bad so it's not counted as missing. Reason required.</div>
+    <label>Which fish?</label>
+    <select id="spItem" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit"></select>
+    <label style="margin-top:12px">How much wasted?</label>
+    <input id="spQty" type="number" inputmode="decimal" step="0.001" placeholder="kg / pcs" style="width:100%;padding:13px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:18px;font-family:var(--mono)">
+    <label style="margin-top:12px">Reason (required)</label>
+    <input id="spReason" placeholder="e.g. chiller failure overnight" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit">
+    <button class="addbtn" id="spSave" style="margin-top:16px">Log spoilage</button>
+    <div id="spToday" style="margin-top:16px"></div>
+    <button class="addbtn" id="spClose" style="background:transparent;color:var(--dim);margin-top:8px">Close</button>
+  </div>
+</div>
+
+<!-- ============ STOCK COUNT (reconciliation) ============ -->
+<div class="modal" id="scmodal">
+  <div class="sheet" style="max-height:90vh;overflow-y:auto">
+    <h3>Closing stock count</h3>
+    <div class="sub" style="color:var(--dim);font-family:var(--mono);font-size:12px;margin-bottom:12px">Weigh what's actually left in the chiller. The system checks it against what should be there.</div>
+    <div id="scList"><div style="color:var(--dim);font-family:var(--mono);font-size:12px">Loading products…</div></div>
+    <button class="addbtn" id="scClose" style="background:transparent;color:var(--dim);margin-top:10px">Done</button>
   </div>
 </div>
 
@@ -551,6 +580,75 @@ async function voidSale(id){
   await openSales(); await loadProducts(); await loadTodayStats();
 }
 
+/* ---------- spoilage ---------- */
+function openSpoilage(){
+  $('spItem').innerHTML = products.map(p => `<option value="${p.id}">${p.name} (${p.sw_name||''}) — ${p.stock_qty}${p.sale_unit} in stock</option>`).join('');
+  $('spQty').value = ''; $('spReason').value = '';
+  $('smodal').classList.add('show');
+  loadTodaySpoilage();
+}
+async function saveSpoilage(){
+  const pid = Number($('spItem').value);
+  const qty = parseFloat($('spQty').value);
+  const reason = $('spReason').value.trim();
+  if(isNaN(qty) || qty <= 0){ toast('Enter a quantity', true); return; }
+  if(!reason){ toast('Reason required', true); return; }
+  try{
+    const { error } = await sb.rpc('record_spoilage', { p_product: pid, p_qty: qty, p_reason: reason, p_staff: staffName });
+    if(error) throw error;
+    toast(`✓ Logged ${qty} wasted`);
+    if(navigator.vibrate) navigator.vibrate(40);
+    $('spQty').value=''; $('spReason').value='';
+    await loadProducts(); loadTodaySpoilage();
+    $('spItem').innerHTML = products.map(p => `<option value="${p.id}">${p.name} (${p.sw_name||''}) — ${p.stock_qty}${p.sale_unit} in stock</option>`).join('');
+  }catch(e){ toast(e.message, true); }
+}
+async function loadTodaySpoilage(){
+  try{
+    const { data, error } = await sb.rpc('shop_today_spoilage');
+    if(error) throw error;
+    const rows = data || [];
+    if(!rows.length){ $('spToday').innerHTML=''; return; }
+    const total = rows.reduce((s,r)=> s+Number(r.qty),0);
+    $('spToday').innerHTML = `<div style="font-family:var(--mono);font-size:12px;color:var(--coral);margin:4px 0 8px">Wasted today: ${total}</div>` +
+      rows.map(r => `<div class="cItem"><div class="ci-n">${r.product_name} — ${r.qty}<small>${r.reason||''}</small></div></div>`).join('');
+  }catch(e){ $('spToday').innerHTML=''; }
+}
+
+/* ---------- stock count (closing reconciliation) ---------- */
+function openStockCount(){
+  $('scList').innerHTML = products.map(p => `
+    <div class="scrow" data-scid="${p.id}" style="border:1px solid var(--faint);border-radius:10px;padding:11px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div style="flex:1"><b style="font-size:14px">${p.name}</b> <small style="color:var(--foam);font-family:var(--mono)">${p.sw_name||''}</small>
+          <div style="color:var(--dim);font-size:11px;font-family:var(--mono)">system shows ${p.stock_qty}${p.sale_unit}</div></div>
+        <input class="scount" data-scin="${p.id}" type="number" inputmode="decimal" step="0.001" placeholder="count"
+          style="width:90px;padding:10px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:16px;font-family:var(--mono);text-align:right">
+        <button class="sccheck" data-sccheck="${p.id}" style="padding:10px 12px;border:none;border-radius:8px;background:var(--foam);color:var(--abyss);font-weight:700;font-family:var(--mono);font-size:12px;cursor:pointer">✓</button>
+      </div>
+      <div class="scgap" data-scgap="${p.id}"></div>
+    </div>`).join('');
+  $('scmodal').classList.add('show');
+}
+async function saveCount(pid){
+  const inp = document.querySelector(`[data-scin="${pid}"]`);
+  const gapBox = document.querySelector(`[data-scgap="${pid}"]`);
+  const counted = parseFloat(inp.value);
+  if(isNaN(counted) || counted < 0){ toast('Enter a count', true); return; }
+  try{
+    const { data, error } = await sb.rpc('record_stock_count', { p_product: pid, p_counted: counted, p_staff: staffName });
+    if(error) throw error;
+    const r = (data && data[0]) || {};
+    const gap = Number(r.gap);
+    const short = gap < -0.001, over = gap > 0.001;
+    gapBox.innerHTML = `<div style="margin-top:8px;padding:8px;border-radius:7px;font-family:var(--mono);font-size:12px;text-align:center;
+      background:${short?'rgba(255,107,90,.15)':over?'rgba(255,184,77,.15)':'rgba(34,197,94,.15)'};
+      color:${short?'var(--coral)':over?'var(--catch)':'var(--green)'}">
+      should be ${r.should_be} · counted ${r.counted} · ${short?`⚠ SHORT ${Math.abs(gap)}`:over?`OVER +${gap}`:'✓ BALANCED'}</div>`;
+    if(navigator.vibrate) navigator.vibrate(short?[60,40,60]:40);
+  }catch(e){ toast(e.message, true); }
+}
+
 /* ---------- expenses ---------- */
 let xCat = 'ice', xPaid = 'cash';
 async function openExpense(){
@@ -713,6 +811,17 @@ $('sclose').addEventListener('click', ()=> $('smodal').classList.remove('show'))
 $('slist').addEventListener('click', e => {
   const v = e.target.closest('[data-void]');
   if(v) voidSale(Number(v.dataset.void));
+});
+// spoilage
+$('addSpoilage').addEventListener('click', openSpoilage);
+$('spClose').addEventListener('click', ()=> $('smodal').classList.remove('show'));
+$('spSave').addEventListener('click', saveSpoilage);
+// stock count
+$('stockCount').addEventListener('click', openStockCount);
+$('scClose').addEventListener('click', async ()=>{ $('scmodal').classList.remove('show'); await loadProducts(); });
+$('scList').addEventListener('click', e => {
+  const c = e.target.closest('[data-sccheck]');
+  if(c) saveCount(Number(c.dataset.sccheck));
 });
 // expenses
 $('addExpense').addEventListener('click', openExpense);
