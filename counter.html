@@ -635,6 +635,20 @@ async function voidSale(id){
 }
 
 /* ---------- wanted list ---------- */
+// Build a free wa.me link with a pre-filled Swahili-English message + Till number.
+function waLink(phone, name, item){
+  // normalize phone to intl format for wa.me (Kenya): 07... -> 2547..., +254.. -> 254..
+  let p = (phone||'').replace(/[^0-9]/g,'');
+  if(p.startsWith('0')) p = '254' + p.slice(1);
+  else if(p.startsWith('254')) { /* ok */ }
+  else if(p.startsWith('7') || p.startsWith('1')) p = '254' + p;
+  const greeting = name ? `Habari ${name}!` : 'Habari!';
+  const msg = `${greeting} 🐟 Good news from Mombasafish — the ${item} you asked for is now in stock! `
+    + `Karibu ukachukue au tukuletee. Lipa kwa M-Pesa Till 9948037 (Hemed Yakub). `
+    + `Piga simu 0787 668 888 kuagiza. Asante! 🌊`;
+  return `https://wa.me/${p}?text=${encodeURIComponent(msg)}`;
+}
+
 async function openWanted(){
   $('wProduct').innerHTML = '<option value="">— pick from our products —</option>' +
     products.map(p => `<option value="${p.id}">${p.name} (${p.sw_name||''})${(p.stock_qty>0)?'':' — OUT'}</option>`).join('');
@@ -667,11 +681,12 @@ async function loadWanted(){
     // ready-to-call (product back in stock) shown prominently at top
     const { data: ready } = await sb.rpc('wanted_ready_to_call');
     if(ready && ready.length){
-      $('wReady').innerHTML = `<div class="warn" style="margin-bottom:10px">📞 ${ready.length} customer${ready.length>1?'s':''} to call — their item is back in stock!</div>` +
-        ready.map(r => `<div class="cItem" style="border:1px solid var(--catch);border-radius:8px;padding:9px;margin-bottom:6px">
-          <div class="ci-n">${r.customer_name||'Customer'} · ${r.phone}<small>wanted ${r.item_text} — ${r.product_name} now has ${r.stock_qty}</small></div>
-          <a href="tel:${r.phone}" style="color:var(--foam);text-decoration:none;font-size:18px;padding:0 6px">📞</a>
-          <button data-wdone="${r.id}" style="background:var(--green);border:none;color:#04211f;border-radius:6px;padding:6px 9px;font-family:var(--mono);font-size:11px;cursor:pointer">Called ✓</button>
+      $('wReady').innerHTML = `<div class="warn" style="margin-bottom:10px">📞 ${ready.length} customer${ready.length>1?'s':''} to reach — their item is back in stock!</div>` +
+        ready.map(r => `<div class="cItem" style="border:1px solid var(--catch);border-radius:8px;padding:9px;margin-bottom:6px;flex-wrap:wrap">
+          <div class="ci-n" style="width:100%;margin-bottom:6px">${r.customer_name||'Customer'} · ${r.phone}<small>wanted ${r.item_text} — ${r.product_name} now has ${r.stock_qty}</small></div>
+          <a href="${waLink(r.phone, r.customer_name, r.item_text)}" target="_blank" rel="noopener" style="flex:1;text-align:center;background:#25D366;color:#fff;text-decoration:none;border-radius:6px;padding:7px;font-family:var(--mono);font-size:11px;font-weight:700">💬 WhatsApp</a>
+          <a href="tel:${r.phone}" style="background:rgba(127,212,193,.15);border:1px solid var(--faint);color:var(--foam);text-decoration:none;border-radius:6px;padding:7px 11px;font-size:15px">📞</a>
+          <button data-wdone="${r.id}" style="background:var(--green);border:none;color:#04211f;border-radius:6px;padding:7px 9px;font-family:var(--mono);font-size:11px;cursor:pointer">Reached ✓</button>
         </div>`).join('');
     } else $('wReady').innerHTML = '';
     // full waiting list

@@ -219,6 +219,17 @@ async function showApp(session){
   await loadProducts(); await loadSummary(); await loadHistory(); await loadExpenses(); await loadDiscounts(); await loadRecon(); await loadWantedAdmin();
 }
 
+function waLink(phone, name, item){
+  let p = (phone||'').replace(/[^0-9]/g,'');
+  if(p.startsWith('0')) p = '254' + p.slice(1);
+  else if(p.startsWith('254')) {}
+  else if(p.startsWith('7') || p.startsWith('1')) p = '254' + p;
+  const greeting = name ? `Habari ${name}!` : 'Habari!';
+  const msg = `${greeting} 🐟 Good news from Mombasafish — the ${item} you asked for is now in stock! `
+    + `Karibu ukachukue au tukuletee. Lipa kwa M-Pesa Till 9948037 (Hemed Yakub). `
+    + `Piga simu 0787 668 888 kuagiza. Asante! 🌊`;
+  return `https://wa.me/${p}?text=${encodeURIComponent(msg)}`;
+}
 async function loadWantedAdmin(){
   try{
     const { data: ready } = await sb.rpc('wanted_ready_to_call');
@@ -227,12 +238,15 @@ async function loadWantedAdmin(){
     const rows = data || [];
     let html = '';
     if(ready && ready.length){
-      html += `<div class="warn" style="margin-bottom:8px">📞 ${ready.length} to call — item back in stock!</div>` +
-        ready.map(r => `<div class="prow" style="border-color:var(--catch);flex-wrap:wrap">
-          <div class="pinfo"><div class="n">${r.customer_name||'Customer'} · ${r.phone}</div>
-          <div class="m">wanted ${r.item_text} · ${r.product_name} now has ${r.stock_qty}</div></div>
-          <a href="tel:${r.phone}" style="color:var(--foam);text-decoration:none;font-size:20px">📞</a>
-          <button data-afulfil="${r.id}" style="background:var(--green);border:none;color:#04211f;border-radius:6px;padding:6px 10px;font-family:var(--mono);font-size:11px;cursor:pointer;margin-left:6px">Called ✓</button></div>`).join('');
+      html += `<div class="warn" style="margin-bottom:8px">📞 ${ready.length} to reach — item back in stock!</div>` +
+        ready.map(r => `<div class="wentry" style="border:1px solid var(--catch);border-radius:9px;padding:11px;margin-bottom:7px">
+          <div style="margin-bottom:8px"><b>${r.customer_name||'Customer'} · ${r.phone}</b>
+            <div style="color:var(--dim);font-size:12px;font-family:var(--mono)">wanted ${r.item_text} · ${r.product_name} now has ${r.stock_qty}</div></div>
+          <div style="display:flex;gap:6px">
+            <a href="${waLink(r.phone, r.customer_name, r.item_text)}" target="_blank" rel="noopener" style="flex:1;text-align:center;background:#25D366;color:#fff;text-decoration:none;border-radius:7px;padding:8px;font-family:var(--mono);font-size:11px;font-weight:700">💬 WhatsApp</a>
+            <a href="tel:${r.phone}" style="background:rgba(127,212,193,.12);border:1px solid var(--faint);color:var(--foam);border-radius:7px;padding:8px 11px;text-decoration:none;font-size:15px">📞</a>
+            <button data-afulfil="${r.id}" style="flex:1;background:var(--green);border:none;color:#04211f;border-radius:7px;padding:8px;font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer">Reached ✓</button>
+          </div></div>`).join('');
     }
     if(!rows.length && (!ready || !ready.length)){
       $('wantedAdmin').innerHTML = '<div style="color:var(--dim);font-size:13px;font-family:var(--mono)">No one waiting</div>'; return;
