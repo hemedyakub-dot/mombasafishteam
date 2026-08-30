@@ -655,15 +655,23 @@ async function loadWanted(){
     const rows = (data || []);
     if(!rows.length){ $('wList').innerHTML = '<div style="color:var(--dim);font-size:13px;font-family:var(--mono)">No one waiting right now</div>'; return; }
     $('wList').innerHTML = '<div style="font-family:var(--mono);font-size:11px;color:var(--dim);margin:6px 0">WAITING LIST</div>' +
-      rows.map(r => `<div class="cItem"><div class="ci-n">${r.customer_name||'Customer'} · ${r.phone}
-        <small>${r.item_text}${r.qty_wanted?` (${r.qty_wanted})`:''} ${r.in_stock_now?'· ✅ IN STOCK':'· waiting'}</small></div>
-        <button data-wcancel="${r.id}" style="background:none;border:none;color:var(--coral);cursor:pointer">✕</button></div>`).join('');
+      rows.map(r => `<div class="wentry" style="border:1px solid var(--faint);border-radius:9px;padding:10px;margin-bottom:7px">
+        <div class="ci-n" style="margin-bottom:8px">${r.customer_name||'Customer'} · ${r.phone}
+          <small>${r.item_text}${r.qty_wanted?` (${r.qty_wanted})`:''} ${r.in_stock_now?'· ✅ IN STOCK':'· waiting'}</small></div>
+        <div style="display:flex;gap:6px">
+          <button data-wfulfil="${r.id}" style="flex:1;background:var(--green);border:none;color:#04211f;border-radius:7px;padding:8px;font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer">✓ Delivered</button>
+          <button data-wfollow="${r.id}" style="flex:1;background:rgba(255,184,77,.18);border:1px solid var(--catch);color:var(--catch);border-radius:7px;padding:8px;font-family:var(--mono);font-size:11px;cursor:pointer">↻ Follow up</button>
+          <button data-wcancel="${r.id}" style="background:transparent;border:1px solid var(--faint);color:var(--dim);border-radius:7px;padding:8px 10px;font-family:var(--mono);font-size:11px;cursor:pointer">Not now</button>
+        </div></div>`).join('');
   }catch(e){ $('wList').innerHTML = `<div style="color:var(--coral);font-size:13px">${e.message}</div>`; }
 }
 async function wantedAction(id, status){
   const { error } = await sb.rpc('set_wanted_status', { p_id:id, p_status:status, p_staff:staffName });
   if(error){ toast(error.message, true); return; }
-  toast(status==='fulfilled'?'✓ Marked called/fulfilled':'Removed');
+  const msg = status==='fulfilled' ? '✓ Delivered — nice one'
+            : status==='follow_up' ? '↻ Marked for follow-up — stays on list'
+            : 'Moved off active list (kept in records)';
+  toast(msg);
   loadWanted(); refreshWantedBadge();
 }
 async function refreshWantedBadge(){
@@ -918,8 +926,15 @@ $('wReady').addEventListener('click', e => {
   if(done) wantedAction(Number(done.dataset.wdone), 'fulfilled');
 });
 $('wList').addEventListener('click', e => {
-  const c = e.target.closest('[data-wcancel]');
-  if(c) wantedAction(Number(c.dataset.wcancel), 'cancelled');
+  const fulfil = e.target.closest('[data-wfulfil]');
+  if(fulfil){ wantedAction(Number(fulfil.dataset.wfulfil), 'fulfilled'); return; }
+  const follow = e.target.closest('[data-wfollow]');
+  if(follow){ wantedAction(Number(follow.dataset.wfollow), 'follow_up'); return; }
+  const cancel = e.target.closest('[data-wcancel]');
+  if(cancel){
+    if(confirm('Mark this request as no longer wanted?\n\nIt stays in your records — not deleted — but leaves the active list.'))
+      wantedAction(Number(cancel.dataset.wcancel), 'cancelled');
+  }
 });
 // spoilage
 $('addSpoilage').addEventListener('click', openSpoilage);
