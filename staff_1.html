@@ -102,17 +102,84 @@ input:focus{outline:none;border-color:var(--foam)}
 .rlink{flex-shrink:0}
 .linked{font-family:var(--mono);font-size:11px;color:var(--foam)}
 .repeat-hint{margin-top:10px;font-size:12px;color:var(--dim);font-style:italic}
+.notify{
+  display:block;margin-top:11px;padding:11px;text-align:center;text-decoration:none;
+  background:rgba(37,211,102,.14);border:1px solid #25D366;border-radius:3px;
+  color:#5cead0;font-family:var(--mono);font-size:12px;letter-spacing:.06em;
+  text-transform:uppercase;transition:background .18s;
+}
+.notify:hover{background:rgba(37,211,102,.24)}
 .pill{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:4px 9px;border-radius:100px;white-space:nowrap}
 .p1{background:rgba(242,237,227,.15);color:var(--sand)}
 .p2{background:rgba(127,212,193,.22);color:var(--foam)}
 .p3{background:var(--catch);color:var(--abyss)}
 .p4{background:var(--foam);color:var(--abyss)}
 .pX{background:var(--coral);color:#fff}
+.pPay{background:#B57A1F;color:#fff}
 
+/* Unpaid orders: amber warning band, dimmed so they read as NOT actionable */
+.order.is-unpaid{opacity:.92;border-color:rgba(181,122,31,.55);background:rgba(181,122,31,.07)}
+.mark-paid{width:100%;margin-top:9px;padding:13px;border:none;border-radius:9px;background:#22c55e;
+  color:#04211f;font-weight:800;font-family:'IBM Plex Mono',monospace;font-size:15px;letter-spacing:.03em;
+  text-transform:uppercase;cursor:pointer}
+.mark-paid:active{transform:scale(.98)}
+.pay-actions{display:flex;gap:8px;margin-top:9px}
+.pay-actions .mark-paid{flex:1;margin-top:0}
+.mark-cancel{flex:0 0 auto;padding:13px 15px;border:1px solid rgba(255,107,90,.5);border-radius:9px;
+  background:transparent;color:#FF6B5A;font-family:'IBM Plex Mono',monospace;font-size:13px;cursor:pointer}
+.mark-cancel:active{transform:scale(.98)}
+.pay-flag{
+  margin-top:11px;padding:9px 12px;border-radius:3px;
+  background:rgba(181,122,31,.16);border:1px solid #B57A1F;
+  color:#F0C070;font-family:var(--mono);font-size:11px;letter-spacing:.05em;
+}
+
+.checklist{margin:12px 0 4px;display:flex;flex-direction:column;gap:6px}
+.fish{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:10px 12px;border-radius:6px;border:1px solid var(--faint);
+  background:transparent;color:var(--sand);cursor:pointer;font-family:inherit;font-size:14px;
+  transition:background .15s,border-color .15s}
+.fish:hover{border-color:var(--foam)}
+.fdot{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.fname{flex:1;font-weight:500}
+.fstate{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+  padding:3px 8px;border-radius:100px;flex-shrink:0}
+.fish.is0{opacity:.7}
+.fish.is0 .fstate{background:rgba(242,237,227,.12);color:var(--dim)}
+.fish.is0 .fdot{color:var(--dim)}
+.fish.is1{border-color:rgba(127,212,193,.4)}
+.fish.is1 .fstate{background:rgba(127,212,193,.18);color:var(--foam)}
+.fish.is1 .fdot{color:var(--foam)}
+.fish.is2{border-color:var(--foam);background:rgba(127,212,193,.08)}
+.fish.is2 .fstate{background:var(--foam);color:var(--abyss)}
+.fish.is2 .fdot{color:var(--foam)}
+.fish.is2 .fname{color:var(--foam)}
+.fish.open{border-color:var(--foam);border-bottom-left-radius:0;border-bottom-right-radius:0}
+.fishwrap{margin-bottom:2px}
+.fpick{display:flex;flex-direction:column;gap:0;border:1px solid var(--foam);border-top:none;
+  border-radius:0 0 6px 6px;overflow:hidden;margin-bottom:6px}
+.fopt{text-align:left;padding:11px 14px;background:rgba(3,42,46,.9);color:var(--sand);
+  border:none;border-top:1px solid rgba(127,212,193,.15);cursor:pointer;font-family:inherit;
+  font-size:13px}
+.fopt:first-child{border-top:none}
+.fopt:hover{background:rgba(127,212,193,.12)}
+.fopt.on{background:rgba(127,212,193,.2);color:var(--foam);font-weight:600}
+.items-progress{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:4px;letter-spacing:.04em}
+.all-ready{font-family:var(--mono);font-size:11px;color:var(--foam);margin-top:4px;letter-spacing:.04em;font-weight:600}
+.seed-btn{margin-top:8px;padding:9px 12px;width:100%;border:1px dashed var(--faint);background:transparent;
+  color:var(--dim);border-radius:6px;cursor:pointer;font-family:var(--mono);font-size:11px;
+  letter-spacing:.06em;text-transform:uppercase}
+.seed-btn:hover{border-color:var(--foam);color:var(--foam)}
 .acts{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
 .act{flex:1;min-width:120px;padding:11px;border:1px solid var(--faint);background:transparent;border-radius:3px;color:var(--sand);font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
 .act:hover{border-color:var(--foam);color:var(--foam)}
+.act.locked{background:transparent;border:1px dashed var(--faint);color:var(--dim);
+  cursor:not-allowed;font-weight:500;text-transform:none;letter-spacing:.02em}
+.act.locked:hover{border-color:var(--faint);color:var(--dim)}
 .act.go{background:var(--catch);border-color:var(--catch);color:var(--abyss);font-weight:600}
+.act.go.locked{background:transparent;border:1px dashed var(--faint);color:var(--dim);
+  cursor:not-allowed;font-weight:500;text-transform:none;letter-spacing:.02em}
+.act.go.locked:hover{border-color:var(--faint);color:var(--dim)}
 .act.go:hover{background:#ffc76d;color:var(--abyss)}
 .act:disabled{opacity:.45;cursor:not-allowed}
 
@@ -187,6 +254,7 @@ input:focus{outline:none;border-color:var(--foam)}
   <!-- ORDERS -->
   <section id="appView" class="hidden">
     <div class="tabs">
+      <button class="tab" data-f="unpaid">Awaiting payment</button>
       <button class="tab on" data-f="todo">To dispatch</button>
       <button class="tab" data-f="road">On the road</button>
       <button class="tab" data-f="done">Arrived</button>
@@ -233,6 +301,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const $ = id => document.getElementById(id);
 const STAGE = {1:['Confirmed','p1'],2:['Packed','p2'],3:['On the road','p3'],4:['Arrived','p4'],'-1':['Cancelled','pX']};
+const isUnpaid = o => o.status === 'Pending Payment' && o.stage === 1;
 let orders = [], filter = 'todo';
 
 function note(text, kind='ok'){
@@ -287,6 +356,7 @@ async function boot(){
   }
 
   $('whoName').textContent = (staff.full_name || session.user.email) + ' · ' + staff.role;
+  window.__staffName = staff.full_name || session.user.email;
   $('who').classList.remove('hidden');
   $('loginView').classList.add('hidden');
   $('appView').classList.remove('hidden');
@@ -296,13 +366,63 @@ async function boot(){
 }
 let isOwner = false;
 
+let itemsByOrder = {};
+
 async function load(){
   const { data, error } = await sb.from('mfm_orders')
-    .select('order_number, customer_name, contact, destination, items, stage, created_at, stage_changed_at, dispatched_at, delivery_type, rider_name, rider_phone, eta_note')
+    .select('order_number, tracking_code, customer_name, contact, destination, items, stage, status, created_at, stage_changed_at, dispatched_at, delivery_type, rider_name, rider_phone, eta_note')
     .order('date_ordered', { ascending:true });
   if(error){ note(error.message,'err'); return; }
   orders = data || [];
+
+  // Pull per-item states for all visible orders in one query
+  const nums = orders.map(o => o.order_number);
+  itemsByOrder = {};
+  if(nums.length){
+    try{
+      const { data: items } = await sb.from('mfm_order_items')
+        .select('id, order_number, item_name, state, sort_order')
+        .in('order_number', nums)
+        .order('sort_order', { ascending:true });
+      (items || []).forEach(function(it){
+        if(!itemsByOrder[it.order_number]) itemsByOrder[it.order_number] = [];
+        itemsByOrder[it.order_number].push(it);
+      });
+    }catch(e){
+      itemsByOrder = {};
+    }
+  }
   render();
+}
+
+const ITEM_STATE = {
+  0: ['Not yet caught · at sea', 'is0'],
+  1: ['Caught · to be cleaned',   'is1'],
+  2: ['Iced & packed',            'is2']
+};
+
+let openItem = null;   // id of the item whose state-picker is open
+
+function toggleItem(id){
+  openItem = (openItem === id) ? null : id;
+  render();
+}
+
+async function pickItem(id, orderNo, newState){
+  const list = itemsByOrder[orderNo] || [];
+  const it = list.find(x => x.id === id);
+  if(!it) return;
+  const prev = it.state;
+  it.state = newState; openItem = null; render();       // optimistic
+  const { error } = await sb.rpc('set_item_state', { p_item:id, p_state:newState });
+  if(error){ it.state = prev; render(); note(error.message,'err'); }
+}
+
+async function seedItems(orderNo){
+  const { data, error } = await sb.rpc('mfm_seed_items', { p_order:orderNo });
+  if(error){ note(error.message,'err'); return; }
+  note(`${data} items added for ${orderNo}.`);
+  await load();
 }
 
 const DTYPE = { mombasa:'Mombasa', upcountry:'Upcountry', pickup:'Pickup' };
@@ -345,22 +465,65 @@ function stamp(iso){
 
 function render(){
   if(filter === 'repeats'){ renderRepeats(); return; }
-  const sets = { todo:o=>o.stage===1||o.stage===2, road:o=>o.stage===3, done:o=>o.stage===4||o.stage===-1 };
+  const sets = {
+    unpaid: o => isUnpaid(o),
+    todo:   o => (o.stage===1||o.stage===2) && !isUnpaid(o),
+    road:   o => o.stage===3,
+    done:   o => o.stage===4||o.stage===-1
+  };
   const rows = orders.filter(sets[filter]);
   if(!rows.length){ $('list').innerHTML = '<div class="empty">Nothing here right now.</div>'; return; }
 
   $('list').innerHTML = rows.map(o=>{
-    const [label, cls] = STAGE[o.stage] || ['—','p1'];
+    const unpaid = isUnpaid(o);
+    let [label, cls] = STAGE[o.stage] || ['—','p1'];
+    if(unpaid){ label = 'Awaiting payment'; cls = 'pPay'; }
     const dt = o.delivery_type || 'upcountry';
+    // Per-item states for this order — defined up-front because both the
+    // dispatch lock and the checklist below depend on it.
+    const myItems = itemsByOrder[o.order_number] || [];
+    // Dispatch is only allowed once EVERY item is packed. If any fish is still
+    // "at sea" or "on ice", the button is locked — you can't send a half-full box.
+    const hasItems = myItems.length > 0;
+    const allItemsPacked = hasItems ? myItems.every(x => x.state === 2) : true;
+    const notPacked = hasItems ? myItems.filter(x => x.state !== 2).length : 0;
+    const dispatchBtn = allItemsPacked
+      ? `<button class="act go" data-d="${o.order_number}">Dispatch →</button>`
+      : `<button class="act go locked" disabled title="Pack all items first">🔒 Dispatch (${notPacked} item${notPacked>1?'s':''} not packed)</button>`;
+
     let acts = '';
-    if(o.stage===1) acts = `<button class="act" data-s="2" data-o="${o.order_number}">Mark ${dt==='mombasa'?'prepared':'packed'}</button>
-                            <button class="act go" data-d="${o.order_number}">Dispatch →</button>`;
-    else if(o.stage===2) acts = `<button class="act go" data-d="${o.order_number}">Dispatch →</button>`;
+    if(unpaid){
+      acts = '';  // no packing or dispatch until paid — prevents accidental sourcing
+    } else if(o.stage===1){
+      // "Mark packed" for the whole order is only offered once all items are packed.
+      // Until then, staff pack fish-by-fish using the checklist above.
+      const markBtn = allItemsPacked
+        ? `<button class="act" data-s="2" data-o="${o.order_number}">Mark ${dt==='mombasa'?'prepared':'packed'}</button>`
+        : `<button class="act locked" disabled title="Pack all items first">🔒 Pack all items to continue</button>`;
+      acts = `${markBtn}${allItemsPacked ? dispatchBtn : ''}`;
+    }
+    else if(o.stage===2) acts = dispatchBtn;
     else if(o.stage===3) acts = `<button class="act" data-s="4" data-o="${o.order_number}">Mark ${dt==='pickup'?'collected':'arrived'}</button>`;
     const rider = (o.stage>=3 && (o.rider_name||o.rider_phone))
       ? `<div class="items">🛵 ${o.rider_name||'Rider'}${o.rider_phone?' · '+o.rider_phone:''}</div>` : '';
     const tel = o.contact ? o.contact.replace(/[^0-9+]/g,'') : '';
     const wa  = tel.replace(/^\+/,'').replace(/^0/,'254');
+    const first = (o.customer_name||'').split(' ')[0] || '';
+    const trackUrl = `https://mombasafishteam.netlify.app/?order=${encodeURIComponent(o.order_number)}&code=${encodeURIComponent(o.tracking_code||'')}`;
+    // Stage-aware message the customer receives, pre-filled — staff just taps send
+    const msgs = {
+      2: `Habari ${first}, oda yako ${o.order_number} imeandaliwa na iko tayari 📦 Tutakujulisha ikiondoka.`,
+      3: dt==='mombasa'
+          ? `Habari ${first}, oda yako ${o.order_number} iko njiani — rider anakuja sasa 🛵 Fuatilia hapa: ${trackUrl}`
+          : `Habari ${first}, oda yako ${o.order_number} imeondoka Mombasa na iko njiani 🚚 Fuatilia hapa: ${trackUrl}`,
+      4: dt==='pickup'
+          ? `Habari ${first}, oda yako ${o.order_number} iko tayari kuchukuliwa dukani ✅`
+          : `Habari ${first}, oda yako ${o.order_number} imefika ✅ Asante kwa kuchagua Mombasafish 🐟`
+    };
+    const notifyMsg = msgs[o.stage];
+    const notify = (o.contact && notifyMsg)
+      ? `<a class="notify" href="https://wa.me/${wa}?text=${encodeURIComponent(notifyMsg)}" target="_blank" rel="noopener">💬 Notify ${first||'customer'} on WhatsApp</a>`
+      : '';
     const contact = o.contact
       ? `<div class="contact">
            <a href="tel:${tel}">📞 ${o.contact}</a>
@@ -370,12 +533,58 @@ function render(){
     const STAGE_VERB = {1:'confirmed',2:'packed',3:'dispatched',4:'done'};
     const inStage = elapsed(o.stage_changed_at || o.created_at);
     const since   = elapsed(o.created_at);
-    const ageBadge = inStage && o.stage !== 4
+    const ageBadge = (inStage && o.stage !== 4 && !unpaid)
       ? `<span class="age ${ageClass(inStage.mins, o.stage)}" data-since="${o.stage_changed_at || o.created_at}" data-stage="${o.stage}" data-verb="${STAGE_VERB[o.stage]||''}"><b>${inStage.text}</b> ${STAGE_VERB[o.stage]||''}</span>`
       : '';
     const placed = `<div class="placed">Ordered ${stamp(o.created_at)}${since ? ' · ' + since.text : ''}</div>`;
 
-    return `<div class="order">
+    // Per-item checklist — each fish tick-able through Not caught → On ice → Packed.
+    // Only shown for paid orders (unpaid shouldn't be sourced at all).
+    let itemsBlock;
+    if(unpaid){
+      itemsBlock = o.items ? `<div class="items">${o.items}</div>` : '';
+    } else if(myItems.length){
+      const rows = myItems.map(it => {
+        const [txt, cls2] = ITEM_STATE[it.state];
+        const dot = it.state===2 ? '✓' : (it.state===1 ? '🔪' : '○');
+        const isOpen = openItem === it.id;
+        const picker = isOpen ? `
+          <div class="fpick">
+            <button class="fopt ${it.state===0?'on':''}" data-pick="0" data-item="${it.id}" data-order="${o.order_number}">○ Not yet caught · at sea</button>
+            <button class="fopt ${it.state===1?'on':''}" data-pick="1" data-item="${it.id}" data-order="${o.order_number}">🔪 Caught · to be cleaned</button>
+            <button class="fopt ${it.state===2?'on':''}" data-pick="2" data-item="${it.id}" data-order="${o.order_number}">✓ Iced & packed</button>
+          </div>` : '';
+        return `<div class="fishwrap">
+          <button class="fish ${cls2} ${isOpen?'open':''}" data-fish="${it.id}">
+            <span class="fdot">${dot}</span>
+            <span class="fname">${it.item_name}</span>
+            <span class="fstate">${txt}</span>
+          </button>${picker}
+        </div>`;
+      }).join('');
+      const allPacked = myItems.every(x => x.state===2);
+      const readyNote = allPacked
+        ? `<div class="all-ready">✓ All iced & packed — ready to dispatch</div>`
+        : `<div class="items-progress">${myItems.filter(x=>x.state===2).length}/${myItems.length} packed · ${myItems.filter(x=>x.state===0).length} still at sea</div>`;
+      itemsBlock = `<div class="checklist">${rows}${readyNote}</div>`;
+    } else {
+      itemsBlock = `${o.items ? `<div class="items">${o.items}</div>` : ''}
+        <button class="seed-btn" data-seed="${o.order_number}">＋ Track items individually</button>`;
+    }
+
+    // Unpaid: no notify-dispatch message; instead a clear "send payment link" prompt
+    const payUrl = `https://mombasafishteam.netlify.app/?order=${encodeURIComponent(o.order_number)}&code=${encodeURIComponent(o.tracking_code||'')}`;
+    const payMsg = `Habari ${first}, oda yako ${o.order_number} imepokelewa. Tafadhali lipa na M-Pesa Buy Goods Till 9948037 (Hemed Yakub) kukamilisha. Fuatilia hapa: ${payUrl}`;
+    const payBlock = unpaid
+      ? `<div class="pay-flag">⏳ Awaiting payment — do not pack or source yet</div>
+         ${o.contact ? `<a class="notify pay-notify" href="https://wa.me/${wa}?text=${encodeURIComponent(payMsg)}" target="_blank" rel="noopener">💬 Send payment link to ${first||'customer'}</a>` : ''}
+         <div class="pay-actions">
+           <button class="mark-paid" data-paid="${o.order_number}">✓ Mark PAID</button>
+           <button class="mark-cancel" data-cancel="${o.order_number}">✕ Cancel order</button>
+         </div>`
+      : '';
+
+    return `<div class="order${unpaid ? ' is-unpaid' : ''}">
       <div class="order-top">
         <div>
           <div class="ono">${o.order_number}<span class="dtype d-${dt}">${DTYPE[dt]}</span></div>
@@ -386,8 +595,9 @@ function render(){
       </div>
       ${placed}
       ${contact}
-      ${o.items ? `<div class="items">${o.items}</div>` : ''}
+      ${itemsBlock}
       ${rider}
+      ${unpaid ? payBlock : notify}
       ${acts ? `<div class="acts">${acts}</div>` : ''}
     </div>`;
   }).join('');
@@ -404,7 +614,7 @@ async function renderRepeats(){
   }
   // group by first name; only show names appearing more than once
   const groups = {};
-  repeatsData.forEach(r => { (groups[r.first_name] ||= []).push(r); });
+  repeatsData.forEach(function(r){ if(!groups[r.first_name]) groups[r.first_name]=[]; groups[r.first_name].push(r); });
   const dupes = Object.entries(groups).filter(([,rows]) => rows.length > 1);
 
   if(!dupes.length){
@@ -425,6 +635,28 @@ async function renderRepeats(){
         </div>`).join('')}
       <div class="repeat-hint">If these are the same person, tell Hemed to link them — the system will remember all their numbers.</div>
     </div>`).join('');
+}
+
+async function markPaid(orderNo, btn){
+  const o = orders.find(x => x.order_number === orderNo);
+  const who = o ? (o.customer_name || orderNo) : orderNo;
+  if(!confirm(`Mark ${who}'s order as PAID?\n\nOnly do this once you've confirmed the M-Pesa payment.`)) return;
+  btn.disabled = true; const old = btn.textContent; btn.textContent = 'Saving…';
+  const { data, error } = await sb.rpc('mark_order_paid', { p_order: orderNo, p_staff: window.__staffName || 'staff' });
+  if(error){ note(error.message,'err'); btn.disabled=false; btn.textContent=old; return; }
+  await load();
+  note(`✓ ${who} marked paid — now in the dispatch queue.`);
+}
+
+async function cancelOrder(orderNo, btn){
+  const o = orders.find(x => x.order_number === orderNo);
+  const who = o ? (o.customer_name || orderNo) : orderNo;
+  if(!confirm(`Cancel ${who}'s order?\n\nThis removes it from the active list. The record is kept, not deleted. Do this only if the customer is not proceeding.`)) return;
+  btn.disabled = true; const old = btn.textContent; btn.textContent = 'Cancelling…';
+  const { error } = await sb.rpc('cancel_order_app', { p_order: orderNo, p_staff: window.__staffName || 'staff' });
+  if(error){ note(error.message,'err'); btn.disabled=false; btn.textContent=old; return; }
+  await load();
+  note(`${who}'s order cancelled — kept in records.`);
 }
 
 async function setStage(orderNo, stage, btn){
@@ -513,8 +745,37 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>{
 }));
 
 $('list').addEventListener('click', e=>{
+  // Mark an awaiting-payment order as paid
+  const paid = e.target.closest('[data-paid]');
+  if(paid){
+    e.stopPropagation();
+    markPaid(paid.dataset.paid, paid);
+    return;
+  }
+  // Cancel an awaiting-payment order
+  const cancel = e.target.closest('[data-cancel]');
+  if(cancel){
+    e.stopPropagation();
+    cancelOrder(cancel.dataset.cancel, cancel);
+    return;
+  }
+  // Item state pick (from the 3-button picker)
+  const pick = e.target.closest('[data-pick]');
+  if(pick){
+    e.stopPropagation();
+    pickItem(Number(pick.dataset.item), pick.dataset.order, Number(pick.dataset.pick));
+    return;
+  }
+  // Tap a fish to open/close its state picker
+  const fish = e.target.closest('[data-fish]');
+  if(fish){ toggleItem(Number(fish.dataset.fish)); return; }
+  // Seed items for an order that has none yet
+  const seed = e.target.closest('[data-seed]');
+  if(seed){ seedItems(seed.dataset.seed); return; }
+  // Dispatch
   const d = e.target.closest('[data-d]');
   if(d){ openSheet(d.dataset.d); return; }
+  // Stage change (Mark packed / arrived etc.)
   const b = e.target.closest('.act');
   if(b && b.dataset.s) setStage(b.dataset.o, Number(b.dataset.s), b);
 });
