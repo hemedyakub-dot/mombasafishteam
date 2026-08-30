@@ -119,6 +119,10 @@ input:focus{outline:none;border-color:var(--foam)}
 
 /* Unpaid orders: amber warning band, dimmed so they read as NOT actionable */
 .order.is-unpaid{opacity:.92;border-color:rgba(181,122,31,.55);background:rgba(181,122,31,.07)}
+.mark-paid{width:100%;margin-top:9px;padding:13px;border:none;border-radius:9px;background:#22c55e;
+  color:#04211f;font-weight:800;font-family:'IBM Plex Mono',monospace;font-size:15px;letter-spacing:.03em;
+  text-transform:uppercase;cursor:pointer}
+.mark-paid:active{transform:scale(.98)}
 .pay-flag{
   margin-top:11px;padding:9px 12px;border-radius:3px;
   background:rgba(181,122,31,.16);border:1px solid #B57A1F;
@@ -347,6 +351,7 @@ async function boot(){
   }
 
   $('whoName').textContent = (staff.full_name || session.user.email) + ' · ' + staff.role;
+  window.__staffName = staff.full_name || session.user.email;
   $('who').classList.remove('hidden');
   $('loginView').classList.add('hidden');
   $('appView').classList.remove('hidden');
@@ -567,7 +572,8 @@ function render(){
     const payMsg = `Habari ${first}, oda yako ${o.order_number} imepokelewa. Tafadhali lipa na M-Pesa Buy Goods Till 9948037 (Hemed Yakub) kukamilisha. Fuatilia hapa: ${payUrl}`;
     const payBlock = unpaid
       ? `<div class="pay-flag">⏳ Awaiting payment — do not pack or source yet</div>
-         ${o.contact ? `<a class="notify pay-notify" href="https://wa.me/${wa}?text=${encodeURIComponent(payMsg)}" target="_blank" rel="noopener">💬 Send payment link to ${first||'customer'}</a>` : ''}`
+         ${o.contact ? `<a class="notify pay-notify" href="https://wa.me/${wa}?text=${encodeURIComponent(payMsg)}" target="_blank" rel="noopener">💬 Send payment link to ${first||'customer'}</a>` : ''}
+         <button class="mark-paid" data-paid="${o.order_number}">✓ Mark as PAID</button>`
       : '';
 
     return `<div class="order${unpaid ? ' is-unpaid' : ''}">
@@ -621,6 +627,17 @@ async function renderRepeats(){
         </div>`).join('')}
       <div class="repeat-hint">If these are the same person, tell Hemed to link them — the system will remember all their numbers.</div>
     </div>`).join('');
+}
+
+async function markPaid(orderNo, btn){
+  const o = orders.find(x => x.order_number === orderNo);
+  const who = o ? (o.customer_name || orderNo) : orderNo;
+  if(!confirm(`Mark ${who}'s order as PAID?\n\nOnly do this once you've confirmed the M-Pesa payment.`)) return;
+  btn.disabled = true; const old = btn.textContent; btn.textContent = 'Saving…';
+  const { data, error } = await sb.rpc('mark_order_paid', { p_order: orderNo, p_staff: window.__staffName || 'staff' });
+  if(error){ note(error.message,'err'); btn.disabled=false; btn.textContent=old; return; }
+  await load();
+  note(`✓ ${who} marked paid — now in the dispatch queue.`);
 }
 
 async function setStage(orderNo, stage, btn){
@@ -709,6 +726,13 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>{
 }));
 
 $('list').addEventListener('click', e=>{
+  // Mark an awaiting-payment order as paid
+  const paid = e.target.closest('[data-paid]');
+  if(paid){
+    e.stopPropagation();
+    markPaid(paid.dataset.paid, paid);
+    return;
+  }
   // Item state pick (from the 3-button picker)
   const pick = e.target.closest('[data-pick]');
   if(pick){
