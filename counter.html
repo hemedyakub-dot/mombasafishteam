@@ -128,6 +128,7 @@
       <div class="stat"><b id="dCount">0</b><span>Sales</span></div>
       <div class="stat"><button class="qbtn" id="viewSales" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">SALES</button></div>
       <div class="stat"><button class="qbtn" id="addExpense" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">EXPENSE</button></div>
+      <div class="stat"><button class="qbtn" id="addWanted" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono);position:relative">WANTED<span id="wantedBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--coral);color:#fff;border-radius:9px;font-size:9px;padding:1px 5px">0</span></button></div>
       <div class="stat"><button class="qbtn" id="addSpoilage" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">SPOILAGE</button></div>
       <div class="stat"><button class="qbtn" id="stockCount" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">STOCK COUNT</button></div>
       <div class="stat"><button class="qbtn" id="cashUp" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">CASH-UP</button></div>
@@ -225,6 +226,33 @@
     <button class="addbtn" id="xSave" style="margin-top:16px">Save expense</button>
     <div id="xToday" style="margin-top:16px"></div>
     <button class="addbtn" id="xClose" style="background:transparent;color:var(--dim);margin-top:8px">Close</button>
+  </div>
+</div>
+
+<!-- ============ WANTED LIST ============ -->
+<div class="modal" id="wmodal">
+  <div class="sheet" style="max-height:90vh;overflow-y:auto">
+    <h3>Customer wants / waiting list</h3>
+    <div class="sub" style="color:var(--dim);font-family:var(--mono);font-size:12px;margin-bottom:12px">Someone asked for something we don't have? Take their number — we'll call when it's in.</div>
+
+    <div id="wReady"></div>
+
+    <div style="border:1px solid var(--faint);border-radius:10px;padding:12px;margin:10px 0">
+      <label style="margin-top:0">Customer name (optional)</label>
+      <input id="wName" placeholder="name" style="width:100%;padding:11px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit">
+      <label style="margin-top:10px">Phone (required)</label>
+      <input id="wPhone" type="tel" placeholder="07..." style="width:100%;padding:11px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:16px;font-family:var(--mono)">
+      <label style="margin-top:10px">What do they want?</label>
+      <select id="wProduct" style="width:100%;padding:11px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit">
+        <option value="">— pick from our products —</option>
+      </select>
+      <input id="wOther" placeholder="…or type it (e.g. Barracuda, Seamoss)" style="width:100%;margin-top:8px;padding:11px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit">
+      <input id="wQty" placeholder="Qty wanted (optional, e.g. 2kg)" style="width:100%;margin-top:8px;padding:11px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit">
+      <button class="addbtn" id="wSave" style="margin-top:12px">Save request</button>
+    </div>
+
+    <div id="wList"></div>
+    <button class="addbtn" id="wClose" style="background:transparent;color:var(--dim);margin-top:8px">Close</button>
   </div>
 </div>
 
@@ -336,6 +364,7 @@ async function showApp(session){
   $('app').classList.remove('hide');
   await loadProducts();
   await loadTodayStats();
+  refreshWantedBadge();
 }
 
 /* ---------- products ---------- */
@@ -580,6 +609,74 @@ async function voidSale(id){
   await openSales(); await loadProducts(); await loadTodayStats();
 }
 
+/* ---------- wanted list ---------- */
+async function openWanted(){
+  $('wProduct').innerHTML = '<option value="">— pick from our products —</option>' +
+    products.map(p => `<option value="${p.id}">${p.name} (${p.sw_name||''})${(p.stock_qty>0)?'':' — OUT'}</option>`).join('');
+  $('wName').value=''; $('wPhone').value=''; $('wProduct').value=''; $('wOther').value=''; $('wQty').value='';
+  $('wmodal').classList.add('show');
+  loadWanted();
+}
+async function saveWanted(){
+  const phone = $('wPhone').value.trim();
+  const pid = $('wProduct').value ? Number($('wProduct').value) : null;
+  const other = $('wOther').value.trim();
+  const prodName = pid ? (products.find(p=>p.id===pid)?.name || '') : '';
+  const item = other || prodName;
+  if(!phone){ toast('Phone required', true); return; }
+  if(!item){ toast('Pick or type what they want', true); return; }
+  try{
+    const { error } = await sb.rpc('add_wanted', {
+      p_name: $('wName').value.trim()||null, p_phone: phone, p_product: pid,
+      p_item: item, p_qty: $('wQty').value.trim()||null, p_note: null, p_staff: staffName
+    });
+    if(error) throw error;
+    toast("✓ Saved — we'll call when it's in");
+    if(navigator.vibrate) navigator.vibrate(40);
+    $('wName').value=''; $('wPhone').value=''; $('wProduct').value=''; $('wOther').value=''; $('wQty').value='';
+    loadWanted(); refreshWantedBadge();
+  }catch(e){ toast(e.message, true); }
+}
+async function loadWanted(){
+  try{
+    // ready-to-call (product back in stock) shown prominently at top
+    const { data: ready } = await sb.rpc('wanted_ready_to_call');
+    if(ready && ready.length){
+      $('wReady').innerHTML = `<div class="warn" style="margin-bottom:10px">📞 ${ready.length} customer${ready.length>1?'s':''} to call — their item is back in stock!</div>` +
+        ready.map(r => `<div class="cItem" style="border:1px solid var(--catch);border-radius:8px;padding:9px;margin-bottom:6px">
+          <div class="ci-n">${r.customer_name||'Customer'} · ${r.phone}<small>wanted ${r.item_text} — ${r.product_name} now has ${r.stock_qty}</small></div>
+          <a href="tel:${r.phone}" style="color:var(--foam);text-decoration:none;font-size:18px;padding:0 6px">📞</a>
+          <button data-wdone="${r.id}" style="background:var(--green);border:none;color:#04211f;border-radius:6px;padding:6px 9px;font-family:var(--mono);font-size:11px;cursor:pointer">Called ✓</button>
+        </div>`).join('');
+    } else $('wReady').innerHTML = '';
+    // full waiting list
+    const { data, error } = await sb.rpc('wanted_list', { p_status: 'waiting' });
+    if(error) throw error;
+    const rows = (data || []);
+    if(!rows.length){ $('wList').innerHTML = '<div style="color:var(--dim);font-size:13px;font-family:var(--mono)">No one waiting right now</div>'; return; }
+    $('wList').innerHTML = '<div style="font-family:var(--mono);font-size:11px;color:var(--dim);margin:6px 0">WAITING LIST</div>' +
+      rows.map(r => `<div class="cItem"><div class="ci-n">${r.customer_name||'Customer'} · ${r.phone}
+        <small>${r.item_text}${r.qty_wanted?` (${r.qty_wanted})`:''} ${r.in_stock_now?'· ✅ IN STOCK':'· waiting'}</small></div>
+        <button data-wcancel="${r.id}" style="background:none;border:none;color:var(--coral);cursor:pointer">✕</button></div>`).join('');
+  }catch(e){ $('wList').innerHTML = `<div style="color:var(--coral);font-size:13px">${e.message}</div>`; }
+}
+async function wantedAction(id, status){
+  const { error } = await sb.rpc('set_wanted_status', { p_id:id, p_status:status, p_staff:staffName });
+  if(error){ toast(error.message, true); return; }
+  toast(status==='fulfilled'?'✓ Marked called/fulfilled':'Removed');
+  loadWanted(); refreshWantedBadge();
+}
+async function refreshWantedBadge(){
+  try{
+    const { data } = await sb.rpc('wanted_counts');
+    const c = (data && data[0]) || {};
+    const badge = $('wantedBadge');
+    if(c.ready > 0){ badge.style.display='inline-block'; badge.textContent = c.ready; badge.style.background='var(--coral)'; }
+    else if(c.waiting > 0){ badge.style.display='inline-block'; badge.textContent = c.waiting; badge.style.background='var(--dim)'; }
+    else badge.style.display='none';
+  }catch(e){}
+}
+
 /* ---------- spoilage ---------- */
 function openSpoilage(){
   $('spItem').innerHTML = products.map(p => `<option value="${p.id}">${p.name} (${p.sw_name||''}) — ${p.stock_qty}${p.sale_unit} in stock</option>`).join('');
@@ -811,6 +908,18 @@ $('sclose').addEventListener('click', ()=> $('smodal').classList.remove('show'))
 $('slist').addEventListener('click', e => {
   const v = e.target.closest('[data-void]');
   if(v) voidSale(Number(v.dataset.void));
+});
+// wanted list
+$('addWanted').addEventListener('click', openWanted);
+$('wClose').addEventListener('click', ()=> $('wmodal').classList.remove('show'));
+$('wSave').addEventListener('click', saveWanted);
+$('wReady').addEventListener('click', e => {
+  const done = e.target.closest('[data-wdone]');
+  if(done) wantedAction(Number(done.dataset.wdone), 'fulfilled');
+});
+$('wList').addEventListener('click', e => {
+  const c = e.target.closest('[data-wcancel]');
+  if(c) wantedAction(Number(c.dataset.wcancel), 'cancelled');
 });
 // spoilage
 $('addSpoilage').addEventListener('click', openSpoilage);
