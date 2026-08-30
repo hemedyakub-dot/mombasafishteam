@@ -256,6 +256,31 @@
   </div>
 </div>
 
+<!-- ============ PROMOTE WANTED → PRODUCT ============ -->
+<div class="modal" id="pmodal">
+  <div class="sheet">
+    <h3>Add as a product</h3>
+    <div class="sub" style="color:var(--dim);font-family:var(--mono);font-size:12px;margin-bottom:12px">This becomes a real sellable fish. Everyone waiting for it gets linked — they'll show in "to call" when it's in stock.</div>
+    <label>Product name</label>
+    <input id="pName" style="width:100%;padding:11px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit">
+    <label style="margin-top:10px">Swahili name (optional)</label>
+    <input id="pSw" style="width:100%;padding:11px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit">
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <div style="flex:1"><label style="margin-top:0">Price /kg</label>
+        <input id="pPrice" type="number" inputmode="numeric" style="width:100%;padding:11px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:16px;font-family:var(--mono)"></div>
+      <div style="flex:1"><label style="margin-top:0">Cost /kg</label>
+        <input id="pCost" type="number" inputmode="numeric" style="width:100%;padding:11px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:16px;font-family:var(--mono)"></div>
+    </div>
+    <label style="margin-top:10px">Sold by</label>
+    <div class="toggle" id="pUnit">
+      <button class="tbtn on" data-punit="kg">Per kg</button>
+      <button class="tbtn" data-punit="pc">Per piece</button>
+    </div>
+    <button class="addbtn" id="pSave" style="margin-top:14px">Add product &amp; link waiting customers</button>
+    <button class="addbtn" id="pCancel" style="background:transparent;color:var(--dim);margin-top:6px">Cancel</button>
+  </div>
+</div>
+
 <!-- ============ SPOILAGE ============ -->
 <div class="modal" id="smodal">
   <div class="sheet" style="max-height:88vh;overflow-y:auto">
@@ -657,7 +682,8 @@ async function loadWanted(){
     $('wList').innerHTML = '<div style="font-family:var(--mono);font-size:11px;color:var(--dim);margin:6px 0">WAITING LIST</div>' +
       rows.map(r => `<div class="wentry" style="border:1px solid var(--faint);border-radius:9px;padding:10px;margin-bottom:7px">
         <div class="ci-n" style="margin-bottom:8px">${r.customer_name||'Customer'} · ${r.phone}
-          <small>${r.item_text}${r.qty_wanted?` (${r.qty_wanted})`:''} ${r.in_stock_now?'· ✅ IN STOCK':'· waiting'}</small></div>
+          <small>${r.item_text}${r.qty_wanted?` (${r.qty_wanted})`:''} ${r.in_stock_now?'· ✅ IN STOCK':(r.product_id?'· waiting':'· not in catalogue')}</small></div>
+        ${!r.product_id ? `<button data-wpromote="${r.id}" data-witem="${(r.item_text||'').replace(/"/g,'&quot;')}" style="width:100%;margin-bottom:6px;background:rgba(127,212,193,.15);border:1px dashed var(--foam);color:var(--foam);border-radius:7px;padding:8px;font-family:var(--mono);font-size:11px;cursor:pointer">➕ Add "${r.item_text}" as a product</button>` : ''}
         <div style="display:flex;gap:6px">
           <button data-wfulfil="${r.id}" style="flex:1;background:var(--green);border:none;color:#04211f;border-radius:7px;padding:8px;font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer">✓ Delivered</button>
           <button data-wfollow="${r.id}" style="flex:1;background:rgba(255,184,77,.18);border:1px solid var(--catch);color:var(--catch);border-radius:7px;padding:8px;font-family:var(--mono);font-size:11px;cursor:pointer">↻ Follow up</button>
@@ -683,6 +709,33 @@ async function refreshWantedBadge(){
     else if(c.waiting > 0){ badge.style.display='inline-block'; badge.textContent = c.waiting; badge.style.background='var(--dim)'; }
     else badge.style.display='none';
   }catch(e){}
+}
+
+let promoteId = null, pUnit = 'kg';
+function openPromote(id, item){
+  promoteId = id; pUnit = 'kg';
+  $('pName').value = item || ''; $('pSw').value = ''; $('pPrice').value = ''; $('pCost').value = '';
+  document.querySelectorAll('#pUnit .tbtn').forEach(b => b.classList.toggle('on', b.dataset.punit==='kg'));
+  $('pmodal').classList.add('show');
+}
+async function savePromote(){
+  const name = $('pName').value.trim();
+  const price = parseFloat($('pPrice').value);
+  if(!name){ toast('Name required', true); return; }
+  if(isNaN(price) || price <= 0){ toast('Valid price required', true); return; }
+  try{
+    const { data, error } = await sb.rpc('promote_wanted_to_product', {
+      p_wanted_id: promoteId, p_name: name, p_sw_name: $('pSw').value.trim()||null,
+      p_price: price, p_cost: parseFloat($('pCost').value)||0,
+      p_unit: pUnit, p_catch_weight: pUnit==='kg', p_staff: staffName
+    });
+    if(error) throw error;
+    const r = (data && data[0]) || {};
+    toast(`✓ ${name} added — ${r.linked_count||1} customer${(r.linked_count||1)>1?'s':''} linked`);
+    if(navigator.vibrate) navigator.vibrate(60);
+    $('pmodal').classList.remove('show');
+    await loadProducts(); loadWanted(); refreshWantedBadge();
+  }catch(e){ toast(e.message, true); }
 }
 
 /* ---------- spoilage ---------- */
@@ -926,6 +979,8 @@ $('wReady').addEventListener('click', e => {
   if(done) wantedAction(Number(done.dataset.wdone), 'fulfilled');
 });
 $('wList').addEventListener('click', e => {
+  const promote = e.target.closest('[data-wpromote]');
+  if(promote){ openPromote(Number(promote.dataset.wpromote), promote.dataset.witem); return; }
   const fulfil = e.target.closest('[data-wfulfil]');
   if(fulfil){ wantedAction(Number(fulfil.dataset.wfulfil), 'fulfilled'); return; }
   const follow = e.target.closest('[data-wfollow]');
@@ -936,6 +991,12 @@ $('wList').addEventListener('click', e => {
       wantedAction(Number(cancel.dataset.wcancel), 'cancelled');
   }
 });
+// promote modal
+$('pSave').addEventListener('click', savePromote);
+$('pCancel').addEventListener('click', ()=> $('pmodal').classList.remove('show'));
+document.querySelectorAll('#pUnit .tbtn').forEach(b => b.addEventListener('click', ()=>{
+  pUnit = b.dataset.punit; document.querySelectorAll('#pUnit .tbtn').forEach(x => x.classList.toggle('on', x===b));
+}));
 // spoilage
 $('addSpoilage').addEventListener('click', openSpoilage);
 $('spClose').addEventListener('click', ()=> $('smodal').classList.remove('show'));
