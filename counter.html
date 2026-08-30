@@ -230,7 +230,7 @@
 </div>
 
 <!-- ============ WANTED LIST ============ -->
-<div class="modal" id="wmodal">
+<div class="modal" id="wantmodal">
   <div class="sheet" style="max-height:90vh;overflow-y:auto">
     <h3>Customer wants / waiting list</h3>
     <div class="sub" style="color:var(--dim);font-family:var(--mono);font-size:12px;margin-bottom:12px">Someone asked for something we don't have? Take their number — we'll call when it's in.</div>
@@ -282,7 +282,7 @@
 </div>
 
 <!-- ============ SPOILAGE ============ -->
-<div class="modal" id="smodal">
+<div class="modal" id="spmodal">
   <div class="sheet" style="max-height:88vh;overflow-y:auto">
     <h3>Log spoiled / wasted fish</h3>
     <div class="sub" style="color:var(--dim);font-family:var(--mono);font-size:12px;margin-bottom:12px">Record fish that went bad so it's not counted as missing. Reason required.</div>
@@ -653,7 +653,7 @@ async function openWanted(){
   $('wProduct').innerHTML = '<option value="">— pick from our products —</option>' +
     products.map(p => `<option value="${p.id}">${p.name} (${p.sw_name||''})${(p.stock_qty>0)?'':' — OUT'}</option>`).join('');
   $('wName').value=''; $('wPhone').value=''; $('wProduct').value=''; $('wOther').value=''; $('wQty').value='';
-  $('wmodal').classList.add('show');
+  $('wantmodal').classList.add('show');
   loadWanted();
 }
 async function saveWanted(){
@@ -757,7 +757,7 @@ async function savePromote(){
 function openSpoilage(){
   $('spItem').innerHTML = products.map(p => `<option value="${p.id}">${p.name} (${p.sw_name||''}) — ${p.stock_qty}${p.sale_unit} in stock</option>`).join('');
   $('spQty').value = ''; $('spReason').value = '';
-  $('smodal').classList.add('show');
+  $('spmodal').classList.add('show');
   loadTodaySpoilage();
 }
 async function saveSpoilage(){
@@ -987,7 +987,7 @@ $('slist').addEventListener('click', e => {
 });
 // wanted list
 $('addWanted').addEventListener('click', openWanted);
-$('wClose').addEventListener('click', ()=> $('wmodal').classList.remove('show'));
+$('wClose').addEventListener('click', ()=> $('wantmodal').classList.remove('show'));
 $('wSave').addEventListener('click', saveWanted);
 $('wReady').addEventListener('click', e => {
   const done = e.target.closest('[data-wdone]');
@@ -1014,7 +1014,7 @@ document.querySelectorAll('#pUnit .tbtn').forEach(b => b.addEventListener('click
 }));
 // spoilage
 $('addSpoilage').addEventListener('click', openSpoilage);
-$('spClose').addEventListener('click', ()=> $('smodal').classList.remove('show'));
+$('spClose').addEventListener('click', ()=> $('spmodal').classList.remove('show'));
 $('spSave').addEventListener('click', saveSpoilage);
 // stock count
 $('stockCount').addEventListener('click', openStockCount);
