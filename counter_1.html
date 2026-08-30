@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Counter POS · Mombasafish</title>
+<style>
+  :root{
+    --abyss:#032A2E; --deep:#07474C; --foam:#7FD4C1; --catch:#FFB84D;
+    --coral:#FF6B5A; --sand:#F2EDE3; --dim:#9db0ad; --faint:rgba(242,237,227,.15);
+    --green:#22c55e; --mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:var(--abyss);color:var(--sand);
+    font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;
+    padding-bottom:180px}
+  /* ---------- sign in ---------- */
+  #login{max-width:380px;margin:60px auto;padding:0 22px}
+  .brand{font-family:'Archivo Black',Impact,sans-serif;font-size:24px;text-align:center;letter-spacing:.5px}
+  .brand .b{color:var(--foam)}
+  .tag{font-family:var(--mono);font-size:11px;color:var(--catch);letter-spacing:.15em;
+    text-transform:uppercase;text-align:center;margin:6px 0 26px}
+  label{display:block;font-size:12px;color:var(--dim);margin:14px 0 5px;font-family:var(--mono);
+    letter-spacing:.06em;text-transform:uppercase}
+  input{width:100%;padding:13px;border-radius:8px;border:1px solid var(--faint);
+    background:#062f33;color:var(--sand);font-size:16px;font-family:inherit}
+  .btn{width:100%;margin-top:20px;padding:15px;border:none;border-radius:8px;background:var(--foam);
+    color:var(--abyss);font-weight:700;font-size:16px;font-family:var(--mono);letter-spacing:.05em;
+    text-transform:uppercase;cursor:pointer}
+  /* ---------- header ---------- */
+  header{position:sticky;top:0;z-index:20;background:rgba(3,42,46,.96);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--faint);padding:12px 16px}
+  .htop{display:flex;justify-content:space-between;align-items:center}
+  .htitle{font-family:'Archivo Black',sans-serif;font-size:15px;letter-spacing:.3px}
+  .hstaff{font-size:11px;color:var(--dim);font-family:var(--mono)}
+  .pill{margin-top:9px;display:flex;gap:8px}
+  .stat{flex:1;background:var(--deep);border:1px solid var(--faint);border-radius:8px;padding:8px 10px;text-align:center}
+  .stat b{display:block;font-size:17px;font-family:var(--mono);color:var(--foam)}
+  .stat span{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
+  /* ---------- product grid ---------- */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:14px 16px}
+  .prod{min-height:78px;border:1px solid var(--faint);border-radius:11px;background:var(--deep);
+    color:var(--sand);text-align:left;padding:11px 12px;cursor:pointer;display:flex;
+    flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+  .prod:active{transform:scale(.97)}
+  .prod .pn{font-weight:600;font-size:14px;line-height:1.15}
+  .prod .psw{font-size:11px;color:var(--foam);font-family:var(--mono)}
+  .prod .pp{font-size:13px;color:var(--catch);font-family:var(--mono);margin-top:4px}
+  .prod .pstock{position:absolute;top:8px;right:9px;font-size:9px;font-family:var(--mono);
+    color:var(--dim);text-transform:uppercase}
+  .prod.out{opacity:.4;pointer-events:none}
+  .prod.low .pstock{color:var(--catch)}
+  /* ---------- cart drawer ---------- */
+  #cart{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#04211f;
+    border-top:2px solid var(--foam);border-radius:16px 16px 0 0;max-height:62vh;display:flex;flex-direction:column}
+  .chandle{width:40px;height:4px;background:var(--faint);border-radius:2px;margin:8px auto 4px}
+  .clist{overflow-y:auto;padding:4px 16px;flex:1}
+  .cempty{text-align:center;color:var(--dim);padding:22px;font-size:13px}
+  .cItem{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--faint)}
+  .cItem .ci-n{flex:1;font-size:14px}
+  .cItem .ci-n small{display:block;color:var(--dim);font-family:var(--mono);font-size:11px}
+  .qbtn{width:30px;height:30px;border-radius:7px;border:1px solid var(--faint);background:transparent;
+    color:var(--foam);font-size:17px;cursor:pointer;flex-shrink:0}
+  .ci-q{min-width:44px;text-align:center;font-family:var(--mono);font-size:13px}
+  .ci-line{min-width:64px;text-align:right;font-family:var(--mono);font-size:13px;color:var(--catch)}
+  .ci-x{background:none;border:none;color:var(--coral);font-size:15px;cursor:pointer;padding:4px}
+  .cfoot{padding:12px 16px 18px;border-top:1px solid var(--faint)}
+  .pay{display:flex;gap:8px;margin-bottom:10px}
+  .paybtn{flex:1;padding:11px;border-radius:8px;border:1px solid var(--faint);background:transparent;
+    color:var(--sand);font-family:var(--mono);font-size:13px;cursor:pointer;text-transform:uppercase;letter-spacing:.05em}
+  .paybtn.on{border-color:var(--foam);background:rgba(127,212,193,.15);color:var(--foam);font-weight:700}
+  .checkout{width:100%;padding:16px;border:none;border-radius:10px;background:var(--green);color:#04211f;
+    font-weight:800;font-size:17px;font-family:var(--mono);letter-spacing:.03em;cursor:pointer}
+  .checkout:disabled{background:var(--faint);color:var(--dim);cursor:not-allowed}
+  /* ---------- weight keypad modal ---------- */
+  .modal{position:fixed;inset:0;z-index:50;background:rgba(2,20,20,.75);display:none;
+    align-items:flex-end}
+  .modal.show{display:flex}
+  .sheet{background:#04211f;border-radius:16px 16px 0 0;width:100%;padding:18px 18px 26px;border-top:2px solid var(--foam)}
+  .sheet h3{margin:4px 0 2px;font-size:17px}
+  .sheet .sub{color:var(--dim);font-size:12px;font-family:var(--mono);margin-bottom:12px}
+  .wdisp{font-family:var(--mono);font-size:32px;text-align:center;color:var(--foam);
+    background:#062f33;border-radius:10px;padding:14px;margin-bottom:4px}
+  .wcalc{text-align:center;font-family:var(--mono);font-size:13px;color:var(--catch);margin-bottom:12px}
+  .keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .key{padding:16px;border-radius:9px;border:1px solid var(--faint);background:var(--deep);
+    color:var(--sand);font-size:20px;font-family:var(--mono);cursor:pointer}
+  .key:active{background:var(--foam);color:var(--abyss)}
+  .key.wide{grid-column:span 2}
+  .addbtn{width:100%;margin-top:10px;padding:15px;border:none;border-radius:10px;background:var(--foam);
+    color:var(--abyss);font-weight:800;font-family:var(--mono);font-size:16px;text-transform:uppercase;cursor:pointer}
+  /* toast */
+  #toast{position:fixed;top:70px;left:50%;transform:translateX(-50%) translateY(-20px);z-index:80;
+    background:var(--green);color:#04211f;padding:13px 22px;border-radius:10px;font-weight:700;
+    font-family:var(--mono);opacity:0;transition:.25s;pointer-events:none;text-align:center}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #toast.err{background:var(--coral);color:#2a0a08}
+  .hide{display:none!important}
+  .cashrow{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:14px}
+  .cashrow b{font-family:var(--mono);font-size:16px}
+  .linkbar{text-align:center;padding:14px;font-size:12px;font-family:var(--mono)}
+  .linkbar a{color:var(--foam);text-decoration:none;margin:0 8px}
+</style>
+</head>
+<body>
+
+<!-- ============ SIGN IN ============ -->
+<div id="login">
+  <div class="brand">MOMBASA<span class="b">FISH</span></div>
+  <div class="tag">Counter POS · Duka</div>
+  <label>Email</label>
+  <input id="email" type="email" autocomplete="username" placeholder="you@mombasafish.com">
+  <label>Password</label>
+  <input id="pw" type="password" autocomplete="current-password" placeholder="••••••••">
+  <button class="btn" id="signin">Sign in</button>
+  <div id="lerr" style="color:var(--coral);font-size:13px;margin-top:12px;text-align:center"></div>
+</div>
+
+<!-- ============ POS APP ============ -->
+<div id="app" class="hide">
+  <header>
+    <div class="htop">
+      <div class="htitle">MOMBASAFISH COUNTER</div>
+      <div class="hstaff" id="who">—</div>
+    </div>
+    <div class="pill">
+      <div class="stat"><b id="dTotal">0</b><span>Today KES</span></div>
+      <div class="stat"><b id="dCount">0</b><span>Sales</span></div>
+      <div class="stat"><button class="qbtn" id="viewSales" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">SALES</button></div>
+      <div class="stat"><button class="qbtn" id="addExpense" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">EXPENSE</button></div>
+      <div class="stat"><button class="qbtn" id="addWanted" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono);position:relative">WANTED<span id="wantedBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--coral);color:#fff;border-radius:9px;font-size:9px;padding:1px 5px">0</span></button></div>
+      <div class="stat"><button class="qbtn" id="addSpoilage" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">SPOILAGE</button></div>
+      <div class="stat"><button class="qbtn" id="stockCount" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">STOCK COUNT</button></div>
+      <div class="stat"><button class="qbtn" id="cashUp" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">CASH-UP</button></div>
+      <div class="stat"><button class="qbtn" id="signout" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">EXIT</button></div>
+    </div>
+    <div id="qbadge" class="hide" style="margin-top:8px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--catch);background:rgba(255,184,77,.12);border:1px solid rgba(255,184,77,.35);border-radius:7px;padding:6px"></div>
+  </header>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="linkbar">
+    <a href="./staff.html">→ Dispatch app</a>
+  </div>
+
+  <!-- cart -->
+  <div id="cart">
+    <div class="chandle"></div>
+    <div class="clist" id="clist">
+      <div class="cempty">Tap a fish to start a sale</div>
+    </div>
+    <div class="cfoot">
+      <div class="pay">
+        <button class="paybtn on" id="payMpesa" data-pay="mpesa">● M-Pesa Till</button>
+        <button class="paybtn" id="payCash" data-pay="cash">Cash</button>
+      </div>
+      <div id="discountRow" style="display:none;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:13px;color:var(--catch);margin-bottom:8px">
+        <span id="discountLabel">Discount</span>
+        <button id="clearDiscount" style="background:none;border:none;color:var(--coral);font-size:12px;cursor:pointer">✕ remove</button>
+      </div>
+      <button id="addDiscount" style="width:100%;padding:9px;margin-bottom:8px;border:1px dashed var(--faint);background:transparent;color:var(--foam);border-radius:8px;font-family:var(--mono);font-size:12px;cursor:pointer;text-transform:uppercase;letter-spacing:.05em">＋ Add discount</button>
+      <button class="checkout" id="checkout" disabled>COMPLETE SALE — KES 0</button>
+    </div>
+  </div>
+
+<!-- ============ DISCOUNT SHEET ============ -->
+<div class="modal" id="dmodal">
+  <div class="sheet">
+    <h3>Add a discount</h3>
+    <div class="sub" style="color:var(--dim);font-family:var(--mono);font-size:12px;margin-bottom:12px">Every discount is logged with your name and reason.</div>
+    <div class="toggle" id="dType">
+      <button class="tbtn on" data-dtype="amount">Amount off total</button>
+      <button class="tbtn" data-dtype="perkg">Lower price/kg</button>
+    </div>
+    <div id="dAmountBox">
+      <label>Discount amount (KES off total)</label>
+      <input id="dAmount" type="number" inputmode="numeric" placeholder="e.g. 200" style="width:100%;padding:13px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:18px;font-family:var(--mono)">
+    </div>
+    <div id="dPerkgBox" style="display:none">
+      <label>Which item?</label>
+      <select id="dItem" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit"></select>
+      <label style="margin-top:10px">New price per kg</label>
+      <input id="dNewPrice" type="number" inputmode="numeric" placeholder="lower price/kg" style="width:100%;padding:13px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:18px;font-family:var(--mono)">
+    </div>
+    <label style="margin-top:12px">Reason (required)</label>
+    <input id="dReason" placeholder="e.g. regular customer / bulk buy" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit">
+    <button class="addbtn" id="dApply" style="margin-top:16px">Apply discount</button>
+    <button class="addbtn" id="dCancel" style="background:transparent;color:var(--dim);margin-top:6px">Cancel</button>
+  </div>
+</div>
+</div>
+
+<!-- ============ TODAY'S SALES (with void) ============ -->
+<div class="modal" id="smodal">
+  <div class="sheet" style="max-height:82vh;overflow-y:auto">
+    <h3>Today's sales</h3>
+    <div class="sub" id="ssub" style="color:var(--dim);font-family:var(--mono);font-size:12px;margin-bottom:10px">—</div>
+    <div id="slist"></div>
+    <button class="addbtn" id="sclose" style="background:transparent;color:var(--dim);margin-top:10px">Close</button>
+  </div>
+</div>
+
+<!-- ============ ADD EXPENSE ============ -->
+<div class="modal" id="xmodal">
+  <div class="sheet" style="max-height:88vh;overflow-y:auto">
+    <h3>Record an expense</h3>
+    <div class="sub" style="color:var(--dim);font-family:var(--mono);font-size:12px;margin-bottom:12px">Money spent from the shop today — ice, transport, supplies.</div>
+    <label>What was it for?</label>
+    <div class="toggle" id="xCat" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <button class="tbtn on" data-cat="ice">Ice</button>
+      <button class="tbtn" data-cat="transport">Transport</button>
+      <button class="tbtn" data-cat="supplies">Supplies</button>
+      <button class="tbtn" data-cat="wages">Wages</button>
+      <button class="tbtn" data-cat="airtime">Airtime</button>
+      <button class="tbtn" data-cat="other">Other</button>
+    </div>
+    <label style="margin-top:14px">Amount (KES)</label>
+    <input id="xAmount" type="number" inputmode="numeric" placeholder="e.g. 200" style="width:100%;padding:13px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:18px;font-family:var(--mono)">
+    <label style="margin-top:12px">Paid with</label>
+    <div class="toggle" id="xPaid">
+      <button class="tbtn on" data-paid="cash">Cash (from drawer)</button>
+      <button class="tbtn" data-paid="mpesa">M-Pesa</button>
+    </div>
+    <label style="margin-top:12px">Note (optional)</label>
+    <input id="xNote" placeholder="e.g. boda to bus stage" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit">
+    <button class="addbtn" id="xSave" style="margin-top:16px">Save expense</button>
+    <div id="xToday" style="margin-top:16px"></div>
+    <button class="addbtn" id="xClose" style="background:transparent;color:var(--dim);margin-top:8px">Close</button>
+  </div>
+</div>
+
+<!-- ============ WANTED LIST ============ -->
+<div class="modal" id="wantmodal">
+  <div class="sheet" style="max-height:90vh;overflow-y:auto">
+    <h3>Customer wants / waiting list</h3>
+    <div class="sub" style="color:var(--dim);font-family:var(--mono);font-size:12px;margin-bottom:12px">Someone asked for something we don't have? Take their number — we'll call when it's in.</div>
+
+    <div id="wReady"></div>
+
+    <div style="border:1px solid var(--faint);border-radius:10px;padding:12px;margin:10px 0">
+      <label style="margin-top:0">Customer name (optional)</label>
+      <input id="wName" placeholder="name" style="width:100%;padding:11px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit">
+      <label style="margin-top:10px">Phone (required)</label>
+      <input id="wPhone" type="tel" placeholder="07..." style="width:100%;padding:11px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:16px;font-family:var(--mono)">
+      <label style="margin-top:10px">What do they want?</label>
+      <select id="wProduct" style="width:100%;padding:11px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit">
+        <option value="">— pick from our products —</option>
+      </select>
+      <input id="wOther" placeholder="…or type it (e.g. Barracuda, Seamoss)" style="width:100%;margin-top:8px;padding:11px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit">
+      <input id="wQty" placeholder="Qty wanted (optional, e.g. 2kg)" style="width:100%;margin-top:8px;padding:11px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit">
+      <button class="addbtn" id="wSave" style="margin-top:12px">Save request</button>
+    </div>
+
+    <div id="wList"></div>
+    <button class="addbtn" id="wClose" style="background:transparent;color:var(--dim);margin-top:8px">Close</button>
+  </div>
+</div>
+
+<!-- ============ PROMOTE WANTED → PRODUCT ============ -->
+<div class="modal" id="pmodal">
+  <div class="sheet">
+    <h3>Add as a product</h3>
+    <div class="sub" style="color:var(--dim);font-family:var(--mono);font-size:12px;margin-bottom:12px">This becomes a real sellable fish. Everyone waiting for it gets linked — they'll show in "to call" when it's in stock.</div>
+    <label>Product name</label>
+    <input id="pName" style="width:100%;padding:11px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit">
+    <label style="margin-top:10px">Swahili name (optional)</label>
+    <input id="pSw" style="width:100%;padding:11px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit">
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <div style="flex:1"><label style="margin-top:0">Price /kg</label>
+        <input id="pPrice" type="number" inputmode="numeric" style="width:100%;padding:11px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:16px;font-family:var(--mono)"></div>
+      <div style="flex:1"><label style="margin-top:0">Cost /kg</label>
+        <input id="pCost" type="number" inputmode="numeric" style="width:100%;padding:11px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:16px;font-family:var(--mono)"></div>
+    </div>
+    <label style="margin-top:10px">Sold by</label>
+    <div class="toggle" id="pUnit">
+      <button class="tbtn on" data-punit="kg">Per kg</button>
+      <button class="tbtn" data-punit="pc">Per piece</button>
+    </div>
+    <button class="addbtn" id="pSave" style="margin-top:14px">Add product &amp; link waiting customers</button>
+    <button class="addbtn" id="pCancel" style="background:transparent;color:var(--dim);margin-top:6px">Cancel</button>
+  </div>
+</div>
+
+<!-- ============ SPOILAGE ============ -->
+<div class="modal" id="spmodal">
+  <div class="sheet" style="max-height:88vh;overflow-y:auto">
+    <h3>Log spoiled / wasted fish</h3>
+    <div class="sub" style="color:var(--dim);font-family:var(--mono);font-size:12px;margin-bottom:12px">Record fish that went bad so it's not counted as missing. Reason required.</div>
+    <label>Which fish?</label>
+    <select id="spItem" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit"></select>
+    <label style="margin-top:12px">How much wasted?</label>
+    <input id="spQty" type="number" inputmode="decimal" step="0.001" placeholder="kg / pcs" style="width:100%;padding:13px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:18px;font-family:var(--mono)">
+    <label style="margin-top:12px">Reason (required)</label>
+    <input id="spReason" placeholder="e.g. chiller failure overnight" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit">
+    <button class="addbtn" id="spSave" style="margin-top:16px">Log spoilage</button>
+    <div id="spToday" style="margin-top:16px"></div>
+    <button class="addbtn" id="spClose" style="background:transparent;color:var(--dim);margin-top:8px">Close</button>
+  </div>
+</div>
+
+<!-- ============ STOCK COUNT (reconciliation) ============ -->
+<div class="modal" id="scmodal">
+  <div class="sheet" style="max-height:90vh;overflow-y:auto">
+    <h3>Closing stock count</h3>
+    <div class="sub" style="color:var(--dim);font-family:var(--mono);font-size:12px;margin-bottom:12px">Weigh what's actually left in the chiller. The system checks it against what should be there.</div>
+    <div id="scList"><div style="color:var(--dim);font-family:var(--mono);font-size:12px">Loading products…</div></div>
+    <button class="addbtn" id="scClose" style="background:transparent;color:var(--dim);margin-top:10px">Done</button>
+  </div>
+</div>
+
+<!-- ============ CASH-UP ============ -->
+<div class="modal" id="cmodal">
+  <div class="sheet" style="max-height:88vh;overflow-y:auto">
+    <h3>End-of-day cash-up</h3>
+    <div class="sub" style="color:var(--dim);font-family:var(--mono);font-size:12px;margin-bottom:12px">Count the drawer and check it against the system.</div>
+    <label>Opening float (KES in drawer at start)</label>
+    <input id="cFloat" type="number" inputmode="numeric" value="0" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:16px;font-family:inherit">
+    <button class="addbtn" id="cCalc" style="margin-top:12px">Calculate expected</button>
+    <div id="cResult" class="hide" style="margin-top:16px">
+      <div class="cashrow"><span>Opening float</span><b id="rFloat">0</b></div>
+      <div class="cashrow"><span>Cash sales today</span><b id="rCashSales">0</b></div>
+      <div class="cashrow"><span>Less cash expenses</span><b id="rCashExp" style="color:var(--coral)">0</b></div>
+      <div class="cashrow" style="border-top:1px solid var(--faint);padding-top:8px"><span>Expected in drawer</span><b id="rExpected" style="color:var(--foam)">0</b></div>
+      <div class="cashrow" style="margin-top:6px"><span>M-Pesa (separate)</span><b id="rMpesa" style="color:var(--green)">0</b></div>
+      <label style="margin-top:14px">Count the actual cash in the drawer</label>
+      <input id="cCounted" type="number" inputmode="numeric" placeholder="Counted cash" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:16px;font-family:inherit">
+      <div id="cVar" class="hide" style="margin-top:12px;padding:12px;border-radius:8px;text-align:center;font-family:var(--mono)"></div>
+      <label style="margin-top:12px">Note (optional)</label>
+      <input id="cNote" placeholder="e.g. gave change shortage" style="width:100%;padding:12px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:15px;font-family:inherit">
+      <button class="addbtn" id="cSave" style="margin-top:14px">Finalize &amp; save cash-up</button>
+    </div>
+    <button class="addbtn" id="cClose" style="background:transparent;color:var(--dim);margin-top:8px">Close</button>
+  </div>
+</div>
+
+<!-- ============ WEIGHT KEYPAD ============ -->
+<div class="modal" id="wmodal">
+  <div class="sheet">
+    <h3 id="wname">—</h3>
+    <div class="sub" id="wsub">Enter weight in kg</div>
+    <div class="wdisp" id="wdisp">0</div>
+    <div class="wcalc" id="wcalc">KES 0</div>
+    <div class="keys">
+      <button class="key" data-k="1">1</button>
+      <button class="key" data-k="2">2</button>
+      <button class="key" data-k="3">3</button>
+      <button class="key" data-k="4">4</button>
+      <button class="key" data-k="5">5</button>
+      <button class="key" data-k="6">6</button>
+      <button class="key" data-k="7">7</button>
+      <button class="key" data-k="8">8</button>
+      <button class="key" data-k="9">9</button>
+      <button class="key" data-k=".">.</button>
+      <button class="key" data-k="0">0</button>
+      <button class="key" data-k="del">⌫</button>
+    </div>
+    <button class="addbtn" id="wadd">Add to cart</button>
+    <button class="addbtn" id="wcancel" style="background:transparent;color:var(--dim);margin-top:6px">Cancel</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const SUPABASE_URL = 'https://tcpqbrchpxpshmqprbkv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_7YLqP3JMq8AFZQl4XF--bw_itOMj1gA';
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+const $ = id => document.getElementById(id);
+
+let products = [], cart = [], payment = 'mpesa', staffName = '—', pending = null;
+let discount = 0, discountReason = '', dType = 'amount';   // applied discount on current sale
+
+/* ---------- auth ---------- */
+async function boot(){
+  const { data:{ session } } = await sb.auth.getSession();
+  if(session){ showApp(session); }
+}
+async function signIn(){
+  const email = $('email').value.trim(), pw = $('pw').value;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pw });
+  if(error){ $('lerr').textContent = error.message; return; }
+  showApp(data.session);
+}
+async function showApp(session){
+  staffName = (session.user.email||'staff').split('@')[0];
+  $('who').textContent = staffName;
+  $('login').classList.add('hide');
+  $('app').classList.remove('hide');
+  await loadProducts();
+  await loadTodayStats();
+  refreshWantedBadge();
+}
+
+/* ---------- products ---------- */
+async function loadProducts(){
+  const { data, error } = await sb.from('mfm_shop_products')
+    .select('*').eq('active', true).order('sort_order', { ascending:true });
+  if(error){ toast(error.message, true); return; }
+  products = data || [];
+  renderGrid();
+}
+function renderGrid(){
+  $('grid').innerHTML = products.map(function(p){
+    const out = (!p.in_stock || p.stock_qty <= 0);
+    const low = (!out && p.stock_qty <= 2);
+    const stockTxt = out ? 'OUT' : (p.stock_qty + (p.sale_unit==='kg'?'kg':''));
+    return `<button class="prod ${out?'out':''} ${low?'low':''}" data-id="${p.id}">
+      <span class="pstock">${stockTxt}</span>
+      <div>
+        <div class="pn">${p.name}</div>
+        <div class="psw">${p.sw_name||''}</div>
+      </div>
+      <div class="pp">KES ${fmt(p.price)}/${p.sale_unit}</div>
+    </button>`;
+  }).join('');
+}
+
+/* ---------- tapping a product ---------- */
+function onProductTap(id){
+  const p = products.find(x => x.id === id);
+  if(!p) return;
+  if(p.catch_weight){ openKeypad(p); }
+  else { addToCart(p, 1); }   // fixed pack: 1 unit per tap
+}
+
+/* ---------- weight keypad ---------- */
+let wbuf = '0';
+function openKeypad(p){
+  pending = p; wbuf = '0';
+  $('wname').textContent = p.name + (p.sw_name?` · ${p.sw_name}`:'');
+  $('wsub').textContent = `KES ${fmt(p.price)} per kg — enter weight`;
+  updateWDisp();
+  $('wmodal').classList.add('show');
+}
+function updateWDisp(){
+  $('wdisp').textContent = wbuf;
+  const w = parseFloat(wbuf)||0;
+  $('wcalc').textContent = 'KES ' + fmt(Math.round(w * (pending?pending.price:0)));
+}
+function keyPress(k){
+  if(k==='del'){ wbuf = wbuf.length>1 ? wbuf.slice(0,-1) : '0'; }
+  else if(k==='.'){ if(!wbuf.includes('.')) wbuf += '.'; }
+  else {
+    // Limit to 3 decimal places — matches a digital scale reading to the gram
+    const dot = wbuf.indexOf('.');
+    if(dot !== -1 && wbuf.length - dot > 3) return;  // already 3 decimals, ignore further digits
+    wbuf = (wbuf==='0') ? k : wbuf + k;
+  }
+  updateWDisp();
+}
+function confirmWeight(){
+  let w = parseFloat(wbuf)||0;
+  w = Math.round(w * 1000) / 1000;   // round to 3 decimals (gram precision)
+  if(w <= 0){ toast('Enter a weight', true); return; }
+  addToCart(pending, w);
+  $('wmodal').classList.remove('show');
+}
+
+/* ---------- cart ---------- */
+function addToCart(p, qty){
+  const existing = cart.find(c => c.id === p.id && !p.catch_weight);
+  if(existing && !p.catch_weight){ existing.qty += qty; }
+  else { cart.push({ id:p.id, name:p.name, sw:p.sw_name, price:p.price, unit:p.sale_unit, qty:qty, cw:p.catch_weight }); }
+  renderCart();
+}
+function renderCart(){
+  if(!cart.length){
+    $('clist').innerHTML = '<div class="cempty">Tap a fish to start a sale</div>';
+    $('checkout').disabled = true;
+    $('checkout').textContent = 'COMPLETE SALE — KES 0';
+    return;
+  }
+  $('clist').innerHTML = cart.map(function(c, i){
+    const line = Math.round(c.qty * c.price);
+    const qctl = c.cw
+      ? `<span class="ci-q">${c.qty}${c.unit}</span>`
+      : `<button class="qbtn" data-dec="${i}">−</button><span class="ci-q">${c.qty}</span><button class="qbtn" data-inc="${i}">+</button>`;
+    return `<div class="cItem">
+      <div class="ci-n">${c.name}<small>KES ${fmt(c.price)}/${c.unit}</small></div>
+      ${qctl}
+      <span class="ci-line">${fmt(line)}</span>
+      <button class="ci-x" data-rm="${i}">✕</button>
+    </div>`;
+  }).join('');
+  const gross = cartGross();
+  const total = cartTotal();
+  $('checkout').disabled = false;
+  $('checkout').textContent = `COMPLETE SALE — KES ${fmt(total)}`;
+  // discount row visibility
+  if(discount > 0){
+    $('discountRow').style.display = 'flex';
+    $('discountLabel').textContent = `Discount −${fmt(discount)} (${discountReason})`;
+    $('addDiscount').style.display = 'none';
+  } else {
+    $('discountRow').style.display = 'none';
+    $('addDiscount').style.display = cart.length ? 'block' : 'none';
+  }
+}
+function cartGross(){ return cart.reduce((s,c)=> s + Math.round(c.qty*c.price), 0); }
+function cartTotal(){ return Math.max(0, cartGross() - discount); }
+
+/* ---------- checkout ---------- */
+let busy = false;
+async function checkout(){
+  if(busy || !cart.length) return;
+  busy = true; $('checkout').disabled = true;
+  const items = cart.map(c => ({ id:c.id, name:c.name, qty:c.qty, unit:c.unit, price:c.price, line:Math.round(c.qty*c.price) }));
+  const gross = cartGross();
+  const total = cartTotal();
+  const saleDiscount = discount, saleReason = discountReason;
+
+  // If the browser knows it's offline, queue immediately — don't even try.
+  if(!navigator.onLine){
+    queueAdd({ payment, items, staff: staffName, total, discount: saleDiscount, reason: saleReason, original: gross, at: Date.now() });
+    toast(`✓ Saved offline — KES ${fmt(total)} (will sync)`);
+    if(navigator.vibrate) navigator.vibrate(60);
+    cart = []; resetDiscount(); renderCart(); deductLocalStock(items);
+    busy = false; return;
+  }
+
+  try{
+    const { data, error } = await sb.rpc('record_counter_sale', {
+      p_payment: payment, p_items: items, p_staff_name: staffName,
+      p_discount: saleDiscount, p_discount_reason: saleReason || null, p_original: gross
+    });
+    if(error) throw error;
+    toast(`✓ Sale ${data} — KES ${fmt(total)}${saleDiscount>0?` (−${fmt(saleDiscount)})`:''}`);
+    if(navigator.vibrate) navigator.vibrate(60);
+    cart = []; resetDiscount(); renderCart();
+    await loadProducts(); await loadTodayStats();
+  }catch(e){
+    // Network/server failed mid-sale → queue it rather than lose it.
+    queueAdd({ payment, items, staff: staffName, total, discount: saleDiscount, reason: saleReason, original: gross, at: Date.now() });
+    toast(`✓ Saved offline — KES ${fmt(total)} (will sync)`);
+    if(navigator.vibrate) navigator.vibrate(60);
+    cart = []; resetDiscount(); renderCart(); deductLocalStock(items);
+  }
+  busy = false;
+}
+function resetDiscount(){ discount = 0; discountReason = ''; }
+
+/* ---------- discount ---------- */
+function openDiscount(){
+  dType = 'amount';
+  document.querySelectorAll('#dType .tbtn').forEach(b => b.classList.toggle('on', b.dataset.dtype==='amount'));
+  $('dAmountBox').style.display = 'block'; $('dPerkgBox').style.display = 'none';
+  $('dAmount').value = ''; $('dNewPrice').value = ''; $('dReason').value = '';
+  $('dItem').innerHTML = cart.map((c,i)=> `<option value="${i}">${c.name} — now ${fmt(c.price)}/${c.unit}</option>`).join('');
+  $('dmodal').classList.add('show');
+}
+function applyDiscount(){
+  const reason = $('dReason').value.trim();
+  if(!reason){ toast('A reason is required', true); return; }
+  let disc = 0;
+  if(dType === 'amount'){
+    disc = parseFloat($('dAmount').value) || 0;
+    if(disc <= 0){ toast('Enter a discount amount', true); return; }
+    if(disc >= cartGross()){ toast("Discount can't exceed the total", true); return; }
+  } else {
+    const i = Number($('dItem').value);
+    const newP = parseFloat($('dNewPrice').value) || 0;
+    const c = cart[i];
+    if(!c){ toast('Pick an item', true); return; }
+    if(newP <= 0 || newP >= c.price){ toast('New price must be lower', true); return; }
+    disc = Math.round(c.qty * (c.price - newP));
+    c.price = newP;
+  }
+  discount = disc; discountReason = reason;
+  $('dmodal').classList.remove('show');
+  renderCart();
+  toast(`Discount applied: −${fmt(disc)}`);
+}
+// Optimistically drop local stock so the grid stays believable while offline
+function deductLocalStock(items){
+  items.forEach(it => {
+    const p = products.find(x => x.id === it.id);
+    if(p){ p.stock_qty = Math.max(0, p.stock_qty - it.qty); if(p.stock_qty<=0) p.in_stock=false; }
+  });
+  renderGrid();
+}
+
+/* ---------- today stats ---------- */
+async function loadTodayStats(){
+  // Use the same DB function as cash-up so "today" is one consistent Kenyan-day figure.
+  try{
+    const { data, error } = await sb.rpc('shop_today_summary');
+    if(error) throw error;
+    const r = (data && data[0]) || { total:0, cnt:0 };
+    $('dTotal').textContent = fmt(r.total);
+    $('dCount').textContent = r.cnt;
+  }catch(e){ /* non-critical */ }
+}
+
+/* ---------- helpers ---------- */
+function fmt(n){ return Number(n||0).toLocaleString('en-KE'); }
+let toastT;
+function toast(msg, err){
+  const t = $('toast'); t.textContent = msg; t.className = 'show' + (err?' err':'');
+  clearTimeout(toastT); toastT = setTimeout(()=> t.className = '', 2200);
+}
+
+/* ---------- today's sales + void ---------- */
+async function openSales(){
+  $('smodal').classList.add('show');
+  $('slist').innerHTML = '<div class="cempty">Loading…</div>';
+  try{
+    const { data, error } = await sb.rpc('shop_today_sales');
+    if(error) throw error;
+    const rows = data || [];
+    const live = rows.filter(r => !r.voided);
+    $('ssub').textContent = `${live.length} sales · KES ${fmt(live.reduce((s,r)=>s+Number(r.total),0))}`;
+    if(!rows.length){ $('slist').innerHTML = '<div class="cempty">No sales yet today</div>'; return; }
+    $('slist').innerHTML = rows.map(function(r){
+      const names = (r.items||[]).map(i => `${i.name} ${i.qty}${i.unit||''}`).join(', ');
+      const t = new Date(r.created_at).toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'});
+      return `<div class="cItem" style="${r.voided?'opacity:.45':''}">
+        <div class="ci-n">${r.sale_ref} <small>${t} · ${r.payment} · ${names}</small></div>
+        <span class="ci-line">${fmt(r.total)}</span>
+        ${r.voided
+          ? '<span style="color:var(--coral);font-family:var(--mono);font-size:11px">VOID</span>'
+          : `<button class="ci-x" data-void="${r.id}" style="color:var(--coral);font-family:var(--mono);font-size:11px;border:1px solid var(--coral);border-radius:6px;padding:4px 8px">VOID</button>`}
+      </div>`;
+    }).join('');
+  }catch(e){ $('slist').innerHTML = `<div class="cempty">${e.message}</div>`; }
+}
+async function voidSale(id){
+  const reason = prompt('Reason for voiding this sale? (required)');
+  if(reason === null) return;
+  if(!reason.trim()){ toast('A reason is required to void', true); return; }
+  const { error } = await sb.rpc('void_counter_sale', { p_sale_id:id, p_by:staffName, p_reason:reason.trim() });
+  if(error){ toast(error.message, true); return; }
+  toast('Sale voided · stock returned');
+  await openSales(); await loadProducts(); await loadTodayStats();
+}
+
+/* ---------- wanted list ---------- */
+// Build a free wa.me link with a pre-filled Swahili-English message + Till number.
+function waLink(phone, name, item){
+  // normalize phone to intl format for wa.me (Kenya): 07... -> 2547..., +254.. -> 254..
+  let p = (phone||'').replace(/[^0-9]/g,'');
+  if(p.startsWith('0')) p = '254' + p.slice(1);
+  else if(p.startsWith('254')) { /* ok */ }
+  else if(p.startsWith('7') || p.startsWith('1')) p = '254' + p;
+  const greeting = name ? `Habari ${name}!` : 'Habari!';
+  const msg = `${greeting} 🐟 Good news from Mombasafish — the ${item} you asked for is now in stock! `
+    + `Karibu ukachukue au tukuletee. Lipa kwa M-Pesa Till 9948037 (Hemed Yakub). `
+    + `Piga simu 0787 668 888 kuagiza. Asante! 🌊`;
+  return `https://wa.me/${p}?text=${encodeURIComponent(msg)}`;
+}
+
+async function openWanted(){
+  $('wProduct').innerHTML = '<option value="">— pick from our products —</option>' +
+    products.map(p => `<option value="${p.id}">${p.name} (${p.sw_name||''})${(p.stock_qty>0)?'':' — OUT'}</option>`).join('');
+  $('wName').value=''; $('wPhone').value=''; $('wProduct').value=''; $('wOther').value=''; $('wQty').value='';
+  $('wantmodal').classList.add('show');
+  loadWanted();
+}
+async function saveWanted(){
+  const phone = $('wPhone').value.trim();
+  const pid = $('wProduct').value ? Number($('wProduct').value) : null;
+  const other = $('wOther').value.trim();
+  const prodName = pid ? (products.find(p=>p.id===pid)?.name || '') : '';
+  const item = other || prodName;
+  if(!phone){ toast('Phone required', true); return; }
+  if(!item){ toast('Pick or type what they want', true); return; }
+  try{
+    const { error } = await sb.rpc('add_wanted', {
+      p_name: $('wName').value.trim()||null, p_phone: phone, p_product: pid,
+      p_item: item, p_qty: $('wQty').value.trim()||null, p_note: null, p_staff: staffName
+    });
+    if(error) throw error;
+    toast("✓ Saved — we'll call when it's in");
+    if(navigator.vibrate) navigator.vibrate(40);
+    $('wName').value=''; $('wPhone').value=''; $('wProduct').value=''; $('wOther').value=''; $('wQty').value='';
+    loadWanted(); refreshWantedBadge();
+  }catch(e){ toast(e.message, true); }
+}
+async function loadWanted(){
+  try{
+    // ready-to-call (product back in stock) shown prominently at top
+    const { data: ready } = await sb.rpc('wanted_ready_to_call');
+    if(ready && ready.length){
+      $('wReady').innerHTML = `<div class="warn" style="margin-bottom:10px">📞 ${ready.length} customer${ready.length>1?'s':''} to reach — their item is back in stock!</div>` +
+        ready.map(r => `<div class="cItem" style="border:1px solid var(--catch);border-radius:8px;padding:9px;margin-bottom:6px;flex-wrap:wrap">
+          <div class="ci-n" style="width:100%;margin-bottom:6px">${r.customer_name||'Customer'} · ${r.phone}<small>wanted ${r.item_text} — ${r.product_name} now has ${r.stock_qty}</small></div>
+          <a href="${waLink(r.phone, r.customer_name, r.item_text)}" target="_blank" rel="noopener" style="flex:1;text-align:center;background:#25D366;color:#fff;text-decoration:none;border-radius:6px;padding:7px;font-family:var(--mono);font-size:11px;font-weight:700">💬 WhatsApp</a>
+          <a href="tel:${r.phone}" style="background:rgba(127,212,193,.15);border:1px solid var(--faint);color:var(--foam);text-decoration:none;border-radius:6px;padding:7px 11px;font-size:15px">📞</a>
+          <button data-wdone="${r.id}" style="background:var(--green);border:none;color:#04211f;border-radius:6px;padding:7px 9px;font-family:var(--mono);font-size:11px;cursor:pointer">Reached ✓</button>
+        </div>`).join('');
+    } else $('wReady').innerHTML = '';
+    // full waiting list
+    const { data, error } = await sb.rpc('wanted_list', { p_status: 'waiting' });
+    if(error) throw error;
+    const rows = (data || []);
+    if(!rows.length){ $('wList').innerHTML = '<div style="color:var(--dim);font-size:13px;font-family:var(--mono)">No one waiting right now</div>'; return; }
+    $('wList').innerHTML = '<div style="font-family:var(--mono);font-size:11px;color:var(--dim);margin:6px 0">WAITING LIST</div>' +
+      rows.map(r => `<div class="wentry" style="border:1px solid var(--faint);border-radius:9px;padding:10px;margin-bottom:7px">
+        <div class="ci-n" style="margin-bottom:8px">${r.customer_name||'Customer'} · ${r.phone}
+          <small>${r.item_text}${r.qty_wanted?` (${r.qty_wanted})`:''} ${r.in_stock_now?'· ✅ IN STOCK':(r.product_id?'· waiting':'· not in catalogue')}</small></div>
+        ${!r.product_id ? `<button data-wpromote="${r.id}" data-witem="${(r.item_text||'').replace(/"/g,'&quot;')}" style="width:100%;margin-bottom:6px;background:rgba(127,212,193,.15);border:1px dashed var(--foam);color:var(--foam);border-radius:7px;padding:8px;font-family:var(--mono);font-size:11px;cursor:pointer">➕ Add "${r.item_text}" as a product</button>` : ''}
+        <div style="display:flex;gap:6px;margin-bottom:6px">
+          <a href="tel:${r.phone}" style="flex:0 0 auto;background:rgba(127,212,193,.12);border:1px solid var(--faint);color:var(--foam);border-radius:7px;padding:7px 12px;text-decoration:none;font-size:15px">📞</a>
+          <a href="${waLink(r.phone, r.customer_name, r.item_text)}" target="_blank" rel="noopener" style="flex:1;text-align:center;background:#25D366;color:#fff;text-decoration:none;border-radius:7px;padding:8px;font-family:var(--mono);font-size:11px;font-weight:700">💬 WhatsApp</a>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button data-wfulfil="${r.id}" style="flex:1;background:var(--green);border:none;color:#04211f;border-radius:7px;padding:8px;font-family:var(--mono);font-size:11px;font-weight:700;cursor:pointer">✓ Delivered</button>
+          <button data-wfollow="${r.id}" style="flex:1;background:rgba(255,184,77,.18);border:1px solid var(--catch);color:var(--catch);border-radius:7px;padding:8px;font-family:var(--mono);font-size:11px;cursor:pointer">↻ Follow up</button>
+          <button data-wcancel="${r.id}" style="background:transparent;border:1px solid var(--faint);color:var(--dim);border-radius:7px;padding:8px 10px;font-family:var(--mono);font-size:11px;cursor:pointer">Not now</button>
+        </div></div>`).join('');
+  }catch(e){ $('wList').innerHTML = `<div style="color:var(--coral);font-size:13px">${e.message}</div>`; }
+}
+async function wantedAction(id, status){
+  const { error } = await sb.rpc('set_wanted_status', { p_id:id, p_status:status, p_staff:staffName });
+  if(error){ toast(error.message, true); return; }
+  const msg = status==='fulfilled' ? '✓ Delivered — nice one'
+            : status==='follow_up' ? '↻ Marked for follow-up — stays on list'
+            : 'Moved off active list (kept in records)';
+  toast(msg);
+  loadWanted(); refreshWantedBadge();
+}
+async function refreshWantedBadge(){
+  try{
+    const { data } = await sb.rpc('wanted_counts');
+    const c = (data && data[0]) || {};
+    const badge = $('wantedBadge');
+    if(c.ready > 0){ badge.style.display='inline-block'; badge.textContent = c.ready; badge.style.background='var(--coral)'; }
+    else if(c.waiting > 0){ badge.style.display='inline-block'; badge.textContent = c.waiting; badge.style.background='var(--dim)'; }
+    else badge.style.display='none';
+  }catch(e){}
+}
+
+let promoteId = null, pUnit = 'kg';
+function openPromote(id, item){
+  promoteId = id; pUnit = 'kg';
+  $('pName').value = item || ''; $('pSw').value = ''; $('pPrice').value = ''; $('pCost').value = '';
+  document.querySelectorAll('#pUnit .tbtn').forEach(b => b.classList.toggle('on', b.dataset.punit==='kg'));
+  $('pmodal').classList.add('show');
+}
+async function savePromote(){
+  const name = $('pName').value.trim();
+  const price = parseFloat($('pPrice').value);
+  if(!name){ toast('Name required', true); return; }
+  if(isNaN(price) || price <= 0){ toast('Valid price required', true); return; }
+  try{
+    const { data, error } = await sb.rpc('promote_wanted_to_product', {
+      p_wanted_id: promoteId, p_name: name, p_sw_name: $('pSw').value.trim()||null,
+      p_price: price, p_cost: parseFloat($('pCost').value)||0,
+      p_unit: pUnit, p_catch_weight: pUnit==='kg', p_staff: staffName
+    });
+    if(error) throw error;
+    const r = (data && data[0]) || {};
+    toast(`✓ ${name} added — ${r.linked_count||1} customer${(r.linked_count||1)>1?'s':''} linked`);
+    if(navigator.vibrate) navigator.vibrate(60);
+    $('pmodal').classList.remove('show');
+    await loadProducts(); loadWanted(); refreshWantedBadge();
+  }catch(e){ toast(e.message, true); }
+}
+
+/* ---------- spoilage ---------- */
+function openSpoilage(){
+  $('spItem').innerHTML = products.map(p => `<option value="${p.id}">${p.name} (${p.sw_name||''}) — ${p.stock_qty}${p.sale_unit} in stock</option>`).join('');
+  $('spQty').value = ''; $('spReason').value = '';
+  $('spmodal').classList.add('show');
+  loadTodaySpoilage();
+}
+async function saveSpoilage(){
+  const pid = Number($('spItem').value);
+  const qty = parseFloat($('spQty').value);
+  const reason = $('spReason').value.trim();
+  if(isNaN(qty) || qty <= 0){ toast('Enter a quantity', true); return; }
+  if(!reason){ toast('Reason required', true); return; }
+  try{
+    const { error } = await sb.rpc('record_spoilage', { p_product: pid, p_qty: qty, p_reason: reason, p_staff: staffName });
+    if(error) throw error;
+    toast(`✓ Logged ${qty} wasted`);
+    if(navigator.vibrate) navigator.vibrate(40);
+    $('spQty').value=''; $('spReason').value='';
+    await loadProducts(); loadTodaySpoilage();
+    $('spItem').innerHTML = products.map(p => `<option value="${p.id}">${p.name} (${p.sw_name||''}) — ${p.stock_qty}${p.sale_unit} in stock</option>`).join('');
+  }catch(e){ toast(e.message, true); }
+}
+async function loadTodaySpoilage(){
+  try{
+    const { data, error } = await sb.rpc('shop_today_spoilage');
+    if(error) throw error;
+    const rows = data || [];
+    if(!rows.length){ $('spToday').innerHTML=''; return; }
+    const total = rows.reduce((s,r)=> s+Number(r.qty),0);
+    $('spToday').innerHTML = `<div style="font-family:var(--mono);font-size:12px;color:var(--coral);margin:4px 0 8px">Wasted today: ${total}</div>` +
+      rows.map(r => `<div class="cItem"><div class="ci-n">${r.product_name} — ${r.qty}<small>${r.reason||''}</small></div></div>`).join('');
+  }catch(e){ $('spToday').innerHTML=''; }
+}
+
+/* ---------- stock count (closing reconciliation) ---------- */
+function openStockCount(){
+  $('scList').innerHTML = products.map(p => `
+    <div class="scrow" data-scid="${p.id}" style="border:1px solid var(--faint);border-radius:10px;padding:11px;margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div style="flex:1"><b style="font-size:14px">${p.name}</b> <small style="color:var(--foam);font-family:var(--mono)">${p.sw_name||''}</small>
+          <div style="color:var(--dim);font-size:11px;font-family:var(--mono)">system shows ${p.stock_qty}${p.sale_unit}</div></div>
+        <input class="scount" data-scin="${p.id}" type="number" inputmode="decimal" step="0.001" placeholder="count"
+          style="width:90px;padding:10px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:16px;font-family:var(--mono);text-align:right">
+        <button class="sccheck" data-sccheck="${p.id}" style="padding:10px 12px;border:none;border-radius:8px;background:var(--foam);color:var(--abyss);font-weight:700;font-family:var(--mono);font-size:12px;cursor:pointer">✓</button>
+      </div>
+      <div class="scgap" data-scgap="${p.id}"></div>
+    </div>`).join('');
+  $('scmodal').classList.add('show');
+}
+async function saveCount(pid){
+  const inp = document.querySelector(`[data-scin="${pid}"]`);
+  const gapBox = document.querySelector(`[data-scgap="${pid}"]`);
+  const counted = parseFloat(inp.value);
+  if(isNaN(counted) || counted < 0){ toast('Enter a count', true); return; }
+  try{
+    const { data, error } = await sb.rpc('record_stock_count', { p_product: pid, p_counted: counted, p_staff: staffName });
+    if(error) throw error;
+    const r = (data && data[0]) || {};
+    const gap = Number(r.gap);
+    const short = gap < -0.001, over = gap > 0.001;
+    gapBox.innerHTML = `<div style="margin-top:8px;padding:8px;border-radius:7px;font-family:var(--mono);font-size:12px;text-align:center;
+      background:${short?'rgba(255,107,90,.15)':over?'rgba(255,184,77,.15)':'rgba(34,197,94,.15)'};
+      color:${short?'var(--coral)':over?'var(--catch)':'var(--green)'}">
+      should be ${r.should_be} · counted ${r.counted} · ${short?`⚠ SHORT ${Math.abs(gap)}`:over?`OVER +${gap}`:'✓ BALANCED'}</div>`;
+    if(navigator.vibrate) navigator.vibrate(short?[60,40,60]:40);
+  }catch(e){ toast(e.message, true); }
+}
+
+/* ---------- expenses ---------- */
+let xCat = 'ice', xPaid = 'cash';
+async function openExpense(){
+  xCat = 'ice'; xPaid = 'cash';
+  document.querySelectorAll('#xCat .tbtn').forEach(b => b.classList.toggle('on', b.dataset.cat==='ice'));
+  document.querySelectorAll('#xPaid .tbtn').forEach(b => b.classList.toggle('on', b.dataset.paid==='cash'));
+  $('xAmount').value = ''; $('xNote').value = '';
+  $('xmodal').classList.add('show');
+  loadTodayExpenses();
+}
+async function saveExpense(){
+  const amt = parseFloat($('xAmount').value);
+  if(isNaN(amt) || amt <= 0){ toast('Enter an amount', true); return; }
+  try{
+    const { error } = await sb.rpc('record_shop_expense', {
+      p_category: xCat, p_amount: amt, p_paid_with: xPaid, p_note: $('xNote').value.trim() || null, p_staff: staffName
+    });
+    if(error) throw error;
+    toast(`✓ Expense saved — ${xCat} KES ${fmt(amt)}`);
+    if(navigator.vibrate) navigator.vibrate(40);
+    $('xAmount').value = ''; $('xNote').value = '';
+    loadTodayExpenses();
+  }catch(e){ toast(e.message, true); }
+}
+async function loadTodayExpenses(){
+  try{
+    const { data, error } = await sb.rpc('shop_today_expenses');
+    if(error) throw error;
+    const rows = (data || []).filter(r => !r.voided);
+    if(!rows.length){ $('xToday').innerHTML = ''; return; }
+    const total = rows.reduce((s,r)=> s + Number(r.amount), 0);
+    $('xToday').innerHTML = `<div style="font-family:var(--mono);font-size:12px;color:var(--catch);margin:4px 0 8px">Today's expenses: KES ${fmt(total)}</div>` +
+      rows.map(function(r){
+        const t = new Date(r.created_at).toLocaleTimeString('en-KE',{hour:'2-digit',minute:'2-digit'});
+        return `<div class="cItem"><div class="ci-n">${r.category}${r.note?` — ${r.note}`:''}<small>${t} · ${r.paid_with}</small></div>
+          <span class="ci-line">${fmt(r.amount)}</span>
+          <button class="ci-x" data-xvoid="${r.id}" style="color:var(--coral)">✕</button></div>`;
+      }).join('');
+  }catch(e){ $('xToday').innerHTML = ''; }
+}
+async function voidExpense(id){
+  if(!confirm('Remove this expense?')) return;
+  const { error } = await sb.rpc('void_shop_expense', { p_id:id, p_by:staffName });
+  if(error){ toast(error.message, true); return; }
+  toast('Expense removed');
+  loadTodayExpenses();
+}
+
+/* ---------- cash-up ---------- */
+async function calcCashup(){
+  const flt = parseFloat($('cFloat').value) || 0;
+  try{
+    const { data, error } = await sb.rpc('shop_cashup_expected', { p_float: flt });
+    if(error) throw error;
+    const r = (data && data[0]) || {};
+    $('rFloat').textContent = fmt(flt);
+    $('rCashSales').textContent = fmt(r.cash_sales);
+    if($('rCashExp')) $('rCashExp').textContent = fmt(r.cash_expenses);
+    $('rExpected').textContent = fmt(r.expected_cash);
+    $('rMpesa').textContent = fmt(r.mpesa_total);
+    $('cResult').classList.remove('hide');
+  }catch(e){ toast(e.message, true); }
+}
+function showVariance(){
+  const counted = parseFloat($('cCounted').value);
+  if(isNaN(counted)) { $('cVar').classList.add('hide'); return; }
+  const expected = parseFloat($('rExpected').textContent.replace(/,/g,'')) || 0;
+  const v = counted - expected;
+  const el = $('cVar'); el.classList.remove('hide');
+  if(v === 0){ el.style.background='rgba(34,197,94,.15)'; el.style.color='var(--green)'; el.textContent='✓ Balances exactly'; }
+  else if(v < 0){ el.style.background='rgba(255,107,90,.15)'; el.style.color='var(--coral)'; el.textContent=`SHORT by KES ${fmt(Math.abs(v))}`; }
+  else { el.style.background='rgba(255,184,77,.15)'; el.style.color='var(--catch)'; el.textContent=`OVER by KES ${fmt(v)}`; }
+}
+async function saveCashup(){
+  const flt = parseFloat($('cFloat').value) || 0;
+  const counted = parseFloat($('cCounted').value);
+  if(isNaN(counted)){ toast('Count the drawer first', true); return; }
+  try{
+    const { data, error } = await sb.rpc('record_cashup', {
+      p_float: flt, p_counted: counted, p_by: staffName, p_note: $('cNote').value.trim() || null
+    });
+    if(error) throw error;
+    const r = (data && data[0]) || {};
+    const v = Number(r.cash_variance);
+    toast(v===0 ? '✓ Cash-up saved · balanced' : `Cash-up saved · ${v<0?'short':'over'} ${fmt(Math.abs(v))}`);
+    $('cmodal').classList.remove('show');
+  }catch(e){ toast(e.message, true); }
+}
+
+/* ---------- offline queue ----------
+   If a sale can't reach Supabase, it's held in localStorage and retried
+   when the connection returns. The counter never blocks on a customer. */
+const QKEY = 'mfm_pos_queue';
+function queueGet(){ try{ return JSON.parse(localStorage.getItem(QKEY) || '[]'); }catch(e){ return []; } }
+function queueSet(q){ try{ localStorage.setItem(QKEY, JSON.stringify(q)); }catch(e){} }
+function queueAdd(sale){ const q = queueGet(); q.push(sale); queueSet(q); updateQueueBadge(); }
+function updateQueueBadge(){
+  const n = queueGet().length;
+  const el = $('qbadge');
+  if(!el) return;
+  if(n > 0){ el.classList.remove('hide'); el.textContent = `⏳ ${n} sale${n>1?'s':''} to sync`; }
+  else el.classList.add('hide');
+}
+async function flushQueue(){
+  let q = queueGet();
+  if(!q.length) return;
+  const remaining = [];
+  for(const sale of q){
+    try{
+      const { error } = await sb.rpc('record_counter_sale', {
+        p_payment: sale.payment, p_items: sale.items, p_staff_name: sale.staff,
+        p_discount: sale.discount || 0, p_discount_reason: sale.reason || null, p_original: sale.original || null
+      });
+      if(error) remaining.push(sale);   // still failing — keep it
+    }catch(e){ remaining.push(sale); }
+  }
+  queueSet(remaining); updateQueueBadge();
+  if(remaining.length < q.length){
+    toast(`✓ Synced ${q.length - remaining.length} offline sale${q.length-remaining.length>1?'s':''}`);
+    await loadProducts(); await loadTodayStats();
+  }
+}
+
+/* ---------- events (delegated, module-safe) ---------- */
+$('signin').addEventListener('click', signIn);
+$('pw').addEventListener('keydown', e => { if(e.key==='Enter') signIn(); });
+$('signout').addEventListener('click', async ()=>{ await sb.auth.signOut(); location.reload(); });
+
+$('grid').addEventListener('click', e => {
+  const b = e.target.closest('[data-id]');
+  if(b) onProductTap(Number(b.dataset.id));
+});
+$('clist').addEventListener('click', e => {
+  const inc = e.target.closest('[data-inc]'), dec = e.target.closest('[data-dec]'), rm = e.target.closest('[data-rm]');
+  if(inc){ cart[+inc.dataset.inc].qty++; renderCart(); }
+  else if(dec){ const i=+dec.dataset.dec; cart[i].qty--; if(cart[i].qty<=0) cart.splice(i,1); renderCart(); }
+  else if(rm){ cart.splice(+rm.dataset.rm,1); renderCart(); }
+});
+document.querySelectorAll('[data-pay]').forEach(b => b.addEventListener('click', ()=>{
+  payment = b.dataset.pay;
+  document.querySelectorAll('[data-pay]').forEach(x => x.classList.toggle('on', x===b));
+}));
+$('checkout').addEventListener('click', checkout);
+
+// discount
+$('addDiscount').addEventListener('click', openDiscount);
+$('clearDiscount').addEventListener('click', ()=>{ resetDiscount(); renderCart(); });
+$('dApply').addEventListener('click', applyDiscount);
+$('dCancel').addEventListener('click', ()=> $('dmodal').classList.remove('show'));
+document.querySelectorAll('#dType .tbtn').forEach(b => b.addEventListener('click', ()=>{
+  dType = b.dataset.dtype;
+  document.querySelectorAll('#dType .tbtn').forEach(x => x.classList.toggle('on', x===b));
+  $('dAmountBox').style.display = dType==='amount' ? 'block' : 'none';
+  $('dPerkgBox').style.display = dType==='perkg' ? 'block' : 'none';
+}));
+
+// today's sales + void
+$('viewSales').addEventListener('click', openSales);
+$('sclose').addEventListener('click', ()=> $('smodal').classList.remove('show'));
+$('slist').addEventListener('click', e => {
+  const v = e.target.closest('[data-void]');
+  if(v) voidSale(Number(v.dataset.void));
+});
+// wanted list
+$('addWanted').addEventListener('click', openWanted);
+$('wClose').addEventListener('click', ()=> $('wantmodal').classList.remove('show'));
+$('wSave').addEventListener('click', saveWanted);
+$('wReady').addEventListener('click', e => {
+  const done = e.target.closest('[data-wdone]');
+  if(done) wantedAction(Number(done.dataset.wdone), 'fulfilled');
+});
+$('wList').addEventListener('click', e => {
+  const promote = e.target.closest('[data-wpromote]');
+  if(promote){ openPromote(Number(promote.dataset.wpromote), promote.dataset.witem); return; }
+  const fulfil = e.target.closest('[data-wfulfil]');
+  if(fulfil){ wantedAction(Number(fulfil.dataset.wfulfil), 'fulfilled'); return; }
+  const follow = e.target.closest('[data-wfollow]');
+  if(follow){ wantedAction(Number(follow.dataset.wfollow), 'follow_up'); return; }
+  const cancel = e.target.closest('[data-wcancel]');
+  if(cancel){
+    if(confirm('Mark this request as no longer wanted?\n\nIt stays in your records — not deleted — but leaves the active list.'))
+      wantedAction(Number(cancel.dataset.wcancel), 'cancelled');
+  }
+});
+// promote modal
+$('pSave').addEventListener('click', savePromote);
+$('pCancel').addEventListener('click', ()=> $('pmodal').classList.remove('show'));
+document.querySelectorAll('#pUnit .tbtn').forEach(b => b.addEventListener('click', ()=>{
+  pUnit = b.dataset.punit; document.querySelectorAll('#pUnit .tbtn').forEach(x => x.classList.toggle('on', x===b));
+}));
+// spoilage
+$('addSpoilage').addEventListener('click', openSpoilage);
+$('spClose').addEventListener('click', ()=> $('spmodal').classList.remove('show'));
+$('spSave').addEventListener('click', saveSpoilage);
+// stock count
+$('stockCount').addEventListener('click', openStockCount);
+$('scClose').addEventListener('click', async ()=>{ $('scmodal').classList.remove('show'); await loadProducts(); });
+$('scList').addEventListener('click', e => {
+  const c = e.target.closest('[data-sccheck]');
+  if(c) saveCount(Number(c.dataset.sccheck));
+});
+// expenses
+$('addExpense').addEventListener('click', openExpense);
+$('xClose').addEventListener('click', ()=> $('xmodal').classList.remove('show'));
+$('xSave').addEventListener('click', saveExpense);
+document.querySelectorAll('#xCat .tbtn').forEach(b => b.addEventListener('click', ()=>{
+  xCat = b.dataset.cat; document.querySelectorAll('#xCat .tbtn').forEach(x => x.classList.toggle('on', x===b));
+}));
+document.querySelectorAll('#xPaid .tbtn').forEach(b => b.addEventListener('click', ()=>{
+  xPaid = b.dataset.paid; document.querySelectorAll('#xPaid .tbtn').forEach(x => x.classList.toggle('on', x===b));
+}));
+$('xToday').addEventListener('click', e => {
+  const v = e.target.closest('[data-xvoid]');
+  if(v) voidExpense(Number(v.dataset.xvoid));
+});
+// cash-up
+$('cashUp').addEventListener('click', ()=>{
+  $('cResult').classList.add('hide'); $('cVar').classList.add('hide');
+  $('cFloat').value = 0; $('cCounted').value = ''; $('cNote').value = '';
+  $('cmodal').classList.add('show');
+});
+$('cCalc').addEventListener('click', calcCashup);
+$('cCounted').addEventListener('input', showVariance);
+$('cSave').addEventListener('click', saveCashup);
+$('cClose').addEventListener('click', ()=> $('cmodal').classList.remove('show'));
+
+// keypad
+document.querySelectorAll('[data-k]').forEach(k => k.addEventListener('click', ()=> keyPress(k.dataset.k)));
+$('wadd').addEventListener('click', confirmWeight);
+$('wcancel').addEventListener('click', ()=> $('wmodal').classList.remove('show'));
+
+boot();
+
+// Offline queue: sync when connection returns, on load, and every 30s as a safety net.
+window.addEventListener('online', flushQueue);
+setInterval(()=>{ if(navigator.onLine) flushQueue(); }, 30000);
+updateQueueBadge();
+flushQueue();
+</script>
+</body>
+</html>
