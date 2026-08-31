@@ -96,6 +96,12 @@
   <div id="lerr" style="color:var(--coral);font-size:13px;margin-top:12px;text-align:center"></div>
 </div>
 
+<div id="denied" class="hide" style="text-align:center;padding:50px 22px;color:var(--coral);font-family:var(--mono)">
+  <div style="font-size:15px;margin-bottom:8px">Admin is owner-only.</div>
+  <div style="color:var(--dim);font-size:13px">This account doesn't have owner access. Stock, costs and financials are restricted to the owner.</div>
+  <div style="margin-top:22px"><button class="btn" id="denyOut" style="max-width:200px;margin:0 auto">Sign out</button></div>
+</div>
+
 <div id="app" class="hide">
   <header>
     <div class="htitle">SHOP ADMIN</div>
@@ -215,7 +221,16 @@ async function signIn(){
 }
 async function showApp(session){
   staffName = (session.user.email||'staff').split('@')[0];
-  $('login').classList.add('hide'); $('app').classList.remove('hide');
+  // OWNER GATE: verify owner via an owner-only call. Non-owners see denied, not the admin.
+  try{
+    const { error } = await sb.rpc('dash_stock_value');
+    if(error) throw error;
+  }catch(e){
+    $('login').classList.add('hide'); $('app').classList.add('hide');
+    $('denied').classList.remove('hide');
+    return;
+  }
+  $('login').classList.add('hide'); $('denied').classList.add('hide'); $('app').classList.remove('hide');
   await loadProducts(); await loadSummary(); await loadHistory(); await loadExpenses(); await loadDiscounts(); await loadRecon(); await loadWantedAdmin();
 }
 
@@ -512,9 +527,9 @@ function toast(msg, err){
 }
 
 /* ---------- events ---------- */
-$('signin').addEventListener('click', signIn);
-$('pw').addEventListener('keydown', e => { if(e.key==='Enter') signIn(); });
+$('signin').addEventListener('click', signIn);$('pw').addEventListener('keydown', e => { if(e.key==='Enter') signIn(); });
 $('signout').addEventListener('click', async ()=>{ await sb.auth.signOut(); location.reload(); });
+$('denyOut').addEventListener('click', async ()=>{ await sb.auth.signOut(); location.reload(); });
 
 $('plist').addEventListener('click', e => {
   const add = e.target.closest('[data-add]'), ed = e.target.closest('[data-edit]');
