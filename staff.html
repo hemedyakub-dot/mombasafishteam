@@ -632,15 +632,40 @@ function openCancelSheet(orderNo){
   cancelOrderObj = o;
   cancelReason = '';
   refundStatus = 'not_required';
-  $('cancelFor').textContent = `${o.order_number} · ${o.customer_name||''} · KES ${o.total_amount||o.amount||''} · ${o.destination||''}`;
+  const isUnpaidOrder = isUnpaid(o);
+  $('cancelFor').textContent = `${o.order_number} · ${o.customer_name||''} · ${o.destination||''} · ${isUnpaidOrder ? 'Awaiting payment' : 'Stage '+o.stage}`;
   $('cancelNote').value = '';
-  $('refundAmt').value = o.total_amount || o.amount || '';
+  $('refundAmt').value = '';
   $('refundAmtWrap').style.display = 'none';
   document.querySelectorAll('.reason-btn').forEach(b=>b.classList.remove('on'));
   document.querySelectorAll('#refundRow button').forEach(b=>b.classList.remove('on'));
   document.querySelector('#refundRow button[data-ref="not_required"]').classList.add('on');
   $('cancelSheetGo').disabled = true;
   $('cancelSheetGo').textContent = 'Confirm cancel';
+  
+  // Dynamic reasons based on tab
+  const grid = document.getElementById('reasonGrid');
+  if(isUnpaidOrder){
+    grid.innerHTML = `
+      <button class="reason-btn" data-r="Not paid after 3 days">Not paid - 3 days</button>
+      <button class="reason-btn" data-r="Customer not responding">Not responding</button>
+      <button class="reason-btn" data-r="Customer cancelled before payment">Cancelled by customer</button>
+      <button class="reason-btn" data-r="Duplicate order">Duplicate order</button>
+      <button class="reason-btn" data-r="Wrong order / Fraud">Wrong / Fraud</button>
+      <button class="reason-btn" data-r="Other">Other</button>`;
+    $('refundAmtWrap').style.display='none';
+    document.getElementById('refundRow').style.display='none';
+  } else {
+    grid.innerHTML = `
+      <button class="reason-btn" data-r="Customer cancelled">Customer cancelled</button>
+      <button class="reason-btn" data-r="Customer not reachable">Not reachable</button>
+      <button class="reason-btn" data-r="Fish unavailable">Fish unavailable</button>
+      <button class="reason-btn" data-r="Wrong order / Duplicate">Wrong / Duplicate</button>
+      <button class="reason-btn" data-r="Delivery failed / Returned">Delivery failed / Returned</button>
+      <button class="reason-btn" data-r="Other">Other</button>`;
+    document.getElementById('refundRow').style.display='flex';
+  }
+  
   $('cancelSheet').classList.add('on');
 }
 
@@ -838,6 +863,62 @@ render = function(){
   const el = document.getElementById('count-refunds');
   if(el) el.textContent = refundsCount;
   // Also update main count if on refunds tab already handled
+};
+
+
+// ===== AUTO-CANCEL STALE UNPAID (3 DAYS) =====
+function getStaleUnpaid(){
+  const threeDaysAgo = Date.now() - (3*24*60*60*1000);
+  return orders.filter(o=> isUnpaid(o) && new Date(o.created_at).getTime() < threeDaysAgo);
+}
+
+async function autoCancelStale(btn){
+  const stale = getStaleUnpaid();
+  if(!stale.length){ note('No orders older than 3 days in Awaiting payment'); return; }
+  if(!confirm(`Auto-cancel ${stale.length} unpaid order(s) older than 3 days?\n\nReason: Not paid after 3 days\nThey will move to Refunds/Cancelled.`)) return;
+  btn.disabled=true; btn.textContent='Cancelling…';
+  let ok=0;
+  for(const o of stale){
+    try{
+      await sb.rpc('cancel_order_with_refund', { p_order:o.order_number, p_reason:'Not paid after 3 days - auto cancelled', p_note:'Auto-cancel after 3 days sitting in awaiting payment', p_refund_status:'not_required', p_refund_amount:null, p_staff: window.__staffName||'system-auto' });
+      ok++;
+    }catch(e){ console.log('auto-cancel fail', o.order_number, e); }
+  }
+  await load();
+  note(`${ok} order(s) auto-cancelled - moved to Refunds tab`);
+  btn.disabled=false; btn.textContent=`Auto-cancel ${getStaleUnpaid().length} old (3d+)`;
+}
+
+// Patch unpaid render to show stale banner
+const _origRenderUnpaid = render;
+render = function(){
+  _origRenderUnpaid();
+  if(filter==='unpaid'){
+    const stale = getStaleUnpaid();
+    if(stale.length){
+      const listEl = document.getElementById('list');
+      const banner = document.createElement('div');
+      banner.className='card';
+      banner.style.cssText='background:rgba(255,184,77,.12);border-color:rgba(255,184,77,.4);padding:14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:12px';
+      banner.innerHTML = `<div><div style="font-family:var(--mono);font-size:11px;color:#ffb84d">⚠️ ${stale.length} order(s) unpaid for >3 days</div><div style="font-size:12px;color:var(--dim);margin-top:2px">They are sitting in awaiting payment. Auto-cancel them to clean the queue.</div></div><button class="btn" id="autoCancelBtn" style="width:auto;padding:10px 14px;font-size:11px;background:#ffb84d;color:#032A2E">Auto-cancel ${stale.length} old (3d+)</button>`;
+      listEl.prepend(banner);
+      document.getElementById('autoCancelBtn')?.addEventListener('click', (e)=> autoCancelStale(e.target));
+    }
+    // Also add age warning to each unpaid order
+    document.querySelectorAll('.order.is-unpaid').forEach(dom=>{
+      const orderNo = dom.getAttribute('data-order') || dom.querySelector('[data-paid]')?.dataset.paid || dom.querySelector('[data-cancel]')?.dataset.cancel;
+      const o = orders.find(x=>x.order_number===orderNo);
+      if(!o) return;
+      const days = Math.floor((Date.now() - new Date(o.created_at).getTime())/(24*60*60*1000));
+      if(days>=3 && !dom.querySelector('.stale-badge')){
+        const badge = document.createElement('div');
+        badge.className='stale-badge';
+        badge.style.cssText='margin-top:8px;padding:6px 8px;border-radius:4px;background:rgba(255,184,77,.15);border:1px solid rgba(255,184,77,.4);font-family:var(--mono);font-size:10px;color:#ffb84d';
+        badge.textContent=`⏰ ${days} days unpaid - should be auto-cancelled`;
+        dom.appendChild(badge);
+      }
+    });
+  }
 };
 
 boot();
@@ -1251,11 +1332,11 @@ $('list').addEventListener('click', e=>{
     markPaid(paid.dataset.paid, paid);
     return;
   }
-  // Cancel an awaiting-payment order
+  // Cancel an awaiting-payment order - now uses reason sheet
   const cancel = e.target.closest('[data-cancel]');
   if(cancel){
     e.stopPropagation();
-    cancelOrder(cancel.dataset.cancel, cancel);
+    openCancelSheet(cancel.dataset.cancel);
     return;
   }
   // Item state pick (from the 3-button picker)
@@ -1474,15 +1555,40 @@ function openCancelSheet(orderNo){
   cancelOrderObj = o;
   cancelReason = '';
   refundStatus = 'not_required';
-  $('cancelFor').textContent = `${o.order_number} · ${o.customer_name||''} · KES ${o.total_amount||o.amount||''} · ${o.destination||''}`;
+  const isUnpaidOrder = isUnpaid(o);
+  $('cancelFor').textContent = `${o.order_number} · ${o.customer_name||''} · ${o.destination||''} · ${isUnpaidOrder ? 'Awaiting payment' : 'Stage '+o.stage}`;
   $('cancelNote').value = '';
-  $('refundAmt').value = o.total_amount || o.amount || '';
+  $('refundAmt').value = '';
   $('refundAmtWrap').style.display = 'none';
   document.querySelectorAll('.reason-btn').forEach(b=>b.classList.remove('on'));
   document.querySelectorAll('#refundRow button').forEach(b=>b.classList.remove('on'));
   document.querySelector('#refundRow button[data-ref="not_required"]').classList.add('on');
   $('cancelSheetGo').disabled = true;
   $('cancelSheetGo').textContent = 'Confirm cancel';
+  
+  // Dynamic reasons based on tab
+  const grid = document.getElementById('reasonGrid');
+  if(isUnpaidOrder){
+    grid.innerHTML = `
+      <button class="reason-btn" data-r="Not paid after 3 days">Not paid - 3 days</button>
+      <button class="reason-btn" data-r="Customer not responding">Not responding</button>
+      <button class="reason-btn" data-r="Customer cancelled before payment">Cancelled by customer</button>
+      <button class="reason-btn" data-r="Duplicate order">Duplicate order</button>
+      <button class="reason-btn" data-r="Wrong order / Fraud">Wrong / Fraud</button>
+      <button class="reason-btn" data-r="Other">Other</button>`;
+    $('refundAmtWrap').style.display='none';
+    document.getElementById('refundRow').style.display='none';
+  } else {
+    grid.innerHTML = `
+      <button class="reason-btn" data-r="Customer cancelled">Customer cancelled</button>
+      <button class="reason-btn" data-r="Customer not reachable">Not reachable</button>
+      <button class="reason-btn" data-r="Fish unavailable">Fish unavailable</button>
+      <button class="reason-btn" data-r="Wrong order / Duplicate">Wrong / Duplicate</button>
+      <button class="reason-btn" data-r="Delivery failed / Returned">Delivery failed / Returned</button>
+      <button class="reason-btn" data-r="Other">Other</button>`;
+    document.getElementById('refundRow').style.display='flex';
+  }
+  
   $('cancelSheet').classList.add('on');
 }
 
@@ -1680,6 +1786,62 @@ render = function(){
   const el = document.getElementById('count-refunds');
   if(el) el.textContent = refundsCount;
   // Also update main count if on refunds tab already handled
+};
+
+
+// ===== AUTO-CANCEL STALE UNPAID (3 DAYS) =====
+function getStaleUnpaid(){
+  const threeDaysAgo = Date.now() - (3*24*60*60*1000);
+  return orders.filter(o=> isUnpaid(o) && new Date(o.created_at).getTime() < threeDaysAgo);
+}
+
+async function autoCancelStale(btn){
+  const stale = getStaleUnpaid();
+  if(!stale.length){ note('No orders older than 3 days in Awaiting payment'); return; }
+  if(!confirm(`Auto-cancel ${stale.length} unpaid order(s) older than 3 days?\n\nReason: Not paid after 3 days\nThey will move to Refunds/Cancelled.`)) return;
+  btn.disabled=true; btn.textContent='Cancelling…';
+  let ok=0;
+  for(const o of stale){
+    try{
+      await sb.rpc('cancel_order_with_refund', { p_order:o.order_number, p_reason:'Not paid after 3 days - auto cancelled', p_note:'Auto-cancel after 3 days sitting in awaiting payment', p_refund_status:'not_required', p_refund_amount:null, p_staff: window.__staffName||'system-auto' });
+      ok++;
+    }catch(e){ console.log('auto-cancel fail', o.order_number, e); }
+  }
+  await load();
+  note(`${ok} order(s) auto-cancelled - moved to Refunds tab`);
+  btn.disabled=false; btn.textContent=`Auto-cancel ${getStaleUnpaid().length} old (3d+)`;
+}
+
+// Patch unpaid render to show stale banner
+const _origRenderUnpaid = render;
+render = function(){
+  _origRenderUnpaid();
+  if(filter==='unpaid'){
+    const stale = getStaleUnpaid();
+    if(stale.length){
+      const listEl = document.getElementById('list');
+      const banner = document.createElement('div');
+      banner.className='card';
+      banner.style.cssText='background:rgba(255,184,77,.12);border-color:rgba(255,184,77,.4);padding:14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:12px';
+      banner.innerHTML = `<div><div style="font-family:var(--mono);font-size:11px;color:#ffb84d">⚠️ ${stale.length} order(s) unpaid for >3 days</div><div style="font-size:12px;color:var(--dim);margin-top:2px">They are sitting in awaiting payment. Auto-cancel them to clean the queue.</div></div><button class="btn" id="autoCancelBtn" style="width:auto;padding:10px 14px;font-size:11px;background:#ffb84d;color:#032A2E">Auto-cancel ${stale.length} old (3d+)</button>`;
+      listEl.prepend(banner);
+      document.getElementById('autoCancelBtn')?.addEventListener('click', (e)=> autoCancelStale(e.target));
+    }
+    // Also add age warning to each unpaid order
+    document.querySelectorAll('.order.is-unpaid').forEach(dom=>{
+      const orderNo = dom.getAttribute('data-order') || dom.querySelector('[data-paid]')?.dataset.paid || dom.querySelector('[data-cancel]')?.dataset.cancel;
+      const o = orders.find(x=>x.order_number===orderNo);
+      if(!o) return;
+      const days = Math.floor((Date.now() - new Date(o.created_at).getTime())/(24*60*60*1000));
+      if(days>=3 && !dom.querySelector('.stale-badge')){
+        const badge = document.createElement('div');
+        badge.className='stale-badge';
+        badge.style.cssText='margin-top:8px;padding:6px 8px;border-radius:4px;background:rgba(255,184,77,.15);border:1px solid rgba(255,184,77,.4);font-family:var(--mono);font-size:10px;color:#ffb84d';
+        badge.textContent=`⏰ ${days} days unpaid - should be auto-cancelled`;
+        dom.appendChild(badge);
+      }
+    });
+  }
 };
 
 boot();
