@@ -253,7 +253,7 @@ input:focus{outline:none;border-color:var(--foam)}
 .edit-in{width:100%;max-width:680px;background:#0f3438;border:1px solid rgba(127,212,193,.25);border-radius:8px 8px 0 0;padding:20px 16px 28px;max-height:92vh;overflow-y:auto}
 .edit-in h2{font-family:var(--display);color:var(--foam);font-size:16px}
 .edit-in h3{font-family:var(--mono);font-size:11px;color:var(--dim);margin:14px 0 8px;letter-spacing:.1em;text-transform:uppercase}
-.item-edit-row{display:grid;grid-template-columns:1fr 70px 50px 90px 60px;gap:8px;align-items:center;padding:10px 12px;background:rgba(0,0,0,.22);border:1px solid var(--faint);border-radius:6px;margin-bottom:6px}
+.item-edit-row{display:grid;grid-template-columns:1fr 60px 45px 85px 85px 50px;gap:6px;align-items:center;padding:10px 8px;background:rgba(0,0,0,.22);border:1px solid var(--faint);border-radius:6px;margin-bottom:6px}
 .item-edit-row .iname{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .item-edit-row input{padding:8px 6px !important;margin:0 !important;font-size:12px !important;text-align:center}
 .item-edit-row .unit-sel{padding:8px 4px;font-size:11px;background:rgba(0,0,0,.3);border:1px solid var(--faint);border-radius:4px;color:var(--sand);font-family:var(--mono)}
@@ -263,7 +263,7 @@ input:focus{outline:none;border-color:var(--foam)}
 .add-row input{flex:1;margin-bottom:0;padding:12px 12px;font-size:14px}
 .add-row button{padding:12px 14px;background:var(--foam);color:var(--abyss);border:none;border-radius:4px;font-family:var(--mono);font-size:11px;cursor:pointer;font-weight:600}
 .unavail-note{font-size:11px;color:var(--catch);font-family:var(--mono);margin:8px 0}
-.qty-head{display:grid;grid-template-columns:1fr 70px 50px 90px 60px;gap:8px;padding:0 12px 6px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.08em;text-transform:uppercase}
+.qty-head{display:grid;grid-template-columns:1fr 60px 45px 85px 85px 50px;gap:6px;padding:0 8px 6px;font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:.08em;text-transform:uppercase}
 
 
 .price-input{width:90px !important;margin-bottom:0 !important;padding:10px !important;font-family:var(--mono);font-size:12px}
@@ -452,7 +452,7 @@ input:focus{outline:none;border-color:var(--foam)}
     <h3>Add extra / replacement fish</h3>
     <div class="add-row">
       <input id="editAddInput" type="text" placeholder="Type: 1kg prawns OR prawns 1kg (auto-uniform)" style="flex:2">
-      <input id="editAddPrice" type="number" placeholder="Price KES" class="price-input">
+      <input id="editAddPrice" type="number" placeholder="Price/kg" class="price-input">
       <button id="editAddBtn">+ Add</button>
     </div>
     <div class="total-preview" id="totalPreview">
@@ -1064,10 +1064,23 @@ function normalizeItemName(str){
 }
 
 function getItemQty(it){
-  // Try to get qty from parsed name, or from quantity column
   if(it.quantity && it.quantity!==1) return it.quantity;
   const parsed = parseItemString(it.item_name||'');
   return parsed ? parsed.qty : 1;
+}
+
+function calcTotal(qty, unit, unitPrice){
+  qty = Number(qty)||0;
+  unitPrice = Number(unitPrice)||0;
+  if(unit==='g') return Math.round((qty/1000)*unitPrice);
+  return Math.round(qty*unitPrice);
+}
+function calcUnitPrice(qty, unit, total){
+  qty = Number(qty)||0;
+  total = Number(total)||0;
+  if(qty===0) return 0;
+  if(unit==='g') return Math.round(total*1000/qty);
+  return Math.round(total/qty);
 }
 
 // ===== CUSTOMIZE ORDER ITEMS =====
@@ -1086,16 +1099,43 @@ function openEditSheet(orderNo){
   if(priceInput) priceInput.value='';
   $('editReason').value = '';
   
-  // Build temp list from existing - parse qty/unit/product and include price
+  // Build temp list - with per-kg and total split
   editItemsTemp = myItems.map(it=> {
     const parsed = parseItemString(it.item_name||'');
+    const qty = it.quantity || (parsed ? parsed.qty : 1);
+    const unit = parsed ? parsed.unit : 'kg';
+    // unit_price is price per kg, price/total is qty * unit_price
+    let unitPrice = it.unit_price || 0;
+    let totalPrice = it.price || 0;
+    // If we have only total and no unit_price, derive unit_price
+    if(!unitPrice && totalPrice){
+      unitPrice = calcUnitPrice(qty, unit, totalPrice);
+    }
+    // If we have only unit_price and no total, calc total
+    if(!totalPrice && unitPrice){
+      totalPrice = calcTotal(qty, unit, unitPrice);
+    }
+    // If neither, try parse
+    if(!unitPrice && !totalPrice && parsed && parsed.price){
+      // Assume parsed price is total for that qty? Or per kg? For 1kg same, for 2kg assume per kg
+      if(parsed.qty===1){
+        totalPrice = parsed.price;
+        unitPrice = parsed.price;
+      } else {
+        unitPrice = parsed.price;
+        totalPrice = calcTotal(qty, unit, unitPrice);
+      }
+    }
     return {
       ...it,
       parsed,
       product: parsed ? parsed.product : (it.item_name||''),
-      qty: it.quantity || (parsed ? parsed.qty : 1),
-      unit: parsed ? parsed.unit : 'kg',
-      price: it.price||it.unit_price||0,
+      qty: qty,
+      unit: unit,
+      unit_price: unitPrice,
+      price: totalPrice, // legacy total
+      total_price: totalPrice,
+      price_per_kg: unitPrice,
       displayName: parsed ? parsed.display : (it.item_name||''),
       isNew:false,
       toDelete:false
@@ -1118,12 +1158,11 @@ function renderEditList(){
     noEl.style.display = 'block';
     const o = orders.find(x=>x.order_number===editOrderNo);
     if(o && o.items && !itemsByOrder[editOrderNo]?.length){
-      // Try to parse legacy text into items
       const legacyItems = o.items.split(',').map(s=>s.trim()).filter(Boolean).map(s=>{
         const p = parseItemString(s);
         return p ? p.display : s;
       });
-      noEl.innerHTML = `Legacy: <b style="color:var(--sand)">${legacyItems.join(', ')}</b><br><br>No individual tracking yet. Your edits below will convert it to tracked items with proper kg + price.`;
+      noEl.innerHTML = `Legacy: <b style="color:var(--sand)">${legacyItems.join(', ')}</b><br><br>No tracking yet. Add kg + price/kg below to convert.`;
       noEl.style.display='block';
     }
     updateTotalPreview();
@@ -1131,20 +1170,26 @@ function renderEditList(){
   }
   noEl.style.display='none';
   
-  // Header
-  let html = `<div class="qty-head"><div>Fish (uniform)</div><div>Qty</div><div>Unit</div><div>Price KES</div><div></div></div>`;
+  let html = `<div class="qty-head"><div>Fish</div><div>Qty</div><div>Unit</div><div>Price/kg</div><div>Total</div><div></div></div>`;
   html += visible.map((it, idx)=>{
-    const stateTxt = ITEM_STATE[it.state] ? ITEM_STATE[it.state][0] : 'New';
     const productName = it.product || (it.parsed ? it.parsed.product : it.item_name) || '';
     const qtyVal = it.qty || 1;
     const unitVal = (it.unit||'kg').toLowerCase();
-    const priceVal = it.price||0;
+    const unitPriceVal = it.unit_price || it.price_per_kg || it.price || 0;
+    // Calculate total if not set or if qty changed
+    let totalVal = it.total_price;
+    if(totalVal===undefined || it.isEdited){
+      totalVal = calcTotal(qtyVal, unitVal, unitPriceVal);
+    }
+    it.total_price = totalVal;
+    it.unit_price = unitPriceVal;
     const uniformDisplay = it.displayName || normalizeItemName(it.item_name||'') || productName;
     return `<div class="item-edit-row">
       <div class="iname" title="${uniformDisplay}">${it.isNew ? '🆕 ' : ''}${uniformDisplay}</div>
-      <input type="number" min="0.1" step="0.1" value="${qtyVal}" data-qty-idx="${idx}" placeholder="1">
+      <input type="number" min="0.1" step="0.1" value="${qtyVal}" data-qty-idx="${idx}" placeholder="Qty">
       <select class="unit-sel" data-unit-idx="${idx}"><option value="kg" ${unitVal==='kg'?'selected':''}>kg</option><option value="g" ${unitVal==='g'?'selected':''}>g</option></select>
-      <input type="number" min="0" step="50" value="${priceVal||''}" data-price-idx="${idx}" placeholder="${priceVal ? priceVal : 'Set price'}">
+      <input type="number" min="0" step="50" value="${unitPriceVal||''}" data-unitprice-idx="${idx}" placeholder="Per kg">
+      <input type="number" min="0" step="50" value="${totalVal||''}" data-total-idx="${idx}" placeholder="Total" style="background:rgba(127,212,193,.08)">
       <button data-del-idx="${idx}">✕</button>
     </div>`;
   }).join('');
@@ -1159,14 +1204,25 @@ function updateTotalPreview(){
   if(!o) return;
   const currentTotal = Number(o.total_amount || o.amount || 0);
   const existing = itemsByOrder[editOrderNo] || [];
-  const existingTotalPrice = existing.reduce((s,it)=> s + Number(it.price||0), 0);
-  // If order has no total_amount but items have prices, use sum
+  const existingTotalPrice = existing.reduce((s,it)=> s + Number(it.price||it.total_price||0), 0);
   const baseTotal = currentTotal || existingTotalPrice || 0;
   
-  const toDeletePrice = editItemsTemp.filter(x=> x.toDelete && !x.isNew).reduce((s,it)=> s + Number(it.price||0), 0);
-  const toAddPrice = editItemsTemp.filter(x=> x.isNew && !x.toDelete).reduce((s,it)=> s + Number(it.price||0), 0);
-  
-  const newTotal = baseTotal - toDeletePrice + toAddPrice;
+  const visible = editItemsTemp.filter(x=>!x.toDelete);
+  let newTotal = 0;
+  visible.forEach(it=>{
+    // total is qty * unit_price
+    const qty = Number(it.qty||it.quantity||1);
+    const unit = (it.unit||'kg').toLowerCase();
+    const unitPrice = Number(it.unit_price||it.price_per_kg||0);
+    const total = it.total_price!==undefined ? Number(it.total_price) : calcTotal(qty, unit, unitPrice);
+    newTotal += total;
+  });
+  // If no items have price yet, fallback to baseTotal + added - deleted
+  if(newTotal===0){
+    const toDeletePrice = editItemsTemp.filter(x=> x.toDelete && !x.isNew).reduce((s,it)=> s + Number(it.total_price||it.price||0), 0);
+    const toAddPrice = editItemsTemp.filter(x=> x.isNew && !x.toDelete).reduce((s,it)=> s + Number(it.total_price||it.price||0), 0);
+    newTotal = baseTotal - toDeletePrice + toAddPrice;
+  }
   
   $('currTotalVal').textContent = baseTotal ? `KES ${baseTotal}` : 'KES 0';
   const newEl = $('newTotalVal');
@@ -1188,20 +1244,19 @@ $('editSheet').addEventListener('click', e=>{ if(e.target.id==='editSheet') clos
 
 $('editAddBtn').addEventListener('click', ()=>{
   const val = $('editAddInput').value.trim();
-  const priceVal = Number(document.getElementById('editAddPrice')?.value || 0);
+  const pricePerKgVal = Number(document.getElementById('editAddPrice')?.value || 0);
   if(!val) return;
   const parts = val.split(',').map(s=>s.trim()).filter(Boolean);
   parts.forEach(raw=>{
     const parsed = parseItemString(raw);
-    let finalPrice = priceVal || (parsed ? parsed.price : 0);
-    // If raw had price and we also have priceVal, priceVal wins if >0
-    if(priceVal>0) finalPrice = priceVal;
-    else if(parsed && parsed.price>0) finalPrice = parsed.price;
-    
-    const product = parsed ? parsed.product : raw;
+    // priceVal is now interpreted as PRICE PER KG
+    let unitPrice = pricePerKgVal;
+    if(!unitPrice && parsed && parsed.price) unitPrice = parsed.price; // if user typed "2kg prawns - 1200" treat 1200 as per kg
+    const product = parsed ? parsed.product : raw.replace(/\d+/g,'').trim();
     const qty = parsed ? parsed.qty : 1;
     const unit = parsed ? parsed.unit : 'kg';
     const display = parsed ? parsed.display : normalizeItemName(raw);
+    const total = calcTotal(qty, unit, unitPrice);
     
     editItemsTemp.push({
       item_name: display,
@@ -1213,7 +1268,10 @@ $('editAddBtn').addEventListener('click', ()=>{
       isNew:true,
       toDelete:false,
       sort_order: editItemsTemp.length,
-      price: finalPrice,
+      price: total,
+      total_price: total,
+      unit_price: unitPrice,
+      price_per_kg: unitPrice,
       quantity: qty
     });
   });
@@ -1243,36 +1301,63 @@ document.getElementById('editCurrentList').addEventListener('click', e=>{
   renderEditList();
 });
 
-// Live qty/unit/price editing
+// Live qty / unit_price / total editing with auto-calc
 document.getElementById('editCurrentList').addEventListener('input', e=>{
   const qtyEl = e.target.closest('[data-qty-idx]');
-  const priceEl = e.target.closest('[data-price-idx]');
+  const unitPriceEl = e.target.closest('[data-unitprice-idx]');
+  const totalEl = e.target.closest('[data-total-idx]');
+  
   if(qtyEl){
     const idx = Number(qtyEl.dataset.qtyIdx);
     const visible = editItemsTemp.filter(x=>!x.toDelete);
     const target = visible[idx];
     if(target){
-      target.qty = parseFloat(qtyEl.value)||1;
-      // Update uniform display
-      const p = target.product || target.item_name;
-      target.displayName = `${target.qty}${target.unit||'kg'} ${p}`.replace(/\b\w/g, c=>c.toUpperCase()).replace(/^\d+/, m=>m);
-      // Actually use normalize
+      target.qty = parseFloat(qtyEl.value)||0;
+      target.quantity = target.qty;
       target.displayName = normalizeItemName(`${target.qty}${target.unit} ${target.product}`);
+      // Recalc total from unit_price
+      target.total_price = calcTotal(target.qty, target.unit, target.unit_price||target.price_per_kg||0);
+      target.price = target.total_price;
       target.isEdited = true;
+      // Update total input live
+      const totalInput = document.querySelector(`[data-total-idx="${idx}"]`);
+      if(totalInput) totalInput.value = target.total_price||'';
       updateTotalPreview();
     }
   }
-  if(priceEl){
-    const idx = Number(priceEl.dataset.priceIdx);
+  if(unitPriceEl){
+    const idx = Number(unitPriceEl.dataset.unitpriceIdx);
     const visible = editItemsTemp.filter(x=>!x.toDelete);
     const target = visible[idx];
     if(target){
-      target.price = Number(priceEl.value)||0;
+      target.unit_price = Number(unitPriceEl.value)||0;
+      target.price_per_kg = target.unit_price;
+      target.total_price = calcTotal(target.qty, target.unit, target.unit_price);
+      target.price = target.total_price;
       target.isEdited = true;
+      const totalInput = document.querySelector(`[data-total-idx="${idx}"]`);
+      if(totalInput) totalInput.value = target.total_price||'';
+      updateTotalPreview();
+    }
+  }
+  if(totalEl){
+    const idx = Number(totalEl.dataset.totalIdx);
+    const visible = editItemsTemp.filter(x=>!x.toDelete);
+    const target = visible[idx];
+    if(target){
+      target.total_price = Number(totalEl.value)||0;
+      target.price = target.total_price;
+      // Derive unit_price from total
+      target.unit_price = calcUnitPrice(target.qty, target.unit, target.total_price);
+      target.price_per_kg = target.unit_price;
+      target.isEdited = true;
+      const unitPriceInput = document.querySelector(`[data-unitprice-idx="${idx}"]`);
+      if(unitPriceInput) unitPriceInput.value = target.unit_price||'';
       updateTotalPreview();
     }
   }
 });
+
 
 document.getElementById('editCurrentList').addEventListener('change', e=>{
   const unitEl = e.target.closest('[data-unit-idx]');
@@ -1329,29 +1414,33 @@ $('editSave').addEventListener('click', async ()=>{
       if(error) throw error;
     }
     
-    // Update edited existing items (qty/price/uniform name)
+    // Update edited existing items
     const toUpdate = editItemsTemp.filter(x=> !x.toDelete && !x.isNew && (x.isEdited || x.displayName!==x.item_name));
     for(const it of toUpdate){
+      const total = it.total_price!==undefined ? it.total_price : calcTotal(it.qty, it.unit, it.unit_price||0);
       const { error } = await sb.from('mfm_order_items').update({
         item_name: it.displayName || it.item_name,
-        price: it.price||0,
+        price: total||0,
         quantity: it.qty||1,
-        unit_price: it.price||0
+        unit_price: it.unit_price||0
       }).eq('id', it.id);
       if(error) console.log('update fail', error);
     }
     
-    // Add new with price + qty
+    // Add new with per-kg + total
     if(toAdd.length){
-      const rows = toAdd.map(it=> ({
-        order_number: editOrderNo,
-        item_name: it.displayName || it.item_name,
-        state: 1,
-        sort_order: it.sort_order,
-        price: it.price||0,
-        quantity: it.qty||1,
-        unit_price: it.price||0
-      }));
+      const rows = toAdd.map(it=> {
+        const total = it.total_price!==undefined ? it.total_price : calcTotal(it.qty, it.unit, it.unit_price||0);
+        return {
+          order_number: editOrderNo,
+          item_name: it.displayName || it.item_name,
+          state: 1,
+          sort_order: it.sort_order,
+          price: total||0,
+          quantity: it.qty||1,
+          unit_price: it.unit_price||0
+        };
+      });
       let { error } = await sb.from('mfm_order_items').insert(rows);
       if(error && (error.message.includes('price') || error.message.includes('quantity'))){
         const rowsNoPrice = rows.map(({price, quantity, unit_price, ...rest})=>rest);
@@ -2435,10 +2524,23 @@ function normalizeItemName(str){
 }
 
 function getItemQty(it){
-  // Try to get qty from parsed name, or from quantity column
   if(it.quantity && it.quantity!==1) return it.quantity;
   const parsed = parseItemString(it.item_name||'');
   return parsed ? parsed.qty : 1;
+}
+
+function calcTotal(qty, unit, unitPrice){
+  qty = Number(qty)||0;
+  unitPrice = Number(unitPrice)||0;
+  if(unit==='g') return Math.round((qty/1000)*unitPrice);
+  return Math.round(qty*unitPrice);
+}
+function calcUnitPrice(qty, unit, total){
+  qty = Number(qty)||0;
+  total = Number(total)||0;
+  if(qty===0) return 0;
+  if(unit==='g') return Math.round(total*1000/qty);
+  return Math.round(total/qty);
 }
 
 // ===== CUSTOMIZE ORDER ITEMS =====
@@ -2457,16 +2559,43 @@ function openEditSheet(orderNo){
   if(priceInput) priceInput.value='';
   $('editReason').value = '';
   
-  // Build temp list from existing - parse qty/unit/product and include price
+  // Build temp list - with per-kg and total split
   editItemsTemp = myItems.map(it=> {
     const parsed = parseItemString(it.item_name||'');
+    const qty = it.quantity || (parsed ? parsed.qty : 1);
+    const unit = parsed ? parsed.unit : 'kg';
+    // unit_price is price per kg, price/total is qty * unit_price
+    let unitPrice = it.unit_price || 0;
+    let totalPrice = it.price || 0;
+    // If we have only total and no unit_price, derive unit_price
+    if(!unitPrice && totalPrice){
+      unitPrice = calcUnitPrice(qty, unit, totalPrice);
+    }
+    // If we have only unit_price and no total, calc total
+    if(!totalPrice && unitPrice){
+      totalPrice = calcTotal(qty, unit, unitPrice);
+    }
+    // If neither, try parse
+    if(!unitPrice && !totalPrice && parsed && parsed.price){
+      // Assume parsed price is total for that qty? Or per kg? For 1kg same, for 2kg assume per kg
+      if(parsed.qty===1){
+        totalPrice = parsed.price;
+        unitPrice = parsed.price;
+      } else {
+        unitPrice = parsed.price;
+        totalPrice = calcTotal(qty, unit, unitPrice);
+      }
+    }
     return {
       ...it,
       parsed,
       product: parsed ? parsed.product : (it.item_name||''),
-      qty: it.quantity || (parsed ? parsed.qty : 1),
-      unit: parsed ? parsed.unit : 'kg',
-      price: it.price||it.unit_price||0,
+      qty: qty,
+      unit: unit,
+      unit_price: unitPrice,
+      price: totalPrice, // legacy total
+      total_price: totalPrice,
+      price_per_kg: unitPrice,
       displayName: parsed ? parsed.display : (it.item_name||''),
       isNew:false,
       toDelete:false
@@ -2489,12 +2618,11 @@ function renderEditList(){
     noEl.style.display = 'block';
     const o = orders.find(x=>x.order_number===editOrderNo);
     if(o && o.items && !itemsByOrder[editOrderNo]?.length){
-      // Try to parse legacy text into items
       const legacyItems = o.items.split(',').map(s=>s.trim()).filter(Boolean).map(s=>{
         const p = parseItemString(s);
         return p ? p.display : s;
       });
-      noEl.innerHTML = `Legacy: <b style="color:var(--sand)">${legacyItems.join(', ')}</b><br><br>No individual tracking yet. Your edits below will convert it to tracked items with proper kg + price.`;
+      noEl.innerHTML = `Legacy: <b style="color:var(--sand)">${legacyItems.join(', ')}</b><br><br>No tracking yet. Add kg + price/kg below to convert.`;
       noEl.style.display='block';
     }
     updateTotalPreview();
@@ -2502,20 +2630,26 @@ function renderEditList(){
   }
   noEl.style.display='none';
   
-  // Header
-  let html = `<div class="qty-head"><div>Fish (uniform)</div><div>Qty</div><div>Unit</div><div>Price KES</div><div></div></div>`;
+  let html = `<div class="qty-head"><div>Fish</div><div>Qty</div><div>Unit</div><div>Price/kg</div><div>Total</div><div></div></div>`;
   html += visible.map((it, idx)=>{
-    const stateTxt = ITEM_STATE[it.state] ? ITEM_STATE[it.state][0] : 'New';
     const productName = it.product || (it.parsed ? it.parsed.product : it.item_name) || '';
     const qtyVal = it.qty || 1;
     const unitVal = (it.unit||'kg').toLowerCase();
-    const priceVal = it.price||0;
+    const unitPriceVal = it.unit_price || it.price_per_kg || it.price || 0;
+    // Calculate total if not set or if qty changed
+    let totalVal = it.total_price;
+    if(totalVal===undefined || it.isEdited){
+      totalVal = calcTotal(qtyVal, unitVal, unitPriceVal);
+    }
+    it.total_price = totalVal;
+    it.unit_price = unitPriceVal;
     const uniformDisplay = it.displayName || normalizeItemName(it.item_name||'') || productName;
     return `<div class="item-edit-row">
       <div class="iname" title="${uniformDisplay}">${it.isNew ? '🆕 ' : ''}${uniformDisplay}</div>
-      <input type="number" min="0.1" step="0.1" value="${qtyVal}" data-qty-idx="${idx}" placeholder="1">
+      <input type="number" min="0.1" step="0.1" value="${qtyVal}" data-qty-idx="${idx}" placeholder="Qty">
       <select class="unit-sel" data-unit-idx="${idx}"><option value="kg" ${unitVal==='kg'?'selected':''}>kg</option><option value="g" ${unitVal==='g'?'selected':''}>g</option></select>
-      <input type="number" min="0" step="50" value="${priceVal||''}" data-price-idx="${idx}" placeholder="${priceVal ? priceVal : 'Set price'}">
+      <input type="number" min="0" step="50" value="${unitPriceVal||''}" data-unitprice-idx="${idx}" placeholder="Per kg">
+      <input type="number" min="0" step="50" value="${totalVal||''}" data-total-idx="${idx}" placeholder="Total" style="background:rgba(127,212,193,.08)">
       <button data-del-idx="${idx}">✕</button>
     </div>`;
   }).join('');
@@ -2530,14 +2664,25 @@ function updateTotalPreview(){
   if(!o) return;
   const currentTotal = Number(o.total_amount || o.amount || 0);
   const existing = itemsByOrder[editOrderNo] || [];
-  const existingTotalPrice = existing.reduce((s,it)=> s + Number(it.price||0), 0);
-  // If order has no total_amount but items have prices, use sum
+  const existingTotalPrice = existing.reduce((s,it)=> s + Number(it.price||it.total_price||0), 0);
   const baseTotal = currentTotal || existingTotalPrice || 0;
   
-  const toDeletePrice = editItemsTemp.filter(x=> x.toDelete && !x.isNew).reduce((s,it)=> s + Number(it.price||0), 0);
-  const toAddPrice = editItemsTemp.filter(x=> x.isNew && !x.toDelete).reduce((s,it)=> s + Number(it.price||0), 0);
-  
-  const newTotal = baseTotal - toDeletePrice + toAddPrice;
+  const visible = editItemsTemp.filter(x=>!x.toDelete);
+  let newTotal = 0;
+  visible.forEach(it=>{
+    // total is qty * unit_price
+    const qty = Number(it.qty||it.quantity||1);
+    const unit = (it.unit||'kg').toLowerCase();
+    const unitPrice = Number(it.unit_price||it.price_per_kg||0);
+    const total = it.total_price!==undefined ? Number(it.total_price) : calcTotal(qty, unit, unitPrice);
+    newTotal += total;
+  });
+  // If no items have price yet, fallback to baseTotal + added - deleted
+  if(newTotal===0){
+    const toDeletePrice = editItemsTemp.filter(x=> x.toDelete && !x.isNew).reduce((s,it)=> s + Number(it.total_price||it.price||0), 0);
+    const toAddPrice = editItemsTemp.filter(x=> x.isNew && !x.toDelete).reduce((s,it)=> s + Number(it.total_price||it.price||0), 0);
+    newTotal = baseTotal - toDeletePrice + toAddPrice;
+  }
   
   $('currTotalVal').textContent = baseTotal ? `KES ${baseTotal}` : 'KES 0';
   const newEl = $('newTotalVal');
@@ -2559,20 +2704,19 @@ $('editSheet').addEventListener('click', e=>{ if(e.target.id==='editSheet') clos
 
 $('editAddBtn').addEventListener('click', ()=>{
   const val = $('editAddInput').value.trim();
-  const priceVal = Number(document.getElementById('editAddPrice')?.value || 0);
+  const pricePerKgVal = Number(document.getElementById('editAddPrice')?.value || 0);
   if(!val) return;
   const parts = val.split(',').map(s=>s.trim()).filter(Boolean);
   parts.forEach(raw=>{
     const parsed = parseItemString(raw);
-    let finalPrice = priceVal || (parsed ? parsed.price : 0);
-    // If raw had price and we also have priceVal, priceVal wins if >0
-    if(priceVal>0) finalPrice = priceVal;
-    else if(parsed && parsed.price>0) finalPrice = parsed.price;
-    
-    const product = parsed ? parsed.product : raw;
+    // priceVal is now interpreted as PRICE PER KG
+    let unitPrice = pricePerKgVal;
+    if(!unitPrice && parsed && parsed.price) unitPrice = parsed.price; // if user typed "2kg prawns - 1200" treat 1200 as per kg
+    const product = parsed ? parsed.product : raw.replace(/\d+/g,'').trim();
     const qty = parsed ? parsed.qty : 1;
     const unit = parsed ? parsed.unit : 'kg';
     const display = parsed ? parsed.display : normalizeItemName(raw);
+    const total = calcTotal(qty, unit, unitPrice);
     
     editItemsTemp.push({
       item_name: display,
@@ -2584,7 +2728,10 @@ $('editAddBtn').addEventListener('click', ()=>{
       isNew:true,
       toDelete:false,
       sort_order: editItemsTemp.length,
-      price: finalPrice,
+      price: total,
+      total_price: total,
+      unit_price: unitPrice,
+      price_per_kg: unitPrice,
       quantity: qty
     });
   });
@@ -2614,36 +2761,63 @@ document.getElementById('editCurrentList').addEventListener('click', e=>{
   renderEditList();
 });
 
-// Live qty/unit/price editing
+// Live qty / unit_price / total editing with auto-calc
 document.getElementById('editCurrentList').addEventListener('input', e=>{
   const qtyEl = e.target.closest('[data-qty-idx]');
-  const priceEl = e.target.closest('[data-price-idx]');
+  const unitPriceEl = e.target.closest('[data-unitprice-idx]');
+  const totalEl = e.target.closest('[data-total-idx]');
+  
   if(qtyEl){
     const idx = Number(qtyEl.dataset.qtyIdx);
     const visible = editItemsTemp.filter(x=>!x.toDelete);
     const target = visible[idx];
     if(target){
-      target.qty = parseFloat(qtyEl.value)||1;
-      // Update uniform display
-      const p = target.product || target.item_name;
-      target.displayName = `${target.qty}${target.unit||'kg'} ${p}`.replace(/\b\w/g, c=>c.toUpperCase()).replace(/^\d+/, m=>m);
-      // Actually use normalize
+      target.qty = parseFloat(qtyEl.value)||0;
+      target.quantity = target.qty;
       target.displayName = normalizeItemName(`${target.qty}${target.unit} ${target.product}`);
+      // Recalc total from unit_price
+      target.total_price = calcTotal(target.qty, target.unit, target.unit_price||target.price_per_kg||0);
+      target.price = target.total_price;
       target.isEdited = true;
+      // Update total input live
+      const totalInput = document.querySelector(`[data-total-idx="${idx}"]`);
+      if(totalInput) totalInput.value = target.total_price||'';
       updateTotalPreview();
     }
   }
-  if(priceEl){
-    const idx = Number(priceEl.dataset.priceIdx);
+  if(unitPriceEl){
+    const idx = Number(unitPriceEl.dataset.unitpriceIdx);
     const visible = editItemsTemp.filter(x=>!x.toDelete);
     const target = visible[idx];
     if(target){
-      target.price = Number(priceEl.value)||0;
+      target.unit_price = Number(unitPriceEl.value)||0;
+      target.price_per_kg = target.unit_price;
+      target.total_price = calcTotal(target.qty, target.unit, target.unit_price);
+      target.price = target.total_price;
       target.isEdited = true;
+      const totalInput = document.querySelector(`[data-total-idx="${idx}"]`);
+      if(totalInput) totalInput.value = target.total_price||'';
+      updateTotalPreview();
+    }
+  }
+  if(totalEl){
+    const idx = Number(totalEl.dataset.totalIdx);
+    const visible = editItemsTemp.filter(x=>!x.toDelete);
+    const target = visible[idx];
+    if(target){
+      target.total_price = Number(totalEl.value)||0;
+      target.price = target.total_price;
+      // Derive unit_price from total
+      target.unit_price = calcUnitPrice(target.qty, target.unit, target.total_price);
+      target.price_per_kg = target.unit_price;
+      target.isEdited = true;
+      const unitPriceInput = document.querySelector(`[data-unitprice-idx="${idx}"]`);
+      if(unitPriceInput) unitPriceInput.value = target.unit_price||'';
       updateTotalPreview();
     }
   }
 });
+
 
 document.getElementById('editCurrentList').addEventListener('change', e=>{
   const unitEl = e.target.closest('[data-unit-idx]');
@@ -2700,29 +2874,33 @@ $('editSave').addEventListener('click', async ()=>{
       if(error) throw error;
     }
     
-    // Update edited existing items (qty/price/uniform name)
+    // Update edited existing items
     const toUpdate = editItemsTemp.filter(x=> !x.toDelete && !x.isNew && (x.isEdited || x.displayName!==x.item_name));
     for(const it of toUpdate){
+      const total = it.total_price!==undefined ? it.total_price : calcTotal(it.qty, it.unit, it.unit_price||0);
       const { error } = await sb.from('mfm_order_items').update({
         item_name: it.displayName || it.item_name,
-        price: it.price||0,
+        price: total||0,
         quantity: it.qty||1,
-        unit_price: it.price||0
+        unit_price: it.unit_price||0
       }).eq('id', it.id);
       if(error) console.log('update fail', error);
     }
     
-    // Add new with price + qty
+    // Add new with per-kg + total
     if(toAdd.length){
-      const rows = toAdd.map(it=> ({
-        order_number: editOrderNo,
-        item_name: it.displayName || it.item_name,
-        state: 1,
-        sort_order: it.sort_order,
-        price: it.price||0,
-        quantity: it.qty||1,
-        unit_price: it.price||0
-      }));
+      const rows = toAdd.map(it=> {
+        const total = it.total_price!==undefined ? it.total_price : calcTotal(it.qty, it.unit, it.unit_price||0);
+        return {
+          order_number: editOrderNo,
+          item_name: it.displayName || it.item_name,
+          state: 1,
+          sort_order: it.sort_order,
+          price: total||0,
+          quantity: it.qty||1,
+          unit_price: it.unit_price||0
+        };
+      });
       let { error } = await sb.from('mfm_order_items').insert(rows);
       if(error && (error.message.includes('price') || error.message.includes('quantity'))){
         const rowsNoPrice = rows.map(({price, quantity, unit_price, ...rest})=>rest);
