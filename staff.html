@@ -233,6 +233,19 @@ input:focus{outline:none;border-color:var(--foam)}
 .file-drop{border:1px dashed var(--foam);background:rgba(127,212,193,.08);padding:16px;border-radius:8px;text-align:center;cursor:pointer}
 .file-drop:hover{background:rgba(127,212,193,.14)}
 
+
+/* Cancel sheet */
+.cancel-sheet{position:fixed;inset:0;background:rgba(3,42,46,.86);backdrop-filter:blur(6px);z-index:65;display:none;align-items:flex-end;justify-content:center}
+.cancel-sheet.on{display:flex}
+.cancel-in{width:100%;max-width:640px;background:#3d1f1b;border:1px solid rgba(255,107,90,.35);border-radius:8px 8px 0 0;padding:22px 18px 28px;max-height:90vh;overflow-y:auto}
+.cancel-in h2{font-family:var(--display);color:#ff8a7a}
+.reason-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.reason-btn{padding:12px 10px;border:1px solid var(--faint);border-radius:6px;background:rgba(0,0,0,.2);color:var(--sand);font-size:13px;cursor:pointer;text-align:left}
+.reason-btn.on{border-color:var(--coral);background:rgba(255,107,90,.15);color:#fff}
+.refund-row{display:flex;gap:8px;margin:12px 0}
+.refund-row button{flex:1;padding:10px;border:1px solid var(--faint);border-radius:6px;background:transparent;color:var(--dim);font-family:var(--mono);font-size:11px;cursor:pointer}
+.refund-row button.on{border-color:var(--foam);color:var(--foam);background:rgba(127,212,193,.1)}
+
 </style>
 </head>
 <body>
@@ -271,6 +284,7 @@ input:focus{outline:none;border-color:var(--foam)}
       <button class="tab" data-f="road">On the road</button>
       <button class="tab" data-f="done">Arrived</button>
       <button class="tab owner-only hidden" data-f="repeats">Repeat customers</button>
+      <button class="tab" data-f="refunds" style="border-color:rgba(255,107,90,.4);color:#ff8a7a">Refunds <span id="count-refunds" style="background:rgba(255,107,90,.15);padding:2px 6px;border-radius:100px;margin-left:4px">0</span></button>
     </div>
     <div id="list"></div>
   </section>
@@ -328,6 +342,49 @@ input:focus{outline:none;border-color:var(--foam)}
       <button class="btn" id="podGo" style="flex:2" disabled>Upload & Mark Arrived</button>
     </div>
     <p class="opt" style="font-size:11px;color:var(--dim);margin-top:10px">Photo is stored in Supabase Storage bucket <code>pod-proofs</code> and linked to the order. Customer can see it on tracking page.</p>
+  </div>
+</div>
+
+
+<!-- Cancel + Refund sheet -->
+<div class="cancel-sheet" id="cancelSheet">
+  <div class="cancel-in">
+    <h2>Cancel order & refund?</h2>
+    <div class="for" id="cancelFor" style="font-family:var(--mono);font-size:11px;color:var(--foam);margin:8px 0 16px"></div>
+    
+    <label>Why cancelled?</label>
+    <div class="reason-grid" id="reasonGrid">
+      <button class="reason-btn" data-r="Customer cancelled">Customer cancelled</button>
+      <button class="reason-btn" data-r="Customer not reachable">Not reachable</button>
+      <button class="reason-btn" data-r="Fish unavailable">Fish unavailable</button>
+      <button class="reason-btn" data-r="Wrong order / Duplicate">Wrong / Duplicate</button>
+      <button class="reason-btn" data-r="Delivery failed / Returned">Delivery failed / Returned</button>
+      <button class="reason-btn" data-r="Other">Other</button>
+    </div>
+    
+    <label for="cancelNote">Details (optional, shown in records)</label>
+    <input id="cancelNote" type="text" placeholder="e.g. Customer in Nairobi, bus left, wants refund">
+    
+    <label style="margin-top:14px">Refund?</label>
+    <div class="refund-row" id="refundRow">
+      <button data-ref="not_required" class="on">No refund</button>
+      <button data-ref="pending">Refund pending</button>
+      <button data-ref="processed">Refund done</button>
+    </div>
+    
+    <div id="refundAmtWrap" style="display:none">
+      <label for="refundAmt">Refund amount (KES)</label>
+      <input id="refundAmt" type="number" placeholder="e.g. 1200">
+    </div>
+
+    <div style="background:rgba(0,0,0,.25);padding:10px;border-radius:6px;margin:14px 0;font-size:12px;color:var(--dim);line-height:1.5">
+      This keeps the order in records as <b style="color:#ff8a7a">Cancelled</b>. Customer will not be charged further. If you chose Refund pending/done, it appears in your refund report.
+    </div>
+    
+    <div style="display:flex;gap:9px;margin-top:6px">
+      <button class="ghost" id="cancelSheetCancel" style="flex:1;padding:15px;background:transparent;border:1px solid var(--faint);border-radius:3px;color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer">Keep order</button>
+      <button class="btn" id="cancelSheetGo" style="flex:2;background:var(--coral);color:#fff" disabled>Confirm cancel</button>
+    </div>
   </div>
 </div>
 
@@ -562,6 +619,245 @@ document.getElementById('list').addEventListener('click', e=>{
 });
 
 // Also patch list listener for pod is already handled
+
+
+// ===== CANCEL + REFUND FEATURE =====
+let cancelOrderObj = null;
+let cancelReason = '';
+let refundStatus = 'not_required';
+
+function openCancelSheet(orderNo){
+  const o = orders.find(x=>x.order_number===orderNo);
+  if(!o) return;
+  cancelOrderObj = o;
+  cancelReason = '';
+  refundStatus = 'not_required';
+  $('cancelFor').textContent = `${o.order_number} · ${o.customer_name||''} · KES ${o.total_amount||o.amount||''} · ${o.destination||''}`;
+  $('cancelNote').value = '';
+  $('refundAmt').value = o.total_amount || o.amount || '';
+  $('refundAmtWrap').style.display = 'none';
+  document.querySelectorAll('.reason-btn').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('#refundRow button').forEach(b=>b.classList.remove('on'));
+  document.querySelector('#refundRow button[data-ref="not_required"]').classList.add('on');
+  $('cancelSheetGo').disabled = true;
+  $('cancelSheetGo').textContent = 'Confirm cancel';
+  $('cancelSheet').classList.add('on');
+}
+
+function closeCancelSheet(){
+  $('cancelSheet').classList.remove('on');
+  cancelOrderObj = null;
+}
+
+$('cancelSheetCancel').addEventListener('click', closeCancelSheet);
+$('cancelSheet').addEventListener('click', e=>{ if(e.target.id==='cancelSheet') closeCancelSheet(); });
+
+document.getElementById('reasonGrid').addEventListener('click', e=>{
+  const btn = e.target.closest('.reason-btn');
+  if(!btn) return;
+  document.querySelectorAll('.reason-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  cancelReason = btn.dataset.r;
+  $('cancelSheetGo').disabled = !cancelReason;
+});
+
+document.getElementById('refundRow').addEventListener('click', e=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  document.querySelectorAll('#refundRow button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  refundStatus = btn.dataset.ref;
+  $('refundAmtWrap').style.display = (refundStatus==='pending' || refundStatus==='processed') ? 'block' : 'none';
+});
+
+async function doCancelWithRefund(){
+  if(!cancelOrderObj || !cancelReason){ note('Pick a reason','err'); return; }
+  const orderNo = cancelOrderObj.order_number;
+  const btn = $('cancelSheetGo'); btn.disabled=true; btn.textContent='Cancelling…';
+  try{
+    const payload = {
+      p_order: orderNo,
+      p_reason: cancelReason,
+      p_note: $('cancelNote').value || null,
+      p_refund_status: refundStatus,
+      p_refund_amount: $('refundAmt').value ? Number($('refundAmt').value) : null,
+      p_staff: window.__staffName || 'staff'
+    };
+    // Try new RPC first
+    let { error } = await sb.rpc('cancel_order_with_refund', payload);
+    if(error){
+      // Fallback: direct update if RPC not yet created
+      console.log('RPC not found, fallback', error.message);
+      const { error: updErr } = await sb.from('mfm_orders').update({
+        stage: -1,
+        status: 'Cancelled',
+        cancel_reason: cancelReason,
+        cancel_note: $('cancelNote').value || null,
+        refund_status: refundStatus,
+        refund_amount: payload.p_refund_amount,
+        cancelled_at: new Date().toISOString(),
+        cancelled_by: window.__staffName || 'staff',
+        stage_changed_at: new Date().toISOString()
+      }).eq('order_number', orderNo);
+      if(updErr) throw updErr;
+    }
+    closeCancelSheet();
+    await load();
+    noteUndo(`${orderNo} cancelled — ${cancelReason}. Refund: ${refundStatus}`, async ()=>{
+      await sb.from('mfm_orders').update({ stage: cancelOrderObj.stage, status: 'Confirmed' }).eq('order_number', orderNo);
+      await load();
+      note(`${orderNo} restored`);
+    });
+  }catch(err){
+    note(err.message||'Cancel failed','err');
+    btn.disabled=false; btn.textContent='Confirm cancel';
+  }
+}
+
+$('cancelSheetGo').addEventListener('click', doCancelWithRefund);
+
+// Patch render to add Cancel button for all active stages
+const _origRenderCancel = render;
+render = function(){
+  _origRenderCancel();
+  // Add cancel button to each order that is not already cancelled/arrived
+  document.querySelectorAll('.order').forEach(dom=>{
+    const orderNo = dom.getAttribute('data-order');
+    if(!orderNo) return;
+    const o = orders.find(x=>x.order_number===orderNo);
+    if(!o) return;
+    if(o.stage===-1 || o.stage===4) return; // already cancelled or arrived - don't show (arrived can still cancel if needed, we allow via long-press? keep hidden)
+    // Allow cancel for Confirmed, Packed, On the road
+    if(o.stage===1 || o.stage===2 || o.stage===3){
+      if(!dom.querySelector('[data-cancel-delivery]')){
+        const wrap = dom.querySelector('.contact')?.parentNode || dom;
+        const btn = document.createElement('button');
+        btn.setAttribute('data-cancel-delivery', orderNo);
+        btn.className='mark-cancel';
+        btn.style.marginTop='10px';
+        btn.style.width='100%';
+        btn.textContent='✕ Cancel delivery / Refund';
+        btn.style.borderColor='rgba(255,107,90,.5)';
+        btn.style.color='#ff8a7a';
+        btn.style.background='transparent';
+        btn.style.padding='10px';
+        btn.style.borderRadius='6px';
+        btn.style.fontFamily='var(--mono)';
+        btn.style.fontSize='11px';
+        btn.style.cursor='pointer';
+        dom.appendChild(btn);
+      }
+    }
+    // Show cancelled badge if cancelled
+    if(o.stage===-1){
+      if(!dom.querySelector('.cancelled-badge')){
+        const badge = document.createElement('div');
+        badge.className='cancelled-badge';
+        badge.style.cssText='margin-top:10px;padding:8px 10px;border-radius:6px;background:rgba(255,107,90,.12);border:1px solid rgba(255,107,90,.3);font-family:var(--mono);font-size:11px;color:#ff8a7a';
+        badge.textContent=`Cancelled: ${o.cancel_reason||o.proof_note||''} ${o.refund_status? '· Refund: '+o.refund_status : ''}`;
+        dom.appendChild(badge);
+      }
+    }
+  });
+};
+
+// Delegate cancel-delivery clicks
+document.getElementById('list').addEventListener('click', e=>{
+  const cd = e.target.closest('[data-cancel-delivery]');
+  if(cd){
+    e.stopPropagation();
+    openCancelSheet(cd.dataset.cancelDelivery);
+    return;
+  }
+});
+
+
+// ===== REFUNDS TAB =====
+const _origFilterRender = render;
+render = function(){
+  _origFilterRender();
+  // If filter is refunds, override list
+  if(filter==='refunds'){
+    const refunds = orders.filter(o=> o.stage===-1);
+    const listEl = document.getElementById('list');
+    if(!refunds.length){
+      listEl.innerHTML = `<div class="card" style="text-align:center;padding:30px;color:var(--dim)"><div style="font-size:32px">💸</div><div style="margin-top:8px;font-family:var(--mono);font-size:12px">No cancelled orders yet</div><div style="font-size:12px;margin-top:4px">Cancelled orders with refund status will appear here</div></div>`;
+      return;
+    }
+    // Sort by cancelled_at desc
+    refunds.sort((a,b)=> new Date(b.cancelled_at||b.stage_changed_at||0) - new Date(a.cancelled_at||a.stage_changed_at||0));
+    const pending = refunds.filter(r=>r.refund_status==='pending').length;
+    const done = refunds.filter(r=>r.refund_status==='processed').length;
+    
+    listEl.innerHTML = `
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <div class="card" style="flex:1;padding:12px;text-align:center;background:rgba(255,107,90,.08);border-color:rgba(255,107,90,.3)"><div style="font-family:var(--mono);font-size:10px;color:#ff8a7a">PENDING REFUND</div><div style="font-family:var(--display);font-size:22px;color:#ff8a7a">${pending}</div></div>
+        <div class="card" style="flex:1;padding:12px;text-align:center"><div style="font-family:var(--mono);font-size:10px;color:var(--dim)">DONE</div><div style="font-family:var(--display);font-size:22px">${done}</div></div>
+        <div class="card" style="flex:1;padding:12px;text-align:center"><div style="font-family:var(--mono);font-size:10px;color:var(--dim)">TOTAL CANCELLED</div><div style="font-family:var(--display);font-size:22px">${refunds.length}</div></div>
+      </div>
+      ` + refunds.map(o=>{
+        const date = o.cancelled_at ? new Date(o.cancelled_at).toLocaleString() : '';
+        const refundColor = o.refund_status==='pending' ? '#ffb84d' : o.refund_status==='processed' ? '#7fd4c1' : 'var(--dim)';
+        return `<div class="order" data-order="${o.order_number}" style="border-color:${o.refund_status==='pending' ? 'rgba(255,184,77,.4)' : o.refund_status==='processed' ? 'rgba(127,212,193,.3)' : ''}">
+          <div class="order-top">
+            <div><div class="ono">${o.order_number} <span class="pill pX" style="margin-left:6px">CANCELLED</span></div>
+            <div class="cust">${o.customer_name||'Customer'} · ${o.contact||o.customer_phone||''}</div>
+            <div class="dest">📍 ${o.destination||''}</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:4px">Cancelled: ${o.cancel_reason||''} ${o.cancel_note? '· '+o.cancel_note : ''}</div>
+            <div style="font-family:var(--mono);font-size:10px;color:${refundColor};margin-top:4px">Refund: ${o.refund_status||'not_required'} ${o.refund_amount? '· KES '+o.refund_amount : ''} ${o.cancelled_by? '· by '+o.cancelled_by : ''} ${date? '· '+date : ''}</div>
+            </div>
+          </div>
+          <div class="contact" style="margin-top:10px">
+            ${o.contact? `<a href="https://wa.me/${o.contact.replace(/[^0-9]/g,'')}" target="_blank">WhatsApp</a>` : ''}
+            ${o.refund_status==='pending' ? `<button class="act primary" data-mark-refunded="${o.order_number}" style="background:#7FD4C1;color:#032A2E">Mark refund done</button>` : ''}
+            <button class="act" data-restore="${o.order_number}">Restore order</button>
+          </div>
+        </div>`
+      }).join('');
+  }
+};
+
+// Handle refund tab clicks
+document.getElementById('list').addEventListener('click', e=>{
+  const mr = e.target.closest('[data-mark-refunded]');
+  if(mr){
+    e.stopPropagation();
+    (async()=>{
+      const orderNo = mr.dataset.markRefunded;
+      const { error } = await sb.from('mfm_orders').update({ refund_status:'processed', refund_note:'Marked done from refunds tab' }).eq('order_number', orderNo);
+      if(error){ note(error.message,'err'); return; }
+      await load();
+      filter='refunds'; render();
+      note(`${orderNo} refund marked done`);
+    })();
+    return;
+  }
+  const rs = e.target.closest('[data-restore]');
+  if(rs){
+    e.stopPropagation();
+    if(!confirm(`Restore ${rs.dataset.restore} back to Confirmed?`)) return;
+    (async()=>{
+      const orderNo = rs.dataset.restore;
+      const { error } = await sb.from('mfm_orders').update({ stage:1, status:'Confirmed', refund_status:'not_required' }).eq('order_number', orderNo);
+      if(error){ note(error.message,'err'); return; }
+      await load();
+      note(`${orderNo} restored`);
+    })();
+    return;
+  }
+});
+
+// Update counts for refunds tab in the tab bar
+const _origCountRender = render;
+const originalRenderForCount = _origCountRender;
+render = function(){
+  originalRenderForCount();
+  // Update refunds count badge
+  const refundsCount = orders.filter(o=>o.stage===-1).length;
+  const el = document.getElementById('count-refunds');
+  if(el) el.textContent = refundsCount;
+  // Also update main count if on refunds tab already handled
+};
 
 boot();
 }
@@ -1184,6 +1480,245 @@ document.getElementById('list').addEventListener('click', e=>{
 });
 
 // Also patch list listener for pod is already handled
+
+
+// ===== CANCEL + REFUND FEATURE =====
+let cancelOrderObj = null;
+let cancelReason = '';
+let refundStatus = 'not_required';
+
+function openCancelSheet(orderNo){
+  const o = orders.find(x=>x.order_number===orderNo);
+  if(!o) return;
+  cancelOrderObj = o;
+  cancelReason = '';
+  refundStatus = 'not_required';
+  $('cancelFor').textContent = `${o.order_number} · ${o.customer_name||''} · KES ${o.total_amount||o.amount||''} · ${o.destination||''}`;
+  $('cancelNote').value = '';
+  $('refundAmt').value = o.total_amount || o.amount || '';
+  $('refundAmtWrap').style.display = 'none';
+  document.querySelectorAll('.reason-btn').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('#refundRow button').forEach(b=>b.classList.remove('on'));
+  document.querySelector('#refundRow button[data-ref="not_required"]').classList.add('on');
+  $('cancelSheetGo').disabled = true;
+  $('cancelSheetGo').textContent = 'Confirm cancel';
+  $('cancelSheet').classList.add('on');
+}
+
+function closeCancelSheet(){
+  $('cancelSheet').classList.remove('on');
+  cancelOrderObj = null;
+}
+
+$('cancelSheetCancel').addEventListener('click', closeCancelSheet);
+$('cancelSheet').addEventListener('click', e=>{ if(e.target.id==='cancelSheet') closeCancelSheet(); });
+
+document.getElementById('reasonGrid').addEventListener('click', e=>{
+  const btn = e.target.closest('.reason-btn');
+  if(!btn) return;
+  document.querySelectorAll('.reason-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  cancelReason = btn.dataset.r;
+  $('cancelSheetGo').disabled = !cancelReason;
+});
+
+document.getElementById('refundRow').addEventListener('click', e=>{
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  document.querySelectorAll('#refundRow button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  refundStatus = btn.dataset.ref;
+  $('refundAmtWrap').style.display = (refundStatus==='pending' || refundStatus==='processed') ? 'block' : 'none';
+});
+
+async function doCancelWithRefund(){
+  if(!cancelOrderObj || !cancelReason){ note('Pick a reason','err'); return; }
+  const orderNo = cancelOrderObj.order_number;
+  const btn = $('cancelSheetGo'); btn.disabled=true; btn.textContent='Cancelling…';
+  try{
+    const payload = {
+      p_order: orderNo,
+      p_reason: cancelReason,
+      p_note: $('cancelNote').value || null,
+      p_refund_status: refundStatus,
+      p_refund_amount: $('refundAmt').value ? Number($('refundAmt').value) : null,
+      p_staff: window.__staffName || 'staff'
+    };
+    // Try new RPC first
+    let { error } = await sb.rpc('cancel_order_with_refund', payload);
+    if(error){
+      // Fallback: direct update if RPC not yet created
+      console.log('RPC not found, fallback', error.message);
+      const { error: updErr } = await sb.from('mfm_orders').update({
+        stage: -1,
+        status: 'Cancelled',
+        cancel_reason: cancelReason,
+        cancel_note: $('cancelNote').value || null,
+        refund_status: refundStatus,
+        refund_amount: payload.p_refund_amount,
+        cancelled_at: new Date().toISOString(),
+        cancelled_by: window.__staffName || 'staff',
+        stage_changed_at: new Date().toISOString()
+      }).eq('order_number', orderNo);
+      if(updErr) throw updErr;
+    }
+    closeCancelSheet();
+    await load();
+    noteUndo(`${orderNo} cancelled — ${cancelReason}. Refund: ${refundStatus}`, async ()=>{
+      await sb.from('mfm_orders').update({ stage: cancelOrderObj.stage, status: 'Confirmed' }).eq('order_number', orderNo);
+      await load();
+      note(`${orderNo} restored`);
+    });
+  }catch(err){
+    note(err.message||'Cancel failed','err');
+    btn.disabled=false; btn.textContent='Confirm cancel';
+  }
+}
+
+$('cancelSheetGo').addEventListener('click', doCancelWithRefund);
+
+// Patch render to add Cancel button for all active stages
+const _origRenderCancel = render;
+render = function(){
+  _origRenderCancel();
+  // Add cancel button to each order that is not already cancelled/arrived
+  document.querySelectorAll('.order').forEach(dom=>{
+    const orderNo = dom.getAttribute('data-order');
+    if(!orderNo) return;
+    const o = orders.find(x=>x.order_number===orderNo);
+    if(!o) return;
+    if(o.stage===-1 || o.stage===4) return; // already cancelled or arrived - don't show (arrived can still cancel if needed, we allow via long-press? keep hidden)
+    // Allow cancel for Confirmed, Packed, On the road
+    if(o.stage===1 || o.stage===2 || o.stage===3){
+      if(!dom.querySelector('[data-cancel-delivery]')){
+        const wrap = dom.querySelector('.contact')?.parentNode || dom;
+        const btn = document.createElement('button');
+        btn.setAttribute('data-cancel-delivery', orderNo);
+        btn.className='mark-cancel';
+        btn.style.marginTop='10px';
+        btn.style.width='100%';
+        btn.textContent='✕ Cancel delivery / Refund';
+        btn.style.borderColor='rgba(255,107,90,.5)';
+        btn.style.color='#ff8a7a';
+        btn.style.background='transparent';
+        btn.style.padding='10px';
+        btn.style.borderRadius='6px';
+        btn.style.fontFamily='var(--mono)';
+        btn.style.fontSize='11px';
+        btn.style.cursor='pointer';
+        dom.appendChild(btn);
+      }
+    }
+    // Show cancelled badge if cancelled
+    if(o.stage===-1){
+      if(!dom.querySelector('.cancelled-badge')){
+        const badge = document.createElement('div');
+        badge.className='cancelled-badge';
+        badge.style.cssText='margin-top:10px;padding:8px 10px;border-radius:6px;background:rgba(255,107,90,.12);border:1px solid rgba(255,107,90,.3);font-family:var(--mono);font-size:11px;color:#ff8a7a';
+        badge.textContent=`Cancelled: ${o.cancel_reason||o.proof_note||''} ${o.refund_status? '· Refund: '+o.refund_status : ''}`;
+        dom.appendChild(badge);
+      }
+    }
+  });
+};
+
+// Delegate cancel-delivery clicks
+document.getElementById('list').addEventListener('click', e=>{
+  const cd = e.target.closest('[data-cancel-delivery]');
+  if(cd){
+    e.stopPropagation();
+    openCancelSheet(cd.dataset.cancelDelivery);
+    return;
+  }
+});
+
+
+// ===== REFUNDS TAB =====
+const _origFilterRender = render;
+render = function(){
+  _origFilterRender();
+  // If filter is refunds, override list
+  if(filter==='refunds'){
+    const refunds = orders.filter(o=> o.stage===-1);
+    const listEl = document.getElementById('list');
+    if(!refunds.length){
+      listEl.innerHTML = `<div class="card" style="text-align:center;padding:30px;color:var(--dim)"><div style="font-size:32px">💸</div><div style="margin-top:8px;font-family:var(--mono);font-size:12px">No cancelled orders yet</div><div style="font-size:12px;margin-top:4px">Cancelled orders with refund status will appear here</div></div>`;
+      return;
+    }
+    // Sort by cancelled_at desc
+    refunds.sort((a,b)=> new Date(b.cancelled_at||b.stage_changed_at||0) - new Date(a.cancelled_at||a.stage_changed_at||0));
+    const pending = refunds.filter(r=>r.refund_status==='pending').length;
+    const done = refunds.filter(r=>r.refund_status==='processed').length;
+    
+    listEl.innerHTML = `
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <div class="card" style="flex:1;padding:12px;text-align:center;background:rgba(255,107,90,.08);border-color:rgba(255,107,90,.3)"><div style="font-family:var(--mono);font-size:10px;color:#ff8a7a">PENDING REFUND</div><div style="font-family:var(--display);font-size:22px;color:#ff8a7a">${pending}</div></div>
+        <div class="card" style="flex:1;padding:12px;text-align:center"><div style="font-family:var(--mono);font-size:10px;color:var(--dim)">DONE</div><div style="font-family:var(--display);font-size:22px">${done}</div></div>
+        <div class="card" style="flex:1;padding:12px;text-align:center"><div style="font-family:var(--mono);font-size:10px;color:var(--dim)">TOTAL CANCELLED</div><div style="font-family:var(--display);font-size:22px">${refunds.length}</div></div>
+      </div>
+      ` + refunds.map(o=>{
+        const date = o.cancelled_at ? new Date(o.cancelled_at).toLocaleString() : '';
+        const refundColor = o.refund_status==='pending' ? '#ffb84d' : o.refund_status==='processed' ? '#7fd4c1' : 'var(--dim)';
+        return `<div class="order" data-order="${o.order_number}" style="border-color:${o.refund_status==='pending' ? 'rgba(255,184,77,.4)' : o.refund_status==='processed' ? 'rgba(127,212,193,.3)' : ''}">
+          <div class="order-top">
+            <div><div class="ono">${o.order_number} <span class="pill pX" style="margin-left:6px">CANCELLED</span></div>
+            <div class="cust">${o.customer_name||'Customer'} · ${o.contact||o.customer_phone||''}</div>
+            <div class="dest">📍 ${o.destination||''}</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:4px">Cancelled: ${o.cancel_reason||''} ${o.cancel_note? '· '+o.cancel_note : ''}</div>
+            <div style="font-family:var(--mono);font-size:10px;color:${refundColor};margin-top:4px">Refund: ${o.refund_status||'not_required'} ${o.refund_amount? '· KES '+o.refund_amount : ''} ${o.cancelled_by? '· by '+o.cancelled_by : ''} ${date? '· '+date : ''}</div>
+            </div>
+          </div>
+          <div class="contact" style="margin-top:10px">
+            ${o.contact? `<a href="https://wa.me/${o.contact.replace(/[^0-9]/g,'')}" target="_blank">WhatsApp</a>` : ''}
+            ${o.refund_status==='pending' ? `<button class="act primary" data-mark-refunded="${o.order_number}" style="background:#7FD4C1;color:#032A2E">Mark refund done</button>` : ''}
+            <button class="act" data-restore="${o.order_number}">Restore order</button>
+          </div>
+        </div>`
+      }).join('');
+  }
+};
+
+// Handle refund tab clicks
+document.getElementById('list').addEventListener('click', e=>{
+  const mr = e.target.closest('[data-mark-refunded]');
+  if(mr){
+    e.stopPropagation();
+    (async()=>{
+      const orderNo = mr.dataset.markRefunded;
+      const { error } = await sb.from('mfm_orders').update({ refund_status:'processed', refund_note:'Marked done from refunds tab' }).eq('order_number', orderNo);
+      if(error){ note(error.message,'err'); return; }
+      await load();
+      filter='refunds'; render();
+      note(`${orderNo} refund marked done`);
+    })();
+    return;
+  }
+  const rs = e.target.closest('[data-restore]');
+  if(rs){
+    e.stopPropagation();
+    if(!confirm(`Restore ${rs.dataset.restore} back to Confirmed?`)) return;
+    (async()=>{
+      const orderNo = rs.dataset.restore;
+      const { error } = await sb.from('mfm_orders').update({ stage:1, status:'Confirmed', refund_status:'not_required' }).eq('order_number', orderNo);
+      if(error){ note(error.message,'err'); return; }
+      await load();
+      note(`${orderNo} restored`);
+    })();
+    return;
+  }
+});
+
+// Update counts for refunds tab in the tab bar
+const _origCountRender = render;
+const originalRenderForCount = _origCountRender;
+render = function(){
+  originalRenderForCount();
+  // Update refunds count badge
+  const refundsCount = orders.filter(o=>o.stage===-1).length;
+  const el = document.getElementById('count-refunds');
+  if(el) el.textContent = refundsCount;
+  // Also update main count if on refunds tab already handled
+};
 
 boot();
 
