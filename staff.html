@@ -403,13 +403,8 @@ input:focus{outline:none;border-color:var(--foam)}
       <button class="tab" data-f="done">Arrived</button>
       <button class="tab owner-only hidden" data-f="repeats">Repeat customers</button>
       <button class="tab" data-f="refunds" style="border-color:rgba(255,107,90,.4);color:#ff8a7a">Refunds <span id="count-refunds" style="background:rgba(255,107,90,.15);padding:2px 6px;border-radius:100px;margin-left:4px">0</span></button>
-      <button class="tab" data-f="labels" style="border-color:var(--foam);color:var(--foam);background:rgba(127,212,193,.15)">🏷️ Labels A4</button>
     </div>
-    <div class="print-hide" id="labelsActions" style="display:none;margin-bottom:14px;gap:8px;flex-wrap:wrap;align-items:center">
-      <button class="act" id="printAllLabels" style="background:var(--foam);color:var(--abyss);border:none;padding:12px 18px;font-family:var(--mono);font-size:12px;font-weight:600;flex:none">🖨️ Print All A4 Labels</button>
-      <button class="act" id="togglePrices" style="border-color:var(--foam);color:var(--foam);padding:10px 16px;flex:none">Hide Prices</button>
-      <span style="font-family:var(--mono);font-size:10px;color:var(--dim);">A4 • 1 premium label per page • pre-printed from live orders</span>
-    </div>
+    
     <div id="list"></div>
   </section>
 
@@ -1630,6 +1625,120 @@ document.addEventListener('click', e=>{
   }
 });
 
+
+// ===== PER-ORDER A4 LABEL =====
+let labelOrderNo = null;
+let labelShowPrices = true;
+
+function generateLabelHTML(orderNo){
+  const o = orders.find(x=>x.order_number===orderNo);
+  if(!o) return '<div style="padding:20px;color:#0A2A5E">Order not found</div>';
+  const total = o.total_amount||o.amount||0;
+  const todayStr = new Date().toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+  return `
+    <div class="a4-inner">
+      <div class="label-header">
+        <div class="label-logo">
+          <img src="mombasa_logo.png" alt="Mombasa Fish Market" onerror="this.style.display='none'">
+          <div>
+            <div class="label-brand">Mombasa Fish<br><span style="color:#0064E0">THE BIG FISH SHOP</span></div>
+            <div style="font-family:var(--mono);font-size:8px;color:#0A2A5E;margin-top:2px">DELIVERY | QUALITY | FRESHNESS • EST. 2024</div>
+          </div>
+        </div>
+        <div class="label-tag">
+          From Shimoni<br>to Your Table<br><br>SHIMONI<br>INDIAN OCEAN<br>KENYA 🇰🇪<br><em style="font-family:cursive;font-size:11px">Fresh Seafood<br>Happier People</em>
+        </div>
+      </div>
+      <div class="perish-banner">❄️ PERISHABLE SEAFOOD <small>KEEP COLD • HANDLE WITH CARE • KEEP REFRIGERATED (0-4°C)</small></div>
+      <div class="field-grid">
+        <div class="field"><div class="field-label">👤 Customer Name:</div><div class="field-value large">${o.customer_name||'—'}</div></div>
+        <div class="field"><div class="field-label">📦 Order Number:</div><div class="field-value large" style="font-family:var(--mono)">${o.order_number}</div></div>
+        <div class="field double"><div class="field-label">📍 Delivery Address:</div><div class="field-value addr">${o.destination||o.delivery_address||'—'}</div></div>
+        <div class="field"><div class="field-label">📞 Phone Number:</div><div class="field-value">${o.customer_phone||o.contact||'—'}</div></div>
+        <div class="field"><div class="field-label">📅 Date Packed:</div><div class="field-value">${todayStr}</div><div class="field-label" style="margin-top:8px">📦 Packages:</div><div class="field-value">1 of 1</div></div>
+        <div class="field"><div class="field-label">🚚 Delivery Type:</div><div class="field-value">${(o.delivery_type||'delivery').toUpperCase()} ${(o.delivery_time||'') ? '• '+o.delivery_time : ''}</div><div class="field-label" style="margin-top:8px">💰 Total:</div><div class="field-value">${labelShowPrices ? 'KES '+total : 'PAID'}</div></div>
+      </div>
+      <div class="items-box">
+        <div class="field-label">🐟 Items Enclosed: (Qty × Fish — Uniform: 1kg Prawns)</div>
+        <ul class="items-list">${itemsHtml}</ul>
+      </div>
+      <div class="handling-grid">
+        <div class="handle"><div class="h-icon">❄️</div><div class="h-txt">Keep Refrigerated<br>(0-4°C)</div></div>
+        <div class="handle"><div class="h-icon">⬆️⬆️</div><div class="h-txt">This Side Up</div></div>
+        <div class="handle"><div class="h-icon">🍷</div><div class="h-txt">Fragile</div></div>
+        <div class="handle"><div class="h-icon">☔</div><div class="h-txt">Keep Dry</div></div>
+      </div>
+      <div class="sustain-banner">🌿 SUSTAINABLE SEAFOOD FOR A BRIGHTER OCEAN <small>PEOPLE • NATURE • FUTURE • Good Seafood, Stronger Communities, Cleaner Oceans</small></div>
+      <div class="label-footer">
+        <div class="qr">QR<br>MOMBASA<br>FISH.COM</div>
+        <div class="contact">
+          <b>0787668888 — CALL / WHATSAPP FOR ORDERS</b>
+          @MombasaFish • FOLLOW FOR FRESH CONTENT<br>
+          www.mombasafish.com — ORDER ONLINE<br>
+          FRESH FROM OUR OCEAN • TO YOUR TABLE
+        </div>
+        <div style="font-family:cursive;font-size:12px;text-align:right">Thank you for<br>supporting<br>Kenyan Fisheries!</div>
+      </div>
+    </div>`;
+}
+
+function openLabelSheet(orderNo){
+  labelOrderNo = orderNo;
+  const o = orders.find(x=>x.order_number===orderNo);
+  if(!o) return;
+  document.getElementById('labelFor').textContent = `${o.order_number} · ${o.customer_name||''} · ${o.destination||''}`;
+  document.getElementById('labelPage').innerHTML = generateLabelHTML(orderNo);
+  document.getElementById('labelSheet').classList.add('on');
+}
+
+function closeLabelSheet(){
+  document.getElementById('labelSheet').classList.remove('on');
+  labelOrderNo = null;
+}
+
+document.getElementById('labelClose').addEventListener('click', closeLabelSheet);
+document.getElementById('labelSheet').addEventListener('click', e=>{ if(e.target.id==='labelSheet') closeLabelSheet(); });
+
+document.getElementById('labelPrint').addEventListener('click', ()=>{
+  window.print();
+});
+
+document.getElementById('labelTogglePrice').addEventListener('click', (e)=>{
+  labelShowPrices = !labelShowPrices;
+  e.target.textContent = labelShowPrices ? 'Hide Prices' : 'Show Prices';
+  if(labelOrderNo) document.getElementById('labelPage').innerHTML = generateLabelHTML(labelOrderNo);
+});
+
+document.getElementById('labelJpg').addEventListener('click', async ()=>{
+  const btn = document.getElementById('labelJpg');
+  btn.textContent = 'Generating JPG…';
+  btn.disabled = true;
+  try{
+    const el = document.getElementById('labelPage');
+    const canvas = await html2canvas(el, {scale:2, backgroundColor:'#ffffff', useCORS:true});
+    const link = document.createElement('a');
+    const o = orders.find(x=>x.order_number===labelOrderNo);
+    const fname = `Label-${labelOrderNo}-${(o?.customer_name||'customer').replace(/\s+/g,'_')}.jpg`;
+    link.download = fname;
+    link.href = canvas.toDataURL('image/jpeg', 0.95);
+    link.click();
+  }catch(err){
+    alert('JPG export failed: '+err.message);
+  }
+  btn.textContent = '⬇️ Save as JPG';
+  btn.disabled = false;
+});
+
+// Delegate label button clicks from order list
+document.getElementById('list').addEventListener('click', e=>{
+  const lb = e.target.closest('[data-label]');
+  if(lb){
+    e.stopPropagation();
+    openLabelSheet(lb.dataset.label);
+    return;
+  }
+});
+
 boot();
 }
 
@@ -1752,87 +1861,8 @@ function stamp(iso){
     { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
 }
 
-let showPricesOnLabel = true;
-
 function render(){
   if(filter === 'repeats'){ renderRepeats(); return; }
-  if(filter === 'labels'){
-    const listEl = document.getElementById('list');
-    const labelsOrders = orders.filter(o=> (o.stage===1||o.stage===2||o.stage===3) && !isUnpaid(o));
-    if(!labelsOrders.length){
-      listEl.innerHTML = '<div class="empty">No orders for labels. Confirm orders first.</div>';
-      return;
-    }
-    const todayStr = new Date().toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
-    let htmlLabels = '';
-    labelsOrders.forEach(o=>{
-      const its = itemsByOrder[o.order_number] || [];
-      const total = o.total_amount||o.amount||0;
-      let itemsHtml = '';
-      if(its.length){
-        itemsHtml = its.map(it=>{
-          const qty = it.quantity||1;
-          const name = it.item_name||'Fish';
-          const unitPrice = it.unit_price||it.price||0;
-          const tot = it.price||0;
-          const pricePart = showPricesOnLabel ? (unitPrice ? `KES ${unitPrice}/kg → Total KES ${tot}` : `KES ${tot}`) : '';
-          return `<li><span class="iname">${name}${qty>1?` x${qty}kg`:''}</span><span class="iprice">${pricePart}</span></li>`;
-        }).join('');
-      } else {
-        const legacy = (o.items||'No items tracked').split(',').map(s=>s.trim()).filter(Boolean);
-        itemsHtml = legacy.map(name=>`<li><span class="iname">${name}</span></li>`).join('');
-      }
-      htmlLabels += `
-      <div class="a4-page">
-        <div class="a4-inner">
-          <div class="label-header">
-            <div class="label-logo">
-              <img src="mombasa_logo.png" alt="Mombasa Fish Market" onerror="this.style.display='none'">
-              <div>
-                <div class="label-brand">Mombasa Fish<br><span style="color:#0064E0">THE BIG FISH SHOP</span></div>
-                <div style="font-family:var(--mono);font-size:8px;color:#0A2A5E;margin-top:2px">DELIVERY | QUALITY | FRESHNESS • EST. 2024</div>
-              </div>
-            </div>
-            <div class="label-tag">
-              From Shimoni<br>to Your Table<br><br>SHIMONI<br>INDIAN OCEAN<br>KENYA 🇰🇪<br><em style="font-family:cursive;font-size:11px">Fresh Seafood<br>Happier People</em>
-            </div>
-          </div>
-          <div class="perish-banner">❄️ PERISHABLE SEAFOOD <small>KEEP COLD • HANDLE WITH CARE • KEEP REFRIGERATED (0-4°C)</small></div>
-          <div class="field-grid">
-            <div class="field"><div class="field-label">👤 Customer Name:</div><div class="field-value large">${o.customer_name||'—'}</div></div>
-            <div class="field"><div class="field-label">📦 Order Number:</div><div class="field-value large" style="font-family:var(--mono)">${o.order_number}</div></div>
-            <div class="field double"><div class="field-label">📍 Delivery Address:</div><div class="field-value addr">${o.destination||o.delivery_address||'—'}</div></div>
-            <div class="field"><div class="field-label">📞 Phone Number:</div><div class="field-value">${o.customer_phone||o.contact||'—'}</div></div>
-            <div class="field"><div class="field-label">📅 Date Packed:</div><div class="field-value">${todayStr}</div><div class="field-label" style="margin-top:8px">📦 Packages:</div><div class="field-value">1 of 1</div></div>
-            <div class="field"><div class="field-label">🚚 Delivery Type:</div><div class="field-value">${(o.delivery_type||'delivery').toUpperCase()} ${(o.delivery_time||'') ? '• '+o.delivery_time : ''}</div><div class="field-label" style="margin-top:8px">💰 Total:</div><div class="field-value">${showPricesOnLabel ? 'KES '+total : 'PAID'}</div></div>
-          </div>
-          <div class="items-box">
-            <div class="field-label">🐟 Items Enclosed: (Qty × Fish — Uniform: 1kg Prawns)</div>
-            <ul class="items-list">${itemsHtml}</ul>
-          </div>
-          <div class="handling-grid">
-            <div class="handle"><div class="h-icon">❄️</div><div class="h-txt">Keep Refrigerated<br>(0-4°C)</div></div>
-            <div class="handle"><div class="h-icon">⬆️⬆️</div><div class="h-txt">This Side Up</div></div>
-            <div class="handle"><div class="h-icon">🍷</div><div class="h-txt">Fragile</div></div>
-            <div class="handle"><div class="h-icon">☔</div><div class="h-txt">Keep Dry</div></div>
-          </div>
-          <div class="sustain-banner">🌿 SUSTAINABLE SEAFOOD FOR A BRIGHTER OCEAN <small>PEOPLE • NATURE • FUTURE • Good Seafood, Stronger Communities, Cleaner Oceans</small></div>
-          <div class="label-footer">
-            <div class="qr">QR<br>MOMBASA<br>FISH.COM</div>
-            <div class="contact">
-              <b>0787668888 — CALL / WHATSAPP FOR ORDERS</b>
-              @MombasaFish • FOLLOW FOR FRESH CONTENT<br>
-              www.mombasafish.com — ORDER ONLINE<br>
-              FRESH FROM OUR OCEAN • TO YOUR TABLE
-            </div>
-            <div style="font-family:cursive;font-size:12px;text-align:right">Thank you for<br>supporting<br>Kenyan Fisheries!</div>
-          </div>
-        </div>
-      </div>`;
-    });
-    listEl.innerHTML = `<div class="labels-wrap">${htmlLabels}</div>`;
-    return;
-  }
   const sets = {
     unpaid: o => isUnpaid(o),
     todo:   o => (o.stage===1||o.stage===2) && !isUnpaid(o),
@@ -1868,10 +1898,10 @@ function render(){
       const markBtn = allItemsPacked
         ? `<button class="act" data-s="2" data-o="${o.order_number}">Mark ${dt==='mombasa'?'prepared':'packed'}</button>`
         : `<button class="act locked" disabled title="Pack all items first">🔒 Pack all items to continue</button>`;
-      acts = `${markBtn}${allItemsPacked ? dispatchBtn : ''}<button class="act" style="border-color:rgba(255,107,90,.45);color:#ff8a7a" data-cancel-delivery="${o.order_number}">✕ Cancel</button><button class="act" style="border-color:rgba(127,212,193,.4);color:var(--foam)" data-edit-items="${o.order_number}">✏️ Edit items</button>`;
+      acts = `${markBtn}${allItemsPacked ? dispatchBtn : ''}<button class="act" style="border-color:rgba(255,107,90,.45);color:#ff8a7a" data-cancel-delivery="${o.order_number}">✕ Cancel</button><button class="act" style="border-color:rgba(127,212,193,.4);color:var(--foam)" data-edit-items="${o.order_number}">✏️ Edit items</button><button class="act" style="border-color:var(--foam);color:var(--foam);background:rgba(127,212,193,.08)" data-label="${o.order_number}">🏷️ A4 Label</button>`;
     }
-    else if(o.stage===2) acts = `${dispatchBtn}<button class="act" style="border-color:rgba(255,107,90,.45);color:#ff8a7a" data-cancel-delivery="${o.order_number}">✕ Cancel</button><button class="act" style="border-color:rgba(127,212,193,.4);color:var(--foam)" data-edit-items="${o.order_number}">✏️ Edit items</button>`;
-    else if(o.stage===3) acts = `<button class="act" data-s="4" data-o="${o.order_number}">Mark ${dt==='pickup'?'collected':'arrived'}</button><button class="act" style="border-color:rgba(255,107,90,.45);color:#ff8a7a" data-cancel-delivery="${o.order_number}">✕ Cancel</button><button class="act" style="border-color:rgba(127,212,193,.4);color:var(--foam)" data-edit-items="${o.order_number}">✏️ Edit items</button>`;
+    else if(o.stage===2) acts = `${dispatchBtn}<button class="act" style="border-color:rgba(255,107,90,.45);color:#ff8a7a" data-cancel-delivery="${o.order_number}">✕ Cancel</button><button class="act" style="border-color:rgba(127,212,193,.4);color:var(--foam)" data-edit-items="${o.order_number}">✏️ Edit items</button><button class="act" style="border-color:var(--foam);color:var(--foam);background:rgba(127,212,193,.08)" data-label="${o.order_number}">🏷️ A4 Label</button>`;
+    else if(o.stage===3) acts = `<button class="act" data-s="4" data-o="${o.order_number}">Mark ${dt==='pickup'?'collected':'arrived'}</button><button class="act" style="border-color:rgba(255,107,90,.45);color:#ff8a7a" data-cancel-delivery="${o.order_number}">✕ Cancel</button><button class="act" style="border-color:rgba(127,212,193,.4);color:var(--foam)" data-edit-items="${o.order_number}">✏️ Edit items</button><button class="act" style="border-color:var(--foam);color:var(--foam);background:rgba(127,212,193,.08)" data-label="${o.order_number}">🏷️ A4 Label</button>`;
     const rider = (o.stage>=3 && (o.rider_name||o.rider_phone))
       ? `<div class="items">🛵 ${o.rider_name||'Rider'}${o.rider_phone?' · '+o.rider_phone:''}</div>` : '';
     const tel = o.contact ? o.contact.replace(/[^0-9+]/g,'') : '';
@@ -3184,6 +3214,120 @@ document.addEventListener('click', e=>{
   }
 });
 
+
+// ===== PER-ORDER A4 LABEL =====
+let labelOrderNo = null;
+let labelShowPrices = true;
+
+function generateLabelHTML(orderNo){
+  const o = orders.find(x=>x.order_number===orderNo);
+  if(!o) return '<div style="padding:20px;color:#0A2A5E">Order not found</div>';
+  const total = o.total_amount||o.amount||0;
+  const todayStr = new Date().toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+  return `
+    <div class="a4-inner">
+      <div class="label-header">
+        <div class="label-logo">
+          <img src="mombasa_logo.png" alt="Mombasa Fish Market" onerror="this.style.display='none'">
+          <div>
+            <div class="label-brand">Mombasa Fish<br><span style="color:#0064E0">THE BIG FISH SHOP</span></div>
+            <div style="font-family:var(--mono);font-size:8px;color:#0A2A5E;margin-top:2px">DELIVERY | QUALITY | FRESHNESS • EST. 2024</div>
+          </div>
+        </div>
+        <div class="label-tag">
+          From Shimoni<br>to Your Table<br><br>SHIMONI<br>INDIAN OCEAN<br>KENYA 🇰🇪<br><em style="font-family:cursive;font-size:11px">Fresh Seafood<br>Happier People</em>
+        </div>
+      </div>
+      <div class="perish-banner">❄️ PERISHABLE SEAFOOD <small>KEEP COLD • HANDLE WITH CARE • KEEP REFRIGERATED (0-4°C)</small></div>
+      <div class="field-grid">
+        <div class="field"><div class="field-label">👤 Customer Name:</div><div class="field-value large">${o.customer_name||'—'}</div></div>
+        <div class="field"><div class="field-label">📦 Order Number:</div><div class="field-value large" style="font-family:var(--mono)">${o.order_number}</div></div>
+        <div class="field double"><div class="field-label">📍 Delivery Address:</div><div class="field-value addr">${o.destination||o.delivery_address||'—'}</div></div>
+        <div class="field"><div class="field-label">📞 Phone Number:</div><div class="field-value">${o.customer_phone||o.contact||'—'}</div></div>
+        <div class="field"><div class="field-label">📅 Date Packed:</div><div class="field-value">${todayStr}</div><div class="field-label" style="margin-top:8px">📦 Packages:</div><div class="field-value">1 of 1</div></div>
+        <div class="field"><div class="field-label">🚚 Delivery Type:</div><div class="field-value">${(o.delivery_type||'delivery').toUpperCase()} ${(o.delivery_time||'') ? '• '+o.delivery_time : ''}</div><div class="field-label" style="margin-top:8px">💰 Total:</div><div class="field-value">${labelShowPrices ? 'KES '+total : 'PAID'}</div></div>
+      </div>
+      <div class="items-box">
+        <div class="field-label">🐟 Items Enclosed: (Qty × Fish — Uniform: 1kg Prawns)</div>
+        <ul class="items-list">${itemsHtml}</ul>
+      </div>
+      <div class="handling-grid">
+        <div class="handle"><div class="h-icon">❄️</div><div class="h-txt">Keep Refrigerated<br>(0-4°C)</div></div>
+        <div class="handle"><div class="h-icon">⬆️⬆️</div><div class="h-txt">This Side Up</div></div>
+        <div class="handle"><div class="h-icon">🍷</div><div class="h-txt">Fragile</div></div>
+        <div class="handle"><div class="h-icon">☔</div><div class="h-txt">Keep Dry</div></div>
+      </div>
+      <div class="sustain-banner">🌿 SUSTAINABLE SEAFOOD FOR A BRIGHTER OCEAN <small>PEOPLE • NATURE • FUTURE • Good Seafood, Stronger Communities, Cleaner Oceans</small></div>
+      <div class="label-footer">
+        <div class="qr">QR<br>MOMBASA<br>FISH.COM</div>
+        <div class="contact">
+          <b>0787668888 — CALL / WHATSAPP FOR ORDERS</b>
+          @MombasaFish • FOLLOW FOR FRESH CONTENT<br>
+          www.mombasafish.com — ORDER ONLINE<br>
+          FRESH FROM OUR OCEAN • TO YOUR TABLE
+        </div>
+        <div style="font-family:cursive;font-size:12px;text-align:right">Thank you for<br>supporting<br>Kenyan Fisheries!</div>
+      </div>
+    </div>`;
+}
+
+function openLabelSheet(orderNo){
+  labelOrderNo = orderNo;
+  const o = orders.find(x=>x.order_number===orderNo);
+  if(!o) return;
+  document.getElementById('labelFor').textContent = `${o.order_number} · ${o.customer_name||''} · ${o.destination||''}`;
+  document.getElementById('labelPage').innerHTML = generateLabelHTML(orderNo);
+  document.getElementById('labelSheet').classList.add('on');
+}
+
+function closeLabelSheet(){
+  document.getElementById('labelSheet').classList.remove('on');
+  labelOrderNo = null;
+}
+
+document.getElementById('labelClose').addEventListener('click', closeLabelSheet);
+document.getElementById('labelSheet').addEventListener('click', e=>{ if(e.target.id==='labelSheet') closeLabelSheet(); });
+
+document.getElementById('labelPrint').addEventListener('click', ()=>{
+  window.print();
+});
+
+document.getElementById('labelTogglePrice').addEventListener('click', (e)=>{
+  labelShowPrices = !labelShowPrices;
+  e.target.textContent = labelShowPrices ? 'Hide Prices' : 'Show Prices';
+  if(labelOrderNo) document.getElementById('labelPage').innerHTML = generateLabelHTML(labelOrderNo);
+});
+
+document.getElementById('labelJpg').addEventListener('click', async ()=>{
+  const btn = document.getElementById('labelJpg');
+  btn.textContent = 'Generating JPG…';
+  btn.disabled = true;
+  try{
+    const el = document.getElementById('labelPage');
+    const canvas = await html2canvas(el, {scale:2, backgroundColor:'#ffffff', useCORS:true});
+    const link = document.createElement('a');
+    const o = orders.find(x=>x.order_number===labelOrderNo);
+    const fname = `Label-${labelOrderNo}-${(o?.customer_name||'customer').replace(/\s+/g,'_')}.jpg`;
+    link.download = fname;
+    link.href = canvas.toDataURL('image/jpeg', 0.95);
+    link.click();
+  }catch(err){
+    alert('JPG export failed: '+err.message);
+  }
+  btn.textContent = '⬇️ Save as JPG';
+  btn.disabled = false;
+});
+
+// Delegate label button clicks from order list
+document.getElementById('list').addEventListener('click', e=>{
+  const lb = e.target.closest('[data-label]');
+  if(lb){
+    e.stopPropagation();
+    openLabelSheet(lb.dataset.label);
+    return;
+  }
+});
+
 boot();
 
 /* Tick every second, touching only the digits — never re-rendering the list
@@ -3205,5 +3349,47 @@ setInterval(() => {
 /* Refresh from the database occasionally so another staff member's taps show up */
 setInterval(() => { if(orders.length) load(); }, 120000);
 </script>
+
+<!-- A4 Label Per-Order Sheet -->
+<div class="label-sheet" id="labelSheet">
+  <div class="label-sheet-in">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div>
+        <h2 style="font-family:var(--display);font-size:16px;color:var(--sand)">A4 Cooler Box Label</h2>
+        <div class="for" id="labelFor" style="font-family:var(--mono);font-size:11px;color:var(--foam);margin-top:4px"></div>
+      </div>
+      <button class="ghost" id="labelClose" style="padding:8px 12px">✕ Close</button>
+    </div>
+    
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <button class="btn" id="labelPrint" style="flex:1;background:var(--foam);color:var(--abyss);padding:12px">🖨️ Print A4</button>
+      <button class="btn" id="labelJpg" style="flex:1;background:#fff;color:#0A2A5E;padding:12px">⬇️ Save as JPG</button>
+      <button class="act" id="labelTogglePrice" style="padding:12px">Hide Prices</button>
+    </div>
+    
+    <div id="labelCapture" style="background:#fff;padding:4px;border-radius:8px">
+      <div class="a4-page" id="labelPage" style="max-width:100%;margin:0">
+        <!-- Filled by JS -->
+      </div>
+    </div>
+    
+    <div style="font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:10px;text-align:center">1 premium label = full A4 • Pin on cooler box • Waterproof vinyl recommended</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+.label-sheet{position:fixed;inset:0;background:rgba(3,42,46,.88);backdrop-filter:blur(8px);z-index:80;display:none;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 12px}
+.label-sheet.on{display:flex}
+.label-sheet-in{width:100%;max-width:840px;background:#06383D;border:1px solid var(--faint);border-radius:8px;padding:18px;max-height:95vh;overflow-y:auto}
+@media print{
+  body *{visibility:hidden}
+  #labelCapture, #labelCapture *{visibility:visible}
+  #labelCapture{position:absolute;left:0;top:0;width:210mm;min-height:297mm;background:#fff}
+  .label-sheet{background:#fff !important}
+  .label-sheet-in{border:none !important;padding:0 !important;max-width:none !important;max-height:none !important}
+}
+</style>
+
 </body>
 </html>
