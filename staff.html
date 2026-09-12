@@ -1603,58 +1603,63 @@ render = function(){ _origRenderMeta2(); updateAIInsights(); };
 // ===== PER-ORDER A4 LABEL - SINGLE ORDER ONLY, NO ITEMS (security) =====
 let labelOrderNo = null;
 
+
 function generateLabelHTML(orderNo){
   const o = orders.find(x=>x.order_number===orderNo);
   if(!o) return '<div style="padding:20px;color:#0A2A5E">Order not found</div>';
   const total = o.total_amount||o.amount||0;
-  const todayStr = new Date().toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+  const todayStr = new Date().toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit', year:'numeric'});
   return `
-    <div class="a4-inner">
-      <div class="label-header">
-        <div class="label-logo">
-          <img src="mombasa_logo.png" alt="Mombasa Fish Market" onerror="this.style.display='none'">
-          <div>
-            <div class="label-brand">Mombasa Fish<br><span style="color:#0064E0">THE BIG FISH SHOP</span></div>
-            <div style="font-family:var(--mono);font-size:8px;color:#0A2A5E;margin-top:2px">DELIVERY | QUALITY | FRESHNESS • EST. 2024</div>
+    <div style="width:100%;background:#fff;color:#0A2A5E;font-family:Inter, sans-serif">
+      <!-- TOP COLORFUL MOSAIC - Shimoni -->
+      <div style="position:relative;background:linear-gradient(180deg, rgba(255,255,255,0) 60%, rgba(255,255,255,1) 100%), url('https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=80') center/cover; min-height:260px; padding:12px 14px 18px; border-bottom:3px solid #fff">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div style="font-family:cursive;font-size:20px;color:#0A2A5E;line-height:1.1;transform:rotate(-4deg)">From<br>Shimoni<br>to Your Table</div>
+          <div style="text-align:right;font-family:var(--mono);font-size:8px;letter-spacing:.12em;color:#0A2A5E;line-height:1.4">LOCAL FISHERIES<br>STRONGER COMMUNITIES<br>A HEALTHIER OCEAN</div>
+        </div>
+        <div style="text-align:center;margin-top:-10px">
+          <div style="display:inline-block;background:#fff;border-radius:24px;padding:8px 18px;box-shadow:0 4px 20px rgba(0,0,0,.15)">
+            <div style="font-size:42px">🐟</div>
+            <div style="font-family:var(--display);font-size:22px;color:#0A2A5E;margin-top:-6px">Mombasa<span style="color:#0096FF">Fish</span></div>
+            <div style="font-family:var(--mono);font-size:8px;letter-spacing:.1em">THE BIG FISH SHOP<br>DELIVERY | QUALITY | FRESHNESS</div>
           </div>
         </div>
-        <div class="label-tag">
-          From Shimoni<br>to Your Table<br><br>SHIMONI<br>INDIAN OCEAN<br>KENYA 🇰🇪<br><em style="font-family:cursive;font-size:11px">Fresh Seafood<br>Happier People</em>
+        <div style="position:absolute;right:12px;top:120px;background:#e8dcc8;border:2px solid #8b7355;padding:6px 10px;font-family:var(--mono);font-size:9px;line-height:1.2;text-align:left;transform:rotate(1deg)">SHIMONI<br>INDIAN OCEAN<br>KENYA 🇰🇪<br><em style="font-family:cursive;font-size:10px">Fresh Seafood<br>Happier People</em></div>
+      </div>
+
+      <!-- FIELDS - White with blue borders over colorful bg -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;background:#0A2A5E;padding:2px">
+        <div style="background:#fff;padding:10px;display:grid;gap:8px">
+          <div style="border:1.5px solid #0A2A5E;border-radius:6px;padding:8px 10px;min-height:52px"><div style="font-family:var(--mono);font-size:8px;opacity:.7">👤 CUSTOMER NAME:</div><div style="font-size:15px;font-weight:700;margin-top:4px">${(o.customer_name||'—')}</div></div>
+          <div style="border:1.5px solid #0A2A5E;border-radius:6px;padding:8px 10px;min-height:72px"><div style="font-family:var(--mono);font-size:8px;opacity:.7">📍 DELIVERY ADDRESS:</div><div style="font-size:13px;font-weight:500;margin-top:4px;line-height:1.3">${o.destination||o.delivery_address||'—'}</div></div>
+          <div style="border:1.5px solid #0A2A5E;border-radius:6px;padding:8px 10px;min-height:52px"><div style="font-family:var(--mono);font-size:8px;opacity:.7">📞 PHONE NUMBER:</div><div style="font-size:14px;font-weight:600;margin-top:4px">${o.customer_phone||o.contact||'—'}</div></div>
+          <div style="border:1.5px solid #0A2A5E;border-radius:6px;padding:8px 10px;min-height:52px"><div style="font-family:var(--mono);font-size:8px;opacity:.7">📦 ORDER NUMBER:</div><div style="font-size:14px;font-weight:700;font-family:var(--mono);margin-top:4px">${o.order_number}</div></div>
+          <div style="border:1.5px solid #0A2A5E;border-radius:6px;padding:8px 10px;min-height:52px;display:flex;gap:12px"><div style="flex:1"><div style="font-family:var(--mono);font-size:8px;opacity:.7">📅 DATE PACKED:</div><div style="font-size:13px;font-weight:600;margin-top:4px">${todayStr}</div></div><div style="flex:1"><div style="font-family:var(--mono);font-size:8px;opacity:.7">📦 PACKAGES:</div><div style="font-size:13px;font-weight:600;margin-top:4px">1 of 1</div></div></div>
+          <div style="border:1.5px solid #0A2A5E;border-radius:6px;padding:10px 12px;background:#E3F2FD;text-align:center"><div style="font-family:var(--mono);font-size:9px;opacity:.7">🐟 CONTENTS:</div><div style="font-size:18px;font-weight:800;margin-top:6px;letter-spacing:.02em">FRESH SEAFOOD •<br>FISH • PERISHABLE</div></div>
+          <div style="font-family:cursive;font-size:13px;color:#0A2A5E;margin-top:4px">Thank you for supporting Kenyan Fisheries!</div>
         </div>
-      </div>
-      <div class="perish-banner">❄️ PERISHABLE SEAFOOD <small>KEEP COLD • HANDLE WITH CARE • KEEP REFRIGERATED (0-4°C)</small></div>
-      <div class="field-grid">
-        <div class="field"><div class="field-label">👤 Customer Name:</div><div class="field-value large">${(o.customer_name||'—')}</div></div>
-        <div class="field"><div class="field-label">📦 Order Number:</div><div class="field-value large" style="font-family:var(--mono)">${o.order_number}</div></div>
-        <div class="field double"><div class="field-label">📍 Delivery Address:</div><div class="field-value addr">${o.destination||o.delivery_address||'—'}</div></div>
-        <div class="field"><div class="field-label">📞 Phone Number:</div><div class="field-value">${o.customer_phone||o.contact||'—'}</div></div>
-        <div class="field"><div class="field-label">📅 Date Packed:</div><div class="field-value">${todayStr}</div><div class="field-label" style="margin-top:8px">📦 Packages:</div><div class="field-value">1 of 1</div></div>
-        <div class="field"><div class="field-label">🚚 Delivery Type:</div><div class="field-value">${(o.delivery_type||'delivery').toUpperCase()} ${(o.delivery_time||'') ? '• '+o.delivery_time : ''}</div><div class="field-label" style="margin-top:8px">💰 Total:</div><div class="field-value">KES ${total}</div></div>
-      </div>
-      <div class="field" style="grid-column:1/-1;background:rgba(10,42,94,.04);border-style:dashed;border:1.5px dashed #0A2A5E;border-radius:6px;padding:16px 14px;min-height:68px">
-        <div class="field-label">🐟 Contents:</div>
-        <div class="field-value large" style="letter-spacing:.06em;text-align:center;font-size:20px;padding:10px 0">FRESH SEAFOOD • FISH • PERISHABLE</div>
-        <div style="font-family:var(--mono);font-size:9px;color:#0A2A5E;opacity:.6;text-align:center;margin-top:4px">KEEP REFRIGERATED (0-4°C) • HANDLE WITH CARE</div>
-      </div>
-      <div class="handling-grid">
-        <div class="handle"><div class="h-icon">❄️</div><div class="h-txt">Keep Refrigerated<br>(0-4°C)</div></div>
-        <div class="handle"><div class="h-icon">⬆️⬆️</div><div class="h-txt">This Side Up</div></div>
-        <div class="handle"><div class="h-icon">🍷</div><div class="h-txt">Fragile</div></div>
-        <div class="handle"><div class="h-icon">☔</div><div class="h-txt">Keep Dry</div></div>
-      </div>
-      <div class="sustain-banner">🌿 SUSTAINABLE SEAFOOD FOR A BRIGHTER OCEAN <small>PEOPLE • NATURE • FUTURE • Good Seafood, Stronger Communities, Cleaner Oceans</small></div>
-      <div class="label-footer">
-        <div class="qr">QR<br>MOMBASA<br>FISH.COM</div>
-        <div class="contact">
-          <b>0787668888 — CALL / WHATSAPP FOR ORDERS</b>
-          @MombasaFish • FOLLOW FOR FRESH CONTENT<br>
-          www.mombasafish.com — ORDER ONLINE<br>
-          FRESH FROM OUR OCEAN • TO YOUR TABLE
+        <div style="background:#fff;padding:10px;display:grid;gap:8px">
+          <div style="background:#E30613;color:#fff;border-radius:6px;padding:10px 12px;display:flex;align-items:center;gap:8px"><div style="font-size:28px">❄️</div><div><div style="font-family:var(--display);font-size:13px">PERISHABLE SEAFOOD</div><div style="font-family:var(--mono);font-size:9px">KEEP COLD • HANDLE WITH CARE</div></div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="border:1.5px solid #000;border-radius:6px;padding:10px;text-align:center"><div style="font-size:28px">❄️</div><div style="font-family:var(--mono);font-size:8px;font-weight:700;margin-top:4px">KEEP<br>REFRIGERATED<br>(0-4°C)</div></div>
+            <div style="border:1.5px solid #000;border-radius:6px;padding:10px;text-align:center"><div style="font-size:28px">⬆️⬆️</div><div style="font-family:var(--mono);font-size:8px;font-weight:700;margin-top:4px">THIS SIDE<br>UP</div></div>
+            <div style="border:1.5px solid #000;border-radius:6px;padding:10px;text-align:center"><div style="font-size:28px">🍷</div><div style="font-family:var(--mono);font-size:8px;font-weight:700;margin-top:4px">FRAGILE</div></div>
+            <div style="border:1.5px solid #000;border-radius:6px;padding:10px;text-align:center"><div style="font-size:28px">☔</div><div style="font-family:var(--mono);font-size:8px;font-weight:700;margin-top:4px">KEEP DRY</div></div>
+          </div>
+          <div style="background:#0B6B3A;color:#fff;border-radius:6px;padding:10px 12px;display:flex;gap:8px;align-items:center"><div style="font-size:22px">🌿</div><div><div style="font-family:var(--display);font-size:11px">SUSTAINABLE SEAFOOD FOR A BRIGHTER OCEAN</div><div style="font-size:9px;opacity:.9">PEOPLE • NATURE • FUTURE</div></div></div>
+          <div style="border:1.5px solid #0A2A5E;border-radius:6px;padding:10px;display:flex;gap:10px;align-items:center">
+            <div style="width:68px;height:68px;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:8px;text-align:center">QR<br>MOMBASA<br>FISH.COM</div>
+            <div style="font-family:cursive;font-size:13px;flex:1">Scan for Seafood Goodness!</div>
+          </div>
+          <div style="background:linear-gradient(90deg,#0A2A5E,#0064E0);color:#fff;border-radius:6px;padding:8px 10px;font-family:var(--mono);font-size:8px;line-height:1.4">
+            0787668888 CALL / WHATSAPP FOR ORDERS<br>@MombasaFish • www.mombasafish.com<br>FRESH FROM OUR OCEAN • TO YOUR TABLE
+          </div>
         </div>
-        <div style="font-family:cursive;font-size:12px;text-align:right">Thank you for<br>supporting<br>Kenyan Fisheries!</div>
       </div>
     </div>`;
 }
+
+
 
 function openLabelSheet(orderNo){
   labelOrderNo = orderNo;
@@ -3175,58 +3180,63 @@ render = function(){ _origRenderMeta2(); updateAIInsights(); };
 // ===== PER-ORDER A4 LABEL - SINGLE ORDER ONLY, NO ITEMS (security) =====
 let labelOrderNo = null;
 
+
 function generateLabelHTML(orderNo){
   const o = orders.find(x=>x.order_number===orderNo);
   if(!o) return '<div style="padding:20px;color:#0A2A5E">Order not found</div>';
   const total = o.total_amount||o.amount||0;
-  const todayStr = new Date().toLocaleDateString('en-GB', {day:'numeric', month:'short', year:'numeric'});
+  const todayStr = new Date().toLocaleDateString('en-GB', {day:'2-digit', month:'2-digit', year:'numeric'});
   return `
-    <div class="a4-inner">
-      <div class="label-header">
-        <div class="label-logo">
-          <img src="mombasa_logo.png" alt="Mombasa Fish Market" onerror="this.style.display='none'">
-          <div>
-            <div class="label-brand">Mombasa Fish<br><span style="color:#0064E0">THE BIG FISH SHOP</span></div>
-            <div style="font-family:var(--mono);font-size:8px;color:#0A2A5E;margin-top:2px">DELIVERY | QUALITY | FRESHNESS • EST. 2024</div>
+    <div style="width:100%;background:#fff;color:#0A2A5E;font-family:Inter, sans-serif">
+      <!-- TOP COLORFUL MOSAIC - Shimoni -->
+      <div style="position:relative;background:linear-gradient(180deg, rgba(255,255,255,0) 60%, rgba(255,255,255,1) 100%), url('https://images.unsplash.com/photo-1544551763-46a013bb70d5?auto=format&fit=crop&w=1200&q=80') center/cover; min-height:260px; padding:12px 14px 18px; border-bottom:3px solid #fff">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div style="font-family:cursive;font-size:20px;color:#0A2A5E;line-height:1.1;transform:rotate(-4deg)">From<br>Shimoni<br>to Your Table</div>
+          <div style="text-align:right;font-family:var(--mono);font-size:8px;letter-spacing:.12em;color:#0A2A5E;line-height:1.4">LOCAL FISHERIES<br>STRONGER COMMUNITIES<br>A HEALTHIER OCEAN</div>
+        </div>
+        <div style="text-align:center;margin-top:-10px">
+          <div style="display:inline-block;background:#fff;border-radius:24px;padding:8px 18px;box-shadow:0 4px 20px rgba(0,0,0,.15)">
+            <div style="font-size:42px">🐟</div>
+            <div style="font-family:var(--display);font-size:22px;color:#0A2A5E;margin-top:-6px">Mombasa<span style="color:#0096FF">Fish</span></div>
+            <div style="font-family:var(--mono);font-size:8px;letter-spacing:.1em">THE BIG FISH SHOP<br>DELIVERY | QUALITY | FRESHNESS</div>
           </div>
         </div>
-        <div class="label-tag">
-          From Shimoni<br>to Your Table<br><br>SHIMONI<br>INDIAN OCEAN<br>KENYA 🇰🇪<br><em style="font-family:cursive;font-size:11px">Fresh Seafood<br>Happier People</em>
+        <div style="position:absolute;right:12px;top:120px;background:#e8dcc8;border:2px solid #8b7355;padding:6px 10px;font-family:var(--mono);font-size:9px;line-height:1.2;text-align:left;transform:rotate(1deg)">SHIMONI<br>INDIAN OCEAN<br>KENYA 🇰🇪<br><em style="font-family:cursive;font-size:10px">Fresh Seafood<br>Happier People</em></div>
+      </div>
+
+      <!-- FIELDS - White with blue borders over colorful bg -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;background:#0A2A5E;padding:2px">
+        <div style="background:#fff;padding:10px;display:grid;gap:8px">
+          <div style="border:1.5px solid #0A2A5E;border-radius:6px;padding:8px 10px;min-height:52px"><div style="font-family:var(--mono);font-size:8px;opacity:.7">👤 CUSTOMER NAME:</div><div style="font-size:15px;font-weight:700;margin-top:4px">${(o.customer_name||'—')}</div></div>
+          <div style="border:1.5px solid #0A2A5E;border-radius:6px;padding:8px 10px;min-height:72px"><div style="font-family:var(--mono);font-size:8px;opacity:.7">📍 DELIVERY ADDRESS:</div><div style="font-size:13px;font-weight:500;margin-top:4px;line-height:1.3">${o.destination||o.delivery_address||'—'}</div></div>
+          <div style="border:1.5px solid #0A2A5E;border-radius:6px;padding:8px 10px;min-height:52px"><div style="font-family:var(--mono);font-size:8px;opacity:.7">📞 PHONE NUMBER:</div><div style="font-size:14px;font-weight:600;margin-top:4px">${o.customer_phone||o.contact||'—'}</div></div>
+          <div style="border:1.5px solid #0A2A5E;border-radius:6px;padding:8px 10px;min-height:52px"><div style="font-family:var(--mono);font-size:8px;opacity:.7">📦 ORDER NUMBER:</div><div style="font-size:14px;font-weight:700;font-family:var(--mono);margin-top:4px">${o.order_number}</div></div>
+          <div style="border:1.5px solid #0A2A5E;border-radius:6px;padding:8px 10px;min-height:52px;display:flex;gap:12px"><div style="flex:1"><div style="font-family:var(--mono);font-size:8px;opacity:.7">📅 DATE PACKED:</div><div style="font-size:13px;font-weight:600;margin-top:4px">${todayStr}</div></div><div style="flex:1"><div style="font-family:var(--mono);font-size:8px;opacity:.7">📦 PACKAGES:</div><div style="font-size:13px;font-weight:600;margin-top:4px">1 of 1</div></div></div>
+          <div style="border:1.5px solid #0A2A5E;border-radius:6px;padding:10px 12px;background:#E3F2FD;text-align:center"><div style="font-family:var(--mono);font-size:9px;opacity:.7">🐟 CONTENTS:</div><div style="font-size:18px;font-weight:800;margin-top:6px;letter-spacing:.02em">FRESH SEAFOOD •<br>FISH • PERISHABLE</div></div>
+          <div style="font-family:cursive;font-size:13px;color:#0A2A5E;margin-top:4px">Thank you for supporting Kenyan Fisheries!</div>
         </div>
-      </div>
-      <div class="perish-banner">❄️ PERISHABLE SEAFOOD <small>KEEP COLD • HANDLE WITH CARE • KEEP REFRIGERATED (0-4°C)</small></div>
-      <div class="field-grid">
-        <div class="field"><div class="field-label">👤 Customer Name:</div><div class="field-value large">${(o.customer_name||'—')}</div></div>
-        <div class="field"><div class="field-label">📦 Order Number:</div><div class="field-value large" style="font-family:var(--mono)">${o.order_number}</div></div>
-        <div class="field double"><div class="field-label">📍 Delivery Address:</div><div class="field-value addr">${o.destination||o.delivery_address||'—'}</div></div>
-        <div class="field"><div class="field-label">📞 Phone Number:</div><div class="field-value">${o.customer_phone||o.contact||'—'}</div></div>
-        <div class="field"><div class="field-label">📅 Date Packed:</div><div class="field-value">${todayStr}</div><div class="field-label" style="margin-top:8px">📦 Packages:</div><div class="field-value">1 of 1</div></div>
-        <div class="field"><div class="field-label">🚚 Delivery Type:</div><div class="field-value">${(o.delivery_type||'delivery').toUpperCase()} ${(o.delivery_time||'') ? '• '+o.delivery_time : ''}</div><div class="field-label" style="margin-top:8px">💰 Total:</div><div class="field-value">KES ${total}</div></div>
-      </div>
-      <div class="field" style="grid-column:1/-1;background:rgba(10,42,94,.04);border-style:dashed;border:1.5px dashed #0A2A5E;border-radius:6px;padding:16px 14px;min-height:68px">
-        <div class="field-label">🐟 Contents:</div>
-        <div class="field-value large" style="letter-spacing:.06em;text-align:center;font-size:20px;padding:10px 0">FRESH SEAFOOD • FISH • PERISHABLE</div>
-        <div style="font-family:var(--mono);font-size:9px;color:#0A2A5E;opacity:.6;text-align:center;margin-top:4px">KEEP REFRIGERATED (0-4°C) • HANDLE WITH CARE</div>
-      </div>
-      <div class="handling-grid">
-        <div class="handle"><div class="h-icon">❄️</div><div class="h-txt">Keep Refrigerated<br>(0-4°C)</div></div>
-        <div class="handle"><div class="h-icon">⬆️⬆️</div><div class="h-txt">This Side Up</div></div>
-        <div class="handle"><div class="h-icon">🍷</div><div class="h-txt">Fragile</div></div>
-        <div class="handle"><div class="h-icon">☔</div><div class="h-txt">Keep Dry</div></div>
-      </div>
-      <div class="sustain-banner">🌿 SUSTAINABLE SEAFOOD FOR A BRIGHTER OCEAN <small>PEOPLE • NATURE • FUTURE • Good Seafood, Stronger Communities, Cleaner Oceans</small></div>
-      <div class="label-footer">
-        <div class="qr">QR<br>MOMBASA<br>FISH.COM</div>
-        <div class="contact">
-          <b>0787668888 — CALL / WHATSAPP FOR ORDERS</b>
-          @MombasaFish • FOLLOW FOR FRESH CONTENT<br>
-          www.mombasafish.com — ORDER ONLINE<br>
-          FRESH FROM OUR OCEAN • TO YOUR TABLE
+        <div style="background:#fff;padding:10px;display:grid;gap:8px">
+          <div style="background:#E30613;color:#fff;border-radius:6px;padding:10px 12px;display:flex;align-items:center;gap:8px"><div style="font-size:28px">❄️</div><div><div style="font-family:var(--display);font-size:13px">PERISHABLE SEAFOOD</div><div style="font-family:var(--mono);font-size:9px">KEEP COLD • HANDLE WITH CARE</div></div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="border:1.5px solid #000;border-radius:6px;padding:10px;text-align:center"><div style="font-size:28px">❄️</div><div style="font-family:var(--mono);font-size:8px;font-weight:700;margin-top:4px">KEEP<br>REFRIGERATED<br>(0-4°C)</div></div>
+            <div style="border:1.5px solid #000;border-radius:6px;padding:10px;text-align:center"><div style="font-size:28px">⬆️⬆️</div><div style="font-family:var(--mono);font-size:8px;font-weight:700;margin-top:4px">THIS SIDE<br>UP</div></div>
+            <div style="border:1.5px solid #000;border-radius:6px;padding:10px;text-align:center"><div style="font-size:28px">🍷</div><div style="font-family:var(--mono);font-size:8px;font-weight:700;margin-top:4px">FRAGILE</div></div>
+            <div style="border:1.5px solid #000;border-radius:6px;padding:10px;text-align:center"><div style="font-size:28px">☔</div><div style="font-family:var(--mono);font-size:8px;font-weight:700;margin-top:4px">KEEP DRY</div></div>
+          </div>
+          <div style="background:#0B6B3A;color:#fff;border-radius:6px;padding:10px 12px;display:flex;gap:8px;align-items:center"><div style="font-size:22px">🌿</div><div><div style="font-family:var(--display);font-size:11px">SUSTAINABLE SEAFOOD FOR A BRIGHTER OCEAN</div><div style="font-size:9px;opacity:.9">PEOPLE • NATURE • FUTURE</div></div></div>
+          <div style="border:1.5px solid #0A2A5E;border-radius:6px;padding:10px;display:flex;gap:10px;align-items:center">
+            <div style="width:68px;height:68px;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:8px;text-align:center">QR<br>MOMBASA<br>FISH.COM</div>
+            <div style="font-family:cursive;font-size:13px;flex:1">Scan for Seafood Goodness!</div>
+          </div>
+          <div style="background:linear-gradient(90deg,#0A2A5E,#0064E0);color:#fff;border-radius:6px;padding:8px 10px;font-family:var(--mono);font-size:8px;line-height:1.4">
+            0787668888 CALL / WHATSAPP FOR ORDERS<br>@MombasaFish • www.mombasafish.com<br>FRESH FROM OUR OCEAN • TO YOUR TABLE
+          </div>
         </div>
-        <div style="font-family:cursive;font-size:12px;text-align:right">Thank you for<br>supporting<br>Kenyan Fisheries!</div>
       </div>
     </div>`;
 }
+
+
 
 function openLabelSheet(orderNo){
   labelOrderNo = orderNo;
