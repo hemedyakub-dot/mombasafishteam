@@ -305,7 +305,7 @@ input:focus{outline:none;border-color:var(--foam)}
 .insight-card .is{font-size:11px;color:var(--dim);margin-top:2px}
 
 
-/* A4 LABELS - Premium pre-printed */
+/* A4 LABEL PER-ORDER - Premium 1 page */
 .labels-wrap{display:grid;gap:24px}
 .a4-page{
   width:100%;max-width:800px;background:#fff;color:#0A2A5E;border:2px solid #0A2A5E;border-radius:8px;
@@ -323,7 +323,6 @@ input:focus{outline:none;border-color:var(--foam)}
 .label-tag{font-family:var(--mono);font-size:9px;color:#0A2A5E;text-align:right;line-height:1.4}
 .perish-banner{background:#E30613;color:#fff;font-family:var(--display);font-size:14px;letter-spacing:.04em;padding:10px 14px;display:flex;align-items:center;gap:10px;border-radius:4px;margin-bottom:14px}
 .perish-banner small{font-family:var(--mono);font-size:10px;font-weight:400;opacity:.95}
-
 .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
 .field{border:1.5px solid #0A2A5E;border-radius:6px;padding:12px 14px;min-height:68px;background:#fff}
 .field.full{grid-column:1/-1}
@@ -332,36 +331,25 @@ input:focus{outline:none;border-color:var(--foam)}
 .field-value{font-family:var(--body);font-size:16px;font-weight:600;color:#0A2A5E;line-height:1.3;word-break:break-word;white-space:pre-wrap}
 .field-value.large{font-size:18px}
 .field-value.addr{font-size:14px;font-weight:500;line-height:1.4}
-
-.items-box{border:1.5px solid #0A2A5E;border-radius:6px;padding:12px 14px;min-height:140px;background:#fff;flex:1}
-.items-list{list-style:none;margin:0;padding:0}
-.items-list li{padding:8px 0;border-bottom:1px dashed rgba(10,42,94,.2);font-size:14px;display:flex;justify-content:space-between;gap:12px;color:#0A2A5E}
-.items-list li:last-child{border-bottom:none}
-.items-list li .iname{font-weight:600;flex:1;white-space:normal;word-break:break-word}
-.items-list li .iprice{font-family:var(--mono);font-size:13px;white-space:nowrap}
-
 .handling-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
 .handle{border:1.5px solid #0A2A5E;border-radius:6px;padding:10px 8px;text-align:center;background:#fff}
 .handle .h-icon{font-size:28px;line-height:1}
 .handle .h-txt{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;margin-top:6px;font-weight:700;color:#0A2A5E}
-
 .sustain-banner{background:#0B6B3A;color:#fff;padding:10px 14px;border-radius:4px;display:flex;align-items:center;gap:10px;font-family:var(--display);font-size:12px;margin:10px 0}
 .sustain-banner small{font-family:var(--body);font-size:11px;font-weight:400;opacity:.9}
-
 .label-footer{background:#0A2A5E;color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:auto;border-radius:0 0 6px 6px;margin-left:-22px;margin-right:-22px;margin-bottom:-14px}
 .label-footer .qr{width:64px;height:64px;background:#fff;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#0A2A5E;font-size:10px;font-family:var(--mono);text-align:center;line-height:1.1}
 .label-footer .contact{font-family:var(--mono);font-size:11px;line-height:1.5}
 .label-footer .contact b{font-size:13px;display:block}
-
+.label-sheet{position:fixed;inset:0;background:rgba(3,42,46,.92);backdrop-filter:blur(8px);z-index:90;display:none;align-items:flex-start;justify-content:center;overflow-y:auto;padding:16px 10px}
+.label-sheet.on{display:flex}
+.label-sheet-in{width:100%;max-width:860px;background:#06383D;border:1px solid var(--faint);border-radius:8px;padding:16px;max-height:96vh;overflow-y:auto}
 @media print{
-  body{background:#fff !important}
-  .bg{display:none !important}
-  .wrap{max-width:none !important;padding:0 !important}
-  header,.tabs,.muted,.note,#searchInput{display:none !important}
-  .labels-wrap{gap:0}
-  .a4-page{box-shadow:none !important;border:2px solid #000 !important;border-radius:0 !important;max-width:none !important;width:210mm !important;min-height:297mm !important;margin:0 !important}
-  .a4-inner{min-height:287mm !important}
-  .print-hide{display:none !important}
+  body *{visibility:hidden !important}
+  #labelCapture, #labelCapture *{visibility:visible !important}
+  #labelCapture{position:absolute !important;left:0 !important;top:0 !important;width:210mm !important;min-height:297mm !important;background:#fff !important}
+  .label-sheet{background:#fff !important}
+  .label-sheet-in{border:none !important;padding:0 !important;max-width:none !important;max-height:none !important;background:#fff !important}
 }
 
 </style>
@@ -404,7 +392,6 @@ input:focus{outline:none;border-color:var(--foam)}
       <button class="tab owner-only hidden" data-f="repeats">Repeat customers</button>
       <button class="tab" data-f="refunds" style="border-color:rgba(255,107,90,.4);color:#ff8a7a">Refunds <span id="count-refunds" style="background:rgba(255,107,90,.15);padding:2px 6px;border-radius:100px;margin-left:4px">0</span></button>
     </div>
-    
     <div id="list"></div>
   </section>
 
@@ -1613,22 +1600,8 @@ const _origRenderMeta2 = render;
 render = function(){ _origRenderMeta2(); updateAIInsights(); };
 
 
-// Labels A4 actions
-document.addEventListener('click', e=>{
-  if(e.target.id==='printAllLabels'){
-    window.print();
-  }
-  if(e.target.id==='togglePrices'){
-    showPricesOnLabel = !showPricesOnLabel;
-    e.target.textContent = showPricesOnLabel ? 'Hide Prices' : 'Show Prices';
-    render();
-  }
-});
-
-
-// ===== PER-ORDER A4 LABEL =====
+// ===== PER-ORDER A4 LABEL - SINGLE ORDER ONLY, NO ITEMS (security) =====
 let labelOrderNo = null;
-let labelShowPrices = true;
 
 function generateLabelHTML(orderNo){
   const o = orders.find(x=>x.order_number===orderNo);
@@ -1651,16 +1624,17 @@ function generateLabelHTML(orderNo){
       </div>
       <div class="perish-banner">❄️ PERISHABLE SEAFOOD <small>KEEP COLD • HANDLE WITH CARE • KEEP REFRIGERATED (0-4°C)</small></div>
       <div class="field-grid">
-        <div class="field"><div class="field-label">👤 Customer Name:</div><div class="field-value large">${o.customer_name||'—'}</div></div>
+        <div class="field"><div class="field-label">👤 Customer Name:</div><div class="field-value large">${(o.customer_name||'—')}</div></div>
         <div class="field"><div class="field-label">📦 Order Number:</div><div class="field-value large" style="font-family:var(--mono)">${o.order_number}</div></div>
         <div class="field double"><div class="field-label">📍 Delivery Address:</div><div class="field-value addr">${o.destination||o.delivery_address||'—'}</div></div>
         <div class="field"><div class="field-label">📞 Phone Number:</div><div class="field-value">${o.customer_phone||o.contact||'—'}</div></div>
         <div class="field"><div class="field-label">📅 Date Packed:</div><div class="field-value">${todayStr}</div><div class="field-label" style="margin-top:8px">📦 Packages:</div><div class="field-value">1 of 1</div></div>
-        <div class="field"><div class="field-label">🚚 Delivery Type:</div><div class="field-value">${(o.delivery_type||'delivery').toUpperCase()} ${(o.delivery_time||'') ? '• '+o.delivery_time : ''}</div><div class="field-label" style="margin-top:8px">💰 Total:</div><div class="field-value">${labelShowPrices ? 'KES '+total : 'PAID'}</div></div>
+        <div class="field"><div class="field-label">🚚 Delivery Type:</div><div class="field-value">${(o.delivery_type||'delivery').toUpperCase()} ${(o.delivery_time||'') ? '• '+o.delivery_time : ''}</div><div class="field-label" style="margin-top:8px">💰 Total:</div><div class="field-value">KES ${total}</div></div>
       </div>
-      <div class="items-box">
-        <div class="field-label">🐟 Items Enclosed: (Qty × Fish — Uniform: 1kg Prawns)</div>
-        <ul class="items-list">${itemsHtml}</ul>
+      <div class="field" style="grid-column:1/-1;background:rgba(10,42,94,.04);border-style:dashed;border:1.5px dashed #0A2A5E;border-radius:6px;padding:16px 14px;min-height:68px">
+        <div class="field-label">🐟 Contents:</div>
+        <div class="field-value large" style="letter-spacing:.06em;text-align:center;font-size:20px;padding:10px 0">FRESH SEAFOOD • FISH • PERISHABLE</div>
+        <div style="font-family:var(--mono);font-size:9px;color:#0A2A5E;opacity:.6;text-align:center;margin-top:4px">KEEP REFRIGERATED (0-4°C) • HANDLE WITH CARE</div>
       </div>
       <div class="handling-grid">
         <div class="handle"><div class="h-icon">❄️</div><div class="h-txt">Keep Refrigerated<br>(0-4°C)</div></div>
@@ -1686,31 +1660,28 @@ function openLabelSheet(orderNo){
   labelOrderNo = orderNo;
   const o = orders.find(x=>x.order_number===orderNo);
   if(!o) return;
-  document.getElementById('labelFor').textContent = `${o.order_number} · ${o.customer_name||''} · ${o.destination||''}`;
-  document.getElementById('labelPage').innerHTML = generateLabelHTML(orderNo);
-  document.getElementById('labelSheet').classList.add('on');
+  const forEl = document.getElementById('labelFor');
+  if(forEl) forEl.textContent = `${o.order_number} · ${o.customer_name||''} · ${o.destination||''}`;
+  const pageEl = document.getElementById('labelPage');
+  if(pageEl) pageEl.innerHTML = generateLabelHTML(orderNo);
+  const sheet = document.getElementById('labelSheet');
+  if(sheet) sheet.classList.add('on');
 }
 
 function closeLabelSheet(){
-  document.getElementById('labelSheet').classList.remove('on');
+  const sheet = document.getElementById('labelSheet');
+  if(sheet) sheet.classList.remove('on');
   labelOrderNo = null;
 }
 
-document.getElementById('labelClose').addEventListener('click', closeLabelSheet);
-document.getElementById('labelSheet').addEventListener('click', e=>{ if(e.target.id==='labelSheet') closeLabelSheet(); });
+// Attach label handlers
 
-document.getElementById('labelPrint').addEventListener('click', ()=>{
-  window.print();
-});
-
-document.getElementById('labelTogglePrice').addEventListener('click', (e)=>{
-  labelShowPrices = !labelShowPrices;
-  e.target.textContent = labelShowPrices ? 'Hide Prices' : 'Show Prices';
-  if(labelOrderNo) document.getElementById('labelPage').innerHTML = generateLabelHTML(labelOrderNo);
-});
-
-document.getElementById('labelJpg').addEventListener('click', async ()=>{
+document.getElementById('labelClose')?.addEventListener('click', closeLabelSheet);
+document.getElementById('labelSheet')?.addEventListener('click', e=>{ if(e.target.id==='labelSheet') closeLabelSheet(); });
+document.getElementById('labelPrint')?.addEventListener('click', ()=>{ window.print(); });
+document.getElementById('labelJpg')?.addEventListener('click', async ()=>{
   const btn = document.getElementById('labelJpg');
+  if(!btn) return;
   btn.textContent = 'Generating JPG…';
   btn.disabled = true;
   try{
@@ -1728,18 +1699,17 @@ document.getElementById('labelJpg').addEventListener('click', async ()=>{
   btn.textContent = '⬇️ Save as JPG';
   btn.disabled = false;
 });
-
-// Delegate label button clicks from order list
-document.getElementById('list').addEventListener('click', e=>{
+document.getElementById('list')?.addEventListener('click', e=>{
   const lb = e.target.closest('[data-label]');
   if(lb){
+    e.preventDefault();
     e.stopPropagation();
     openLabelSheet(lb.dataset.label);
     return;
   }
 });
-
 boot();
+
 }
 
 async function boot(){
@@ -1898,10 +1868,10 @@ function render(){
       const markBtn = allItemsPacked
         ? `<button class="act" data-s="2" data-o="${o.order_number}">Mark ${dt==='mombasa'?'prepared':'packed'}</button>`
         : `<button class="act locked" disabled title="Pack all items first">🔒 Pack all items to continue</button>`;
-      acts = `${markBtn}${allItemsPacked ? dispatchBtn : ''}<button class="act" style="border-color:rgba(255,107,90,.45);color:#ff8a7a" data-cancel-delivery="${o.order_number}">✕ Cancel</button><button class="act" style="border-color:rgba(127,212,193,.4);color:var(--foam)" data-edit-items="${o.order_number}">✏️ Edit items</button><button class="act" style="border-color:var(--foam);color:var(--foam);background:rgba(127,212,193,.08)" data-label="${o.order_number}">🏷️ A4 Label</button>`;
+      acts = `${markBtn}${allItemsPacked ? dispatchBtn : ''}<button class="act" style="border-color:rgba(255,107,90,.45);color:#ff8a7a" data-cancel-delivery="${o.order_number}">✕ Cancel</button><button class="act" style="border-color:rgba(127,212,193,.4);color:var(--foam)" data-edit-items="${o.order_number}">✏️ Edit items</button><button class="act" data-label="${o.order_number}" style="border-color:var(--foam);color:var(--foam);background:rgba(127,212,193,.10)">🏷️ A4 Label</button>`;
     }
-    else if(o.stage===2) acts = `${dispatchBtn}<button class="act" style="border-color:rgba(255,107,90,.45);color:#ff8a7a" data-cancel-delivery="${o.order_number}">✕ Cancel</button><button class="act" style="border-color:rgba(127,212,193,.4);color:var(--foam)" data-edit-items="${o.order_number}">✏️ Edit items</button><button class="act" style="border-color:var(--foam);color:var(--foam);background:rgba(127,212,193,.08)" data-label="${o.order_number}">🏷️ A4 Label</button>`;
-    else if(o.stage===3) acts = `<button class="act" data-s="4" data-o="${o.order_number}">Mark ${dt==='pickup'?'collected':'arrived'}</button><button class="act" style="border-color:rgba(255,107,90,.45);color:#ff8a7a" data-cancel-delivery="${o.order_number}">✕ Cancel</button><button class="act" style="border-color:rgba(127,212,193,.4);color:var(--foam)" data-edit-items="${o.order_number}">✏️ Edit items</button><button class="act" style="border-color:var(--foam);color:var(--foam);background:rgba(127,212,193,.08)" data-label="${o.order_number}">🏷️ A4 Label</button>`;
+    else if(o.stage===2) acts = `${dispatchBtn}<button class="act" style="border-color:rgba(255,107,90,.45);color:#ff8a7a" data-cancel-delivery="${o.order_number}">✕ Cancel</button><button class="act" style="border-color:rgba(127,212,193,.4);color:var(--foam)" data-edit-items="${o.order_number}">✏️ Edit items</button><button class="act" data-label="${o.order_number}" style="border-color:var(--foam);color:var(--foam);background:rgba(127,212,193,.10)">🏷️ A4 Label</button>`;
+    else if(o.stage===3) acts = `<button class="act" data-s="4" data-o="${o.order_number}">Mark ${dt==='pickup'?'collected':'arrived'}</button><button class="act" style="border-color:rgba(255,107,90,.45);color:#ff8a7a" data-cancel-delivery="${o.order_number}">✕ Cancel</button><button class="act" style="border-color:rgba(127,212,193,.4);color:var(--foam)" data-edit-items="${o.order_number}">✏️ Edit items</button><button class="act" data-label="${o.order_number}" style="border-color:var(--foam);color:var(--foam);background:rgba(127,212,193,.10)">🏷️ A4 Label</button>`;
     const rider = (o.stage>=3 && (o.rider_name||o.rider_phone))
       ? `<div class="items">🛵 ${o.rider_name||'Rider'}${o.rider_phone?' · '+o.rider_phone:''}</div>` : '';
     const tel = o.contact ? o.contact.replace(/[^0-9+]/g,'') : '';
@@ -3202,22 +3172,8 @@ const _origRenderMeta2 = render;
 render = function(){ _origRenderMeta2(); updateAIInsights(); };
 
 
-// Labels A4 actions
-document.addEventListener('click', e=>{
-  if(e.target.id==='printAllLabels'){
-    window.print();
-  }
-  if(e.target.id==='togglePrices'){
-    showPricesOnLabel = !showPricesOnLabel;
-    e.target.textContent = showPricesOnLabel ? 'Hide Prices' : 'Show Prices';
-    render();
-  }
-});
-
-
-// ===== PER-ORDER A4 LABEL =====
+// ===== PER-ORDER A4 LABEL - SINGLE ORDER ONLY, NO ITEMS (security) =====
 let labelOrderNo = null;
-let labelShowPrices = true;
 
 function generateLabelHTML(orderNo){
   const o = orders.find(x=>x.order_number===orderNo);
@@ -3240,16 +3196,17 @@ function generateLabelHTML(orderNo){
       </div>
       <div class="perish-banner">❄️ PERISHABLE SEAFOOD <small>KEEP COLD • HANDLE WITH CARE • KEEP REFRIGERATED (0-4°C)</small></div>
       <div class="field-grid">
-        <div class="field"><div class="field-label">👤 Customer Name:</div><div class="field-value large">${o.customer_name||'—'}</div></div>
+        <div class="field"><div class="field-label">👤 Customer Name:</div><div class="field-value large">${(o.customer_name||'—')}</div></div>
         <div class="field"><div class="field-label">📦 Order Number:</div><div class="field-value large" style="font-family:var(--mono)">${o.order_number}</div></div>
         <div class="field double"><div class="field-label">📍 Delivery Address:</div><div class="field-value addr">${o.destination||o.delivery_address||'—'}</div></div>
         <div class="field"><div class="field-label">📞 Phone Number:</div><div class="field-value">${o.customer_phone||o.contact||'—'}</div></div>
         <div class="field"><div class="field-label">📅 Date Packed:</div><div class="field-value">${todayStr}</div><div class="field-label" style="margin-top:8px">📦 Packages:</div><div class="field-value">1 of 1</div></div>
-        <div class="field"><div class="field-label">🚚 Delivery Type:</div><div class="field-value">${(o.delivery_type||'delivery').toUpperCase()} ${(o.delivery_time||'') ? '• '+o.delivery_time : ''}</div><div class="field-label" style="margin-top:8px">💰 Total:</div><div class="field-value">${labelShowPrices ? 'KES '+total : 'PAID'}</div></div>
+        <div class="field"><div class="field-label">🚚 Delivery Type:</div><div class="field-value">${(o.delivery_type||'delivery').toUpperCase()} ${(o.delivery_time||'') ? '• '+o.delivery_time : ''}</div><div class="field-label" style="margin-top:8px">💰 Total:</div><div class="field-value">KES ${total}</div></div>
       </div>
-      <div class="items-box">
-        <div class="field-label">🐟 Items Enclosed: (Qty × Fish — Uniform: 1kg Prawns)</div>
-        <ul class="items-list">${itemsHtml}</ul>
+      <div class="field" style="grid-column:1/-1;background:rgba(10,42,94,.04);border-style:dashed;border:1.5px dashed #0A2A5E;border-radius:6px;padding:16px 14px;min-height:68px">
+        <div class="field-label">🐟 Contents:</div>
+        <div class="field-value large" style="letter-spacing:.06em;text-align:center;font-size:20px;padding:10px 0">FRESH SEAFOOD • FISH • PERISHABLE</div>
+        <div style="font-family:var(--mono);font-size:9px;color:#0A2A5E;opacity:.6;text-align:center;margin-top:4px">KEEP REFRIGERATED (0-4°C) • HANDLE WITH CARE</div>
       </div>
       <div class="handling-grid">
         <div class="handle"><div class="h-icon">❄️</div><div class="h-txt">Keep Refrigerated<br>(0-4°C)</div></div>
@@ -3275,31 +3232,28 @@ function openLabelSheet(orderNo){
   labelOrderNo = orderNo;
   const o = orders.find(x=>x.order_number===orderNo);
   if(!o) return;
-  document.getElementById('labelFor').textContent = `${o.order_number} · ${o.customer_name||''} · ${o.destination||''}`;
-  document.getElementById('labelPage').innerHTML = generateLabelHTML(orderNo);
-  document.getElementById('labelSheet').classList.add('on');
+  const forEl = document.getElementById('labelFor');
+  if(forEl) forEl.textContent = `${o.order_number} · ${o.customer_name||''} · ${o.destination||''}`;
+  const pageEl = document.getElementById('labelPage');
+  if(pageEl) pageEl.innerHTML = generateLabelHTML(orderNo);
+  const sheet = document.getElementById('labelSheet');
+  if(sheet) sheet.classList.add('on');
 }
 
 function closeLabelSheet(){
-  document.getElementById('labelSheet').classList.remove('on');
+  const sheet = document.getElementById('labelSheet');
+  if(sheet) sheet.classList.remove('on');
   labelOrderNo = null;
 }
 
-document.getElementById('labelClose').addEventListener('click', closeLabelSheet);
-document.getElementById('labelSheet').addEventListener('click', e=>{ if(e.target.id==='labelSheet') closeLabelSheet(); });
+// Attach label handlers
 
-document.getElementById('labelPrint').addEventListener('click', ()=>{
-  window.print();
-});
-
-document.getElementById('labelTogglePrice').addEventListener('click', (e)=>{
-  labelShowPrices = !labelShowPrices;
-  e.target.textContent = labelShowPrices ? 'Hide Prices' : 'Show Prices';
-  if(labelOrderNo) document.getElementById('labelPage').innerHTML = generateLabelHTML(labelOrderNo);
-});
-
-document.getElementById('labelJpg').addEventListener('click', async ()=>{
+document.getElementById('labelClose')?.addEventListener('click', closeLabelSheet);
+document.getElementById('labelSheet')?.addEventListener('click', e=>{ if(e.target.id==='labelSheet') closeLabelSheet(); });
+document.getElementById('labelPrint')?.addEventListener('click', ()=>{ window.print(); });
+document.getElementById('labelJpg')?.addEventListener('click', async ()=>{
   const btn = document.getElementById('labelJpg');
+  if(!btn) return;
   btn.textContent = 'Generating JPG…';
   btn.disabled = true;
   try{
@@ -3317,18 +3271,17 @@ document.getElementById('labelJpg').addEventListener('click', async ()=>{
   btn.textContent = '⬇️ Save as JPG';
   btn.disabled = false;
 });
-
-// Delegate label button clicks from order list
-document.getElementById('list').addEventListener('click', e=>{
+document.getElementById('list')?.addEventListener('click', e=>{
   const lb = e.target.closest('[data-label]');
   if(lb){
+    e.preventDefault();
     e.stopPropagation();
     openLabelSheet(lb.dataset.label);
     return;
   }
 });
-
 boot();
+
 
 /* Tick every second, touching only the digits — never re-rendering the list
    or refetching from the database. */
@@ -3350,21 +3303,20 @@ setInterval(() => {
 setInterval(() => { if(orders.length) load(); }, 120000);
 </script>
 
-<!-- A4 Label Per-Order Sheet -->
+<!-- A4 Label Per-Order Sheet - Single order only, no items for security -->
 <div class="label-sheet" id="labelSheet">
   <div class="label-sheet-in">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
       <div>
-        <h2 style="font-family:var(--display);font-size:16px;color:var(--sand)">A4 Cooler Box Label</h2>
+        <h2 style="font-family:var(--display);font-size:16px;color:var(--sand)">A4 Cooler Box Label - Premium</h2>
         <div class="for" id="labelFor" style="font-family:var(--mono);font-size:11px;color:var(--foam);margin-top:4px"></div>
       </div>
-      <button class="ghost" id="labelClose" style="padding:8px 12px">✕ Close</button>
+      <button class="ghost" id="labelClose" style="padding:8px 12px;border:1px solid var(--faint);border-radius:4px;background:transparent;color:var(--dim);cursor:pointer">✕ Close</button>
     </div>
     
     <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-      <button class="btn" id="labelPrint" style="flex:1;background:var(--foam);color:var(--abyss);padding:12px">🖨️ Print A4</button>
-      <button class="btn" id="labelJpg" style="flex:1;background:#fff;color:#0A2A5E;padding:12px">⬇️ Save as JPG</button>
-      <button class="act" id="labelTogglePrice" style="padding:12px">Hide Prices</button>
+      <button class="btn" id="labelPrint" style="flex:1;background:var(--foam);color:var(--abyss);padding:12px;border:none;border-radius:4px;font-family:var(--mono);cursor:pointer">🖨️ Print A4</button>
+      <button class="btn" id="labelJpg" style="flex:1;background:#fff;color:#0A2A5E;padding:12px;border:none;border-radius:4px;font-family:var(--mono);cursor:pointer">⬇️ Save as JPG</button>
     </div>
     
     <div id="labelCapture" style="background:#fff;padding:4px;border-radius:8px">
@@ -3373,23 +3325,10 @@ setInterval(() => { if(orders.length) load(); }, 120000);
       </div>
     </div>
     
-    <div style="font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:10px;text-align:center">1 premium label = full A4 • Pin on cooler box • Waterproof vinyl recommended</div>
+    <div style="font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:10px;text-align:center">1 premium label = full A4 • No items listed for security • Pin on cooler box • Waterproof vinyl recommended</div>
   </div>
 </div>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<style>
-.label-sheet{position:fixed;inset:0;background:rgba(3,42,46,.88);backdrop-filter:blur(8px);z-index:80;display:none;align-items:flex-start;justify-content:center;overflow-y:auto;padding:20px 12px}
-.label-sheet.on{display:flex}
-.label-sheet-in{width:100%;max-width:840px;background:#06383D;border:1px solid var(--faint);border-radius:8px;padding:18px;max-height:95vh;overflow-y:auto}
-@media print{
-  body *{visibility:hidden}
-  #labelCapture, #labelCapture *{visibility:visible}
-  #labelCapture{position:absolute;left:0;top:0;width:210mm;min-height:297mm;background:#fff}
-  .label-sheet{background:#fff !important}
-  .label-sheet-in{border:none !important;padding:0 !important;max-width:none !important;max-height:none !important}
-}
-</style>
 
 </body>
 </html>
