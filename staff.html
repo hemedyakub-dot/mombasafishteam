@@ -1732,10 +1732,10 @@ function render(){
       const markBtn = allItemsPacked
         ? `<button class="act" data-s="2" data-o="${o.order_number}">Mark ${dt==='mombasa'?'prepared':'packed'}</button>`
         : `<button class="act locked" disabled title="Pack all items first">🔒 Pack all items to continue</button>`;
-      acts = `${markBtn}${allItemsPacked ? dispatchBtn : ''}<button class="act" style="border-color:rgba(255,107,90,.45);color:#ff8a7a" data-cancel-delivery="${o.order_number}">✕ Cancel</button><button class="act" style="border-color:rgba(127,212,193,.4);color:var(--foam)" data-edit-items="${o.order_number}">✏️ Edit items</button><button class="act" data-label="${o.order_number}" style="border-color:var(--foam);color:var(--foam);background:rgba(127,212,193,.15)">🏷️ A4 Label</button>`;
+      acts = `${markBtn}${allItemsPacked ? dispatchBtn : ''}<button class="act" style="border-color:rgba(255,107,90,.45);color:#ff8a7a" data-cancel-delivery="${o.order_number}">✕ Cancel</button><button class="act" style="border-color:rgba(127,212,193,.4);color:var(--foam)" data-edit-items="${o.order_number}">✏️ Edit items</button><button class="act" onclick="openLabelSheet('${o.order_number}')" style="border-color:var(--foam);color:var(--foam);background:rgba(127,212,193,.15);cursor:pointer">🏷️ A4 Label</button>`;
     }
-    else if(o.stage===2) acts = `${dispatchBtn}<button class="act" style="border-color:rgba(255,107,90,.45);color:#ff8a7a" data-cancel-delivery="${o.order_number}">✕ Cancel</button><button class="act" style="border-color:rgba(127,212,193,.4);color:var(--foam)" data-edit-items="${o.order_number}">✏️ Edit items</button><button class="act" data-label="${o.order_number}" style="border-color:var(--foam);color:var(--foam);background:rgba(127,212,193,.15)">🏷️ A4 Label</button>`;
-    else if(o.stage===3) acts = `<button class="act" data-s="4" data-o="${o.order_number}">Mark ${dt==='pickup'?'collected':'arrived'}</button><button class="act" style="border-color:rgba(255,107,90,.45);color:#ff8a7a" data-cancel-delivery="${o.order_number}">✕ Cancel</button><button class="act" style="border-color:rgba(127,212,193,.4);color:var(--foam)" data-edit-items="${o.order_number}">✏️ Edit items</button><button class="act" data-label="${o.order_number}" style="border-color:var(--foam);color:var(--foam);background:rgba(127,212,193,.15)">🏷️ A4 Label</button>`;
+    else if(o.stage===2) acts = `${dispatchBtn}<button class="act" style="border-color:rgba(255,107,90,.45);color:#ff8a7a" data-cancel-delivery="${o.order_number}">✕ Cancel</button><button class="act" style="border-color:rgba(127,212,193,.4);color:var(--foam)" data-edit-items="${o.order_number}">✏️ Edit items</button><button class="act" onclick="openLabelSheet('${o.order_number}')" style="border-color:var(--foam);color:var(--foam);background:rgba(127,212,193,.15);cursor:pointer">🏷️ A4 Label</button>`;
+    else if(o.stage===3) acts = `<button class="act" data-s="4" data-o="${o.order_number}">Mark ${dt==='pickup'?'collected':'arrived'}</button><button class="act" style="border-color:rgba(255,107,90,.45);color:#ff8a7a" data-cancel-delivery="${o.order_number}">✕ Cancel</button><button class="act" style="border-color:rgba(127,212,193,.4);color:var(--foam)" data-edit-items="${o.order_number}">✏️ Edit items</button><button class="act" onclick="openLabelSheet('${o.order_number}')" style="border-color:var(--foam);color:var(--foam);background:rgba(127,212,193,.15);cursor:pointer">🏷️ A4 Label</button>`;
     const rider = (o.stage>=3 && (o.rider_name||o.rider_phone))
       ? `<div class="items">🛵 ${o.rider_name||'Rider'}${o.rider_phone?' · '+o.rider_phone:''}</div>` : '';
     const tel = o.contact ? o.contact.replace(/[^0-9+]/g,'') : '';
@@ -1977,15 +1977,6 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>{
 }));
 
 $('list').addEventListener('click', e=>{
-  // BEST LABEL - NO SCUBA - handle first
-  const lb = e.target.closest('[data-label]');
-  if(lb){
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('Label clicked', lb.dataset.label);
-    openLabelSheet(lb.dataset.label);
-    return;
-  }
   // Mark an awaiting-payment order as paid
   const paid = e.target.closest('[data-paid]');
   if(paid){
