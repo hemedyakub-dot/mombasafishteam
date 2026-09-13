@@ -1977,6 +1977,15 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>{
 }));
 
 $('list').addEventListener('click', e=>{
+  // BEST LABEL - NO SCUBA - handle first
+  const lb = e.target.closest('[data-label]');
+  if(lb){
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Label clicked', lb.dataset.label);
+    openLabelSheet(lb.dataset.label);
+    return;
+  }
   // Mark an awaiting-payment order as paid
   const paid = e.target.closest('[data-paid]');
   if(paid){
