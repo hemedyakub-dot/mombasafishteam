@@ -1565,7 +1565,7 @@ render = function(){ _origRenderMeta2(); updateAIInsights(); };
 
 
 document.getElementById('list')?.addEventListener('click', e=>{
-  const lb = e.target.closest('[data-label]');
+  const lb = null // removed - using onclick now;
   if(lb){
     e.preventDefault(); e.stopPropagation();
     openLabelSheet(lb.dataset.label);
@@ -3037,7 +3037,7 @@ render = function(){ _origRenderMeta2(); updateAIInsights(); };
 
 
 document.getElementById('list')?.addEventListener('click', e=>{
-  const lb = e.target.closest('[data-label]');
+  const lb = null // removed - using onclick now;
   if(lb){
     e.preventDefault(); e.stopPropagation();
     openLabelSheet(lb.dataset.label);
