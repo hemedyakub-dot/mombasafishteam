@@ -664,16 +664,13 @@ async function doMarkArrivedNoPhoto(){
   if(!confirm(`Mark ${orderNo} as ARRIVED without photo?\n\nUse this when photo is not possible but delivery is confirmed.`)) return;
   const btn=$('podSkip'); btn.disabled=true; btn.textContent='Marking…';
   try{
-    // Try RPC first if exists for no-photo? fallback to direct update
-    const noteVal = $('podNote').value || 'Arrived - no photo (confirmed)';
-    // Direct update to stage 4 without proof_url
+    const noteVal = $('podNote').value || 'Arrived - no photo (confirmed by phone)';
+    // Only update columns that definitely exist - stage 4 is what moves it to Arrived tab
     const { error: updErr } = await sb.from('mfm_orders').update({ 
       stage: 4, 
-      status: 'Delivered',
       proof_note: noteVal,
       proof_uploaded_at: new Date().toISOString(),
-      stage_changed_at: new Date().toISOString(),
-      arrived_at: new Date().toISOString()
+      stage_changed_at: new Date().toISOString()
     }).eq('order_number', orderNo);
     if(updErr) throw updErr;
     
@@ -2171,16 +2168,13 @@ async function doMarkArrivedNoPhoto(){
   if(!confirm(`Mark ${orderNo} as ARRIVED without photo?\n\nUse this when photo is not possible but delivery is confirmed.`)) return;
   const btn=$('podSkip'); btn.disabled=true; btn.textContent='Marking…';
   try{
-    // Try RPC first if exists for no-photo? fallback to direct update
-    const noteVal = $('podNote').value || 'Arrived - no photo (confirmed)';
-    // Direct update to stage 4 without proof_url
+    const noteVal = $('podNote').value || 'Arrived - no photo (confirmed by phone)';
+    // Only update columns that definitely exist - stage 4 is what moves it to Arrived tab
     const { error: updErr } = await sb.from('mfm_orders').update({ 
       stage: 4, 
-      status: 'Delivered',
       proof_note: noteVal,
       proof_uploaded_at: new Date().toISOString(),
-      stage_changed_at: new Date().toISOString(),
-      arrived_at: new Date().toISOString()
+      stage_changed_at: new Date().toISOString()
     }).eq('order_number', orderNo);
     if(updErr) throw updErr;
     
