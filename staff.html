@@ -244,18 +244,20 @@ input:focus{outline:none;border-color:var(--foam)}
   outline:none;resize:none;overflow:hidden}
 .lf:focus{background:rgba(127,212,193,.18);border-radius:3px}
 .lf-name{left:29.6%;top:33.6%;width:28%;height:4.3%;font-size:12px}
-.lf-addr{left:29.6%;top:38.6%;width:28%;height:7%;font-size:10.5px}
+.lf-addr{left:29.6%;top:40.3%;width:28%;height:6.3%;font-size:10.5px}
 .lf-phone{left:29.6%;top:47.5%;width:28%;height:4%;font-size:12px}
 .lf-orderno{left:29.6%;top:52%;width:28%;height:4%;font-size:11px}
-.lf-date{left:30.6%;top:56.5%;width:25%;height:4%;font-size:10.5px;text-align:center}
-.lf-pkg{left:36.6%;top:61.4%;width:17%;height:4%;font-size:10.5px;text-align:center}
-.lf-items{left:3.7%;top:69.3%;width:54%;height:9%;font-size:9.5px;line-height:1.5}
+.lf-date{left:30.6%;top:57%;width:25%;height:4%;font-size:10.5px;text-align:center}
+.lf-pkg{left:37.5%;top:61.8%;width:16%;height:4%;font-size:10.5px;text-align:center}
+.lf-items{left:3.7%;top:70%;width:54%;height:7%;font-size:11px;line-height:1.7;font-weight:700}
 .label-acts{display:flex;gap:9px;margin-top:14px}
 .label-acts .btn{flex:1}
 @media print{
+  @page{margin:8mm}
   body *{visibility:hidden}
   .label-stage,.label-stage *{visibility:visible}
-  .label-stage{position:fixed;inset:0;width:100vw;height:auto;box-shadow:none;border-radius:0;margin:0}
+  .label-stage{position:fixed;top:0;left:0;width:100%;height:auto;aspect-ratio:1080/1620;
+    box-shadow:none;border-radius:0;margin:0}
   .lf{color:#0a2540!important;background:transparent!important}
 }
 .ghost{flex:1;padding:15px;background:transparent;border:1px solid var(--faint);border-radius:3px;
@@ -453,7 +455,7 @@ async function load(){
   if(nums.length){
     try{
       const { data: items } = await sb.from('mfm_order_items')
-        .select('id, order_number, item_name, state, sort_order')
+        .select('id, order_number, item_name, qty, state, sort_order')
         .in('order_number', nums)
         .order('sort_order', { ascending:true });
       (items || []).forEach(function(it){
@@ -633,7 +635,7 @@ function renderRows(rows){
     const STAGE_VERB = {1:'confirmed',2:'packed',3:'dispatched',4:'done'};
     const inStage = elapsed(o.stage_changed_at || o.created_at);
     const since   = elapsed(o.created_at);
-    const ageBadge = (inStage && o.stage !== 4 && !unpaid)
+    const ageBadge = (inStage && o.stage !== 4 && o.stage !== -1 && !unpaid)
       ? `<span class="age ${ageClass(inStage.mins, o.stage)}" data-since="${o.stage_changed_at || o.created_at}" data-stage="${o.stage}" data-verb="${STAGE_VERB[o.stage]||''}"><b>${inStage.text}</b> ${STAGE_VERB[o.stage]||''}</span>`
       : '';
     const placed = `<div class="placed">Ordered ${stamp(o.created_at)}${since ? ' · ' + since.text : ''}</div>`;
@@ -738,9 +740,23 @@ async function renderRepeats(){
 }
 
 /* ---------- delivery label ---------- */
-function formatItemsForLabel(itemsText){
-  if(!itemsText) return '';
-  return itemsText.split('·').map(s => s.trim()).filter(Boolean).join('\n');
+// Security: the label must never show species or value — just total weight,
+// so a package in transit doesn't advertise what's inside or what it's worth.
+function totalWeightFor(orderNo, itemsText){
+  const rows = itemsByOrder[orderNo] || [];
+  let sum = 0, any = false;
+  rows.forEach(r => {
+    const n = parseFloat(r.qty);
+    if(!isNaN(n)){ sum += n; any = true; }
+  });
+  if(!any && itemsText){
+    // Order not yet split into tracked lines — fall back to parsing "Xkg" mentions in the raw text.
+    const matches = itemsText.match(/(\d+(?:\.\d+)?)\s*kg/gi) || [];
+    matches.forEach(m => { const n = parseFloat(m); if(!isNaN(n)){ sum += n; any = true; } });
+  }
+  if(!any || sum <= 0) return null;
+  const rounded = Math.round(sum * 100) / 100;
+  return (rounded % 1 === 0) ? String(rounded) : String(rounded);
 }
 function todayLabelDate(){
   const d = new Date();
@@ -757,7 +773,10 @@ function openLabel(orderNo){
   $('lfOrderno').value = o.order_number;
   $('lfDate').value    = todayLabelDate();
   $('lfPkg').value     = '1  of  1';
-  $('lfItems').value   = formatItemsForLabel(o.items);
+  $('lfItems').value   = (function(){
+    const w = totalWeightFor(orderNo, o.items);
+    return w ? `Fresh seafood — sealed\nTotal weight: ${w} kg` : 'Fresh seafood — sealed package';
+  })();
   $('labelSheet').classList.add('on');
 }
 function closeLabel(){ $('labelSheet').classList.remove('on'); }
