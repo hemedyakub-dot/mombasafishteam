@@ -294,6 +294,32 @@ input:focus{outline:none;border-color:var(--foam)}
     </div>
   </section>
 
+  <!-- 2FA — first-time setup -->
+  <section id="mfaEnroll" class="hidden">
+    <div class="card">
+      <h1>Set up 2-factor sign-in</h1>
+      <p class="lead">Scan this with Google Authenticator, Authy, or any similar app on your phone. You'll only do this once.</p>
+      <div id="mfaQr" style="background:#fff;padding:14px;border-radius:8px;display:flex;justify-content:center;margin:0 0 14px"></div>
+      <p class="lead" style="margin-bottom:10px">Can't scan? Enter this code in your app instead:<br><code id="mfaSecret" style="user-select:all;color:var(--foam);word-break:break-all"></code></p>
+      <label for="mfaEnrollCode">Enter the 6-digit code your app shows</label>
+      <input id="mfaEnrollCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="123456">
+      <button class="btn" id="mfaEnrollGo">Confirm &amp; continue</button>
+      <button class="link" id="mfaEnrollOut" style="margin-top:14px;display:block">Sign out</button>
+    </div>
+  </section>
+
+  <!-- 2FA — returning sign-in -->
+  <section id="mfaChallenge" class="hidden">
+    <div class="card">
+      <h1>Enter your code</h1>
+      <p class="lead">Open your authenticator app and enter the 6-digit code for Mombasafish Dispatch.</p>
+      <label for="mfaCode">6-digit code</label>
+      <input id="mfaCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="123456" autocomplete="one-time-code">
+      <button class="btn" id="mfaChallengeGo">Verify &amp; sign in</button>
+      <button class="link" id="mfaChallengeOut" style="margin-top:14px;display:block">Sign out</button>
+    </div>
+  </section>
+
   <!-- ORDERS -->
   <section id="appView" class="hidden">
     <div class="search-wrap" id="searchWrap">
@@ -410,6 +436,52 @@ function noteUndo(text, onUndo){
   });
 }
 
+/* ---------- 2-factor sign-in ---------- */
+async function startEnrollment(){
+  $('mfaChallenge').classList.add('hidden');
+  $('mfaEnroll').classList.remove('hidden');
+  $('mfaEnrollCode').value = '';
+  const { data, error } = await sb.auth.mfa.enroll({ factorType:'totp', friendlyName:'Mombasafish Dispatch' });
+  if(error){ note(error.message, 'err'); return; }
+  mfaFactorId = data.id;
+  $('mfaQr').innerHTML = data.totp.qr_code;
+  $('mfaSecret').textContent = data.totp.secret;
+}
+
+async function confirmEnrollment(){
+  const code = $('mfaEnrollCode').value.trim();
+  if(!/^\d{6}$/.test(code)){ note('Enter the 6-digit code your app shows.', 'err'); return; }
+  const btn = $('mfaEnrollGo'); btn.disabled = true; btn.textContent = 'Checking…';
+  const { data: ch, error: chErr } = await sb.auth.mfa.challenge({ factorId: mfaFactorId });
+  if(chErr){ note(chErr.message, 'err'); btn.disabled=false; btn.textContent='Confirm & continue'; return; }
+  const { error: vErr } = await sb.auth.mfa.verify({ factorId: mfaFactorId, challengeId: ch.id, code });
+  btn.disabled = false; btn.textContent = 'Confirm & continue';
+  if(vErr){ note('That code didn\'t match — check the time on your phone and try again.', 'err'); return; }
+  note('✓ 2-factor set up.');
+  boot();
+}
+
+async function startChallenge(factorId){
+  $('mfaEnroll').classList.add('hidden');
+  $('mfaChallenge').classList.remove('hidden');
+  $('mfaCode').value = '';
+  mfaFactorId = factorId;
+  const { data, error } = await sb.auth.mfa.challenge({ factorId });
+  if(error){ note(error.message, 'err'); return; }
+  mfaChallengeId = data.id;
+  setTimeout(()=> $('mfaCode').focus(), 50);
+}
+
+async function verifyChallenge(){
+  const code = $('mfaCode').value.trim();
+  if(!/^\d{6}$/.test(code)){ note('Enter the 6-digit code from your app.', 'err'); return; }
+  const btn = $('mfaChallengeGo'); btn.disabled = true; btn.textContent = 'Checking…';
+  const { error } = await sb.auth.mfa.verify({ factorId: mfaFactorId, challengeId: mfaChallengeId, code });
+  btn.disabled = false; btn.textContent = 'Verify & sign in';
+  if(error){ note('Incorrect code — try again.', 'err'); $('mfaCode').value=''; $('mfaCode').focus(); return; }
+  boot();
+}
+
 async function signIn(){
   const btn = $('in'); btn.disabled = true; btn.textContent = 'Signing in…';
   const { error } = await sb.auth.signInWithPassword({ email:$('em').value.trim(), password:$('pw').value });
@@ -418,9 +490,37 @@ async function signIn(){
   boot();
 }
 
+let mfaFactorId = null, mfaChallengeId = null;
+
 async function boot(){
   const { data:{ session } } = await sb.auth.getSession();
-  if(!session){ $('loginView').classList.remove('hidden'); $('appView').classList.add('hidden'); $('who').classList.add('hidden'); return; }
+  if(!session){
+    $('loginView').classList.remove('hidden');
+    $('mfaEnroll').classList.add('hidden');
+    $('mfaChallenge').classList.add('hidden');
+    $('appView').classList.add('hidden');
+    $('who').classList.add('hidden');
+    return;
+  }
+
+  // 2-factor gate — must be satisfied before any staff data loads or the app is shown.
+  const { data: aal } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+  if(aal && aal.nextLevel === 'aal2' && aal.currentLevel !== 'aal2'){
+    const { data: factors } = await sb.auth.mfa.listFactors();
+    const verified = (factors?.totp || []).find(f => f.status === 'verified');
+    const unverified = (factors?.totp || []).find(f => f.status === 'unverified');
+    $('loginView').classList.add('hidden');
+    $('appView').classList.add('hidden');
+    if(verified){
+      await startChallenge(verified.id);
+    } else {
+      if(unverified) await sb.auth.mfa.unenroll({ factorId: unverified.id });  // clear an abandoned attempt
+      await startEnrollment();
+    }
+    return;
+  }
+  $('mfaEnroll').classList.add('hidden');
+  $('mfaChallenge').classList.add('hidden');
 
   const { data:staff } = await sb.from('mfm_staff').select('full_name, role').eq('user_id', session.user.id).maybeSingle();
   if(!staff){
@@ -605,7 +705,8 @@ function renderRows(rows){
       acts = `${labelBtn}${markBtn}${allItemsPacked ? dispatchBtn : ''}`;
     }
     else if(o.stage===2) acts = `${labelBtn}${dispatchBtn}`;
-    else if(o.stage===3) acts = `<button class="act" data-s="4" data-o="${o.order_number}">Mark ${dt==='pickup'?'collected':'arrived'}</button>`;
+    else if(o.stage===3) acts = `${labelBtn}<button class="act" data-s="4" data-o="${o.order_number}">Mark ${dt==='pickup'?'collected':'arrived'}</button>`;
+    else if(o.stage===4) acts = labelBtn;
     const rider = (o.stage>=3 && (o.rider_name||o.rider_phone))
       ? `<div class="items">🛵 ${o.rider_name||'Rider'}${o.rider_phone?' · '+o.rider_phone:''}</div>` : '';
     const tel = o.contact ? o.contact.replace(/[^0-9+]/g,'') : '';
@@ -909,6 +1010,14 @@ $('sheet').addEventListener('click', e => { if(e.target.id === 'sheet') closeShe
 
 $('in').addEventListener('click', signIn);
 $('pw').addEventListener('keydown', e=>{ if(e.key==='Enter') signIn(); });
+
+$('mfaEnrollGo').addEventListener('click', confirmEnrollment);
+$('mfaEnrollCode').addEventListener('keydown', e=>{ if(e.key==='Enter') confirmEnrollment(); });
+$('mfaEnrollOut').addEventListener('click', async ()=>{ await sb.auth.signOut(); location.reload(); });
+
+$('mfaChallengeGo').addEventListener('click', verifyChallenge);
+$('mfaCode').addEventListener('keydown', e=>{ if(e.key==='Enter') verifyChallenge(); });
+$('mfaChallengeOut').addEventListener('click', async ()=>{ await sb.auth.signOut(); location.reload(); });
 $('out').addEventListener('click', async ()=>{ await sb.auth.signOut(); location.reload(); });
 
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>{
