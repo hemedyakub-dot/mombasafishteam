@@ -147,7 +147,7 @@ details.more[open] summary{margin-bottom:8px}
   <header class="top"><div class="wrap">
     <div class="brand">Wholesale Network<small>Shimoni → Kenya</small></div>
     <nav class="nav" aria-label="Team pages">
-      <a href="/staff.html">Dispatch</a><a href="/counter.html">Counter</a><a href="/shop-admin.html">Shop admin</a><a href="/dashboard.html">Dashboard</a>
+      <a href="/radar.html">Radar</a><a href="/staff.html">Dispatch</a><a href="/counter.html">Counter</a><a href="/shop-admin.html">Shop admin</a><a href="/dashboard.html">Dashboard</a>
       <span class="live" id="live"><i></i>Live</span>
       <span class="who" id="who"></span>
       <button class="btn ghost sm" data-act="signout">Sign out</button>
@@ -663,6 +663,8 @@ $('pw').addEventListener('keydown', e => { if (e.key === 'Enter') $('signInBtn')
 $('showTest').addEventListener('change', e => { S.test = e.target.checked; refresh(); });
 
 /* ---------- sign-in: password, then a code sent by email ---------- */
+const NEXT = ['/radar.html'].find(p => p === new URLSearchParams(location.search).get('next')) || null;   // only our own pages
+if (NEXT) document.querySelectorAll('#loginView .brand small, #emailCode .brand small').forEach(el => el.textContent = 'Sign in to open the Distribution Radar');
 function show(id) { ['loginView','emailCode','denied','appView'].forEach(x => $(x).classList.toggle('hidden', x !== id)); }
 async function sendCode(btn) {
   const msg = $('codeSentTo');
@@ -687,6 +689,7 @@ async function boot() {
   }
   const ok = await rpc('mfm_w_is_ops').catch(() => false);
   if (!ok) return show('denied');
+  if (NEXT) return location.replace(NEXT);   // signed in for the radar: go back there
   $('who').textContent = session.user.email;
   show('appView');
   S.places = await rpc('mfm_w_places_list').catch(() => []);
