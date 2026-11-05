@@ -694,7 +694,15 @@ async function boot() {
       for (const u of (f?.totp || []).filter(x => x.status === 'unverified')) await sb.auth.mfa.unenroll({factorId: u.id});
       const { data, error } = await sb.auth.mfa.enroll({factorType: 'totp', friendlyName: 'MombasaFish Wholesale'});
       if (error) return toast(error.message, 'err');
-      mfa.factor = data.id; $('mfaQr').innerHTML = data.totp.qr_code.startsWith('data:') ? `<img alt="QR code for your authenticator app" src="${data.totp.qr_code}">` : data.totp.qr_code;
+      mfa.factor = data.id;
+      // Supabase sends either raw SVG or "data:image/svg+xml;utf-8,<svg …>" with unescaped quotes and #.
+      // Pull out the SVG and re-encode it so the image always loads.
+      let svg = String(data.totp.qr_code || '');
+      while (svg.startsWith('data:')) svg = svg.slice(svg.indexOf(',') + 1);
+      if (/^%3C/i.test(svg)) { try { svg = decodeURIComponent(svg); } catch (_) {} }
+      const img = new Image(); img.alt = 'QR code for your authenticator app';
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+      $('mfaQr').replaceChildren(img);
       $('mfaSecret').textContent = data.totp.secret; show('mfaEnroll');
     }
     return;
