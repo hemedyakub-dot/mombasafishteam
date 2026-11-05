@@ -124,22 +124,13 @@ details.more[open] summary{margin-bottom:8px}
     <button class="btn" id="signInBtn" data-act="signin">Sign in</button>
   </div>
 </section>
-<section class="login hidden" id="mfaEnroll">
+<section class="login hidden" id="emailCode">
   <div class="card">
-    <div class="brand">Set up 2-factor<small>Required for wholesale</small></div>
-    <p class="small">Scan this with Google Authenticator or Microsoft Authenticator, then type the 6-digit code it shows.</p>
-    <div class="qr" id="mfaQr"></div>
-    <p class="small muted">Can't scan? Enter this key: <span class="mono" id="mfaSecret"></span></p>
-    <label class="lbl" for="mfaEnrollCode">6-digit code</label><input id="mfaEnrollCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
-    <button class="btn" id="mfaEnrollGo" data-act="mfa-enroll">Confirm and continue</button>
-    <button class="btn ghost" data-act="signout">Sign out</button>
-  </div>
-</section>
-<section class="login hidden" id="mfaChallenge">
-  <div class="card">
-    <div class="brand">2-factor check<small>Wholesale Network</small></div>
-    <label class="lbl" for="mfaCode">Code from your authenticator app</label><input id="mfaCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
-    <button class="btn" id="mfaChallengeGo" data-act="mfa-verify">Verify</button>
+    <div class="brand">Check your email<small>Wholesale sign-in code</small></div>
+    <p class="small" id="codeSentTo" aria-live="polite">Sending a 6-digit code to your email…</p>
+    <label class="lbl" for="emailCodeIn">6-digit code</label><input id="emailCodeIn" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+    <button class="btn" id="emailCodeGo" data-act="code-verify">Verify and continue</button>
+    <button class="btn ghost" id="codeResend" data-act="code-resend">Email me a new code</button>
     <button class="btn ghost" data-act="signout">Sign out</button>
   </div>
 </section>
@@ -584,25 +575,18 @@ const ACT = {
     boot();
   },
   async signout() { await sb.auth.signOut(); location.reload(); },
-  async 'mfa-enroll'(b) {
-    const code = $('mfaEnrollCode').value.trim();
-    if (!/^\d{6}$/.test(code)) return toast('Enter the 6-digit code your app shows.', 'err');
+  async 'code-verify'(b) {
+    const code = $('emailCodeIn').value.replace(/\D/g, '');
+    if (code.length !== 6) return toast('Enter the 6-digit code from the email.', 'err');
     b.disabled = true;
-    const { data: ch, error: e1 } = await sb.auth.mfa.challenge({factorId: mfa.factor});
-    const { error: e2 } = e1 ? {error: e1} : await sb.auth.mfa.verify({factorId: mfa.factor, challengeId: ch.id, code});
-    b.disabled = false;
-    if (e2) return toast("That code didn't match. Check the time on your phone and try again.", 'err');
-    toast('2-factor is set up.'); boot();
+    try {
+      const ok = await rpc('mfm_w_verify_login_code', {p_code: code});
+      if (!ok) { $('emailCodeIn').value = ''; $('emailCodeIn').focus(); return toast('That code is not right. Use the newest email and try again.', 'err'); }
+      boot();
+    } catch (e) { toast(e.message, 'err'); }
+    finally { b.disabled = false; }
   },
-  async 'mfa-verify'(b) {
-    const code = $('mfaCode').value.trim();
-    if (!/^\d{6}$/.test(code)) return toast('Enter the 6-digit code from your app.', 'err');
-    b.disabled = true;
-    const { error } = await sb.auth.mfa.verify({factorId: mfa.factor, challengeId: mfa.challenge, code});
-    b.disabled = false;
-    if (error) { $('mfaCode').value = ''; return toast('Incorrect code. Try again.', 'err'); }
-    boot();
-  },
+  'code-resend'(b) { sendCode(b); },
   open(el) { openOrder(el.dataset.id); },
   close() { closeOrder(); },
   copy(el) { navigator.clipboard?.writeText(el.dataset.text).then(() => toast('Tracking link copied'), () => toast(el.dataset.text)); },
@@ -673,38 +657,32 @@ document.addEventListener('input', e => {
   }, e.target.tagName === 'INPUT' && e.target.type !== 'date' ? 250 : 0);
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.openId) closeOrder(); });
+$('emailCodeIn').addEventListener('keydown', e => { if (e.key === 'Enter') $('emailCodeGo').click(); });
+$('emailCodeIn').addEventListener('input', e => { if (e.target.value.replace(/\D/g, '').length === 6) $('emailCodeGo').click(); });
+$('pw').addEventListener('keydown', e => { if (e.key === 'Enter') $('signInBtn').click(); });
 $('showTest').addEventListener('change', e => { S.test = e.target.checked; refresh(); });
 
-/* ---------- sign-in with compulsory 2-factor ---------- */
-const mfa = {factor: null, challenge: null};
-function show(id) { ['loginView','mfaEnroll','mfaChallenge','denied','appView'].forEach(x => $(x).classList.toggle('hidden', x !== id)); }
+/* ---------- sign-in: password, then a code sent by email ---------- */
+function show(id) { ['loginView','emailCode','denied','appView'].forEach(x => $(x).classList.toggle('hidden', x !== id)); }
+async function sendCode(btn) {
+  const msg = $('codeSentTo');
+  if (btn) btn.disabled = true;
+  msg.textContent = 'Sending a 6-digit code to your email…';
+  try {
+    const r = await rpc('mfm_w_send_login_code');
+    msg.textContent = `We emailed a 6-digit code to ${r.sent_to}. It works for 10 minutes and can take a minute to arrive. Check spam if you don't see it.`;
+  } catch (e) {
+    msg.textContent = /just sent/i.test(e.message) ? 'We emailed you a code a moment ago. Check your inbox (and spam).' : e.message;
+  } finally { if (btn) setTimeout(() => btn.disabled = false, 45000); }
+}
 async function boot() {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return show('loginView');
-  const { data: aal } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
-  if (!aal || aal.currentLevel !== 'aal2') {
-    const { data: f } = await sb.auth.mfa.listFactors();
-    const verified = (f?.totp || []).find(x => x.status === 'verified');
-    if (verified) {
-      mfa.factor = verified.id;
-      const { data, error } = await sb.auth.mfa.challenge({factorId: verified.id});
-      if (error) return toast(error.message, 'err');
-      mfa.challenge = data.id; show('mfaChallenge'); setTimeout(() => $('mfaCode').focus(), 50);
-    } else {
-      for (const u of (f?.totp || []).filter(x => x.status === 'unverified')) await sb.auth.mfa.unenroll({factorId: u.id});
-      const { data, error } = await sb.auth.mfa.enroll({factorType: 'totp', friendlyName: 'MombasaFish Wholesale'});
-      if (error) return toast(error.message, 'err');
-      mfa.factor = data.id;
-      // Supabase sends either raw SVG or "data:image/svg+xml;utf-8,<svg …>" with unescaped quotes and #.
-      // Pull out the SVG and re-encode it so the image always loads.
-      let svg = String(data.totp.qr_code || '');
-      while (svg.startsWith('data:')) svg = svg.slice(svg.indexOf(',') + 1);
-      if (/^%3C/i.test(svg)) { try { svg = decodeURIComponent(svg); } catch (_) {} }
-      const img = new Image(); img.alt = 'QR code for your authenticator app';
-      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-      $('mfaQr').replaceChildren(img);
-      $('mfaSecret').textContent = data.totp.secret; show('mfaEnroll');
-    }
+  const passed = await rpc('mfm_w_aal2').catch(() => false);
+  if (!passed) {
+    show('emailCode'); $('emailCodeIn').value = '';
+    setTimeout(() => $('emailCodeIn').focus(), 50);
+    if (boot._sentFor !== session.access_token.slice(-16)) { boot._sentFor = session.access_token.slice(-16); sendCode($('codeResend')); }
     return;
   }
   const ok = await rpc('mfm_w_is_ops').catch(() => false);
