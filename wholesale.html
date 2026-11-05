@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wholesale Network · MombasaFish Team</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --abyss:#032A2E; --bg:#021d20; --deep:#07474C; --foam:#7FD4C1; --teal:#2dd4bf; --catch:#FFB84D; --coral:#FF6B5A; --good:#3ddc97;
+  --sand:#F2EDE3; --dim:rgba(242,237,227,.64); --faint:rgba(127,212,193,.18); --panel:rgba(7,71,76,.32); --line:rgba(127,212,193,.14);
+  --display:'Archivo Black',system-ui,sans-serif; --body:'Inter',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden],.hidden{display:none!important}
+body{font-family:var(--body);background:radial-gradient(1200px 600px at 80% -10%,rgba(45,212,191,.10),transparent 60%),var(--bg);color:var(--sand);min-height:100vh;line-height:1.5;-webkit-font-smoothing:antialiased;font-size:15px}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--foam)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+.top{position:sticky;top:0;z-index:30;background:rgba(2,29,32,.9);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:12px;min-height:60px;flex-wrap:wrap;padding-top:8px;padding-bottom:8px}
+.brand{font-family:var(--display);font-size:18px;letter-spacing:.01em;text-transform:uppercase;line-height:1.05}
+.brand small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--dim);font-weight:400}
+.nav{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto;align-items:center}
+.nav a{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);text-decoration:none;padding:8px 9px;border-radius:6px;min-height:36px;display:inline-flex;align-items:center}
+.nav a:hover{color:var(--sand);background:var(--panel)}
+.who{font-family:var(--mono);font-size:11px;color:var(--dim)}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:12px 0 2px;scrollbar-width:none}
+.tab{flex:none;border:1px solid var(--faint);background:transparent;border-radius:999px;padding:0 16px;min-height:44px;font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--foam);color:var(--abyss);border-color:var(--foam);font-weight:600}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0}
+.bar .grow{flex:1 1 220px}
+.chk{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);min-height:44px;cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:var(--catch)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.card h2,.sec h2{font-family:var(--display);font-size:16px;letter-spacing:.01em;margin-bottom:10px}
+.sec{margin:18px 0 28px}
+.kpis{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.kpi b{display:block;font-family:var(--display);font-size:22px;line-height:1.15;margin-top:4px}
+.kpi span{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.kpi.money b{color:var(--catch)}
+.lbl{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:5px}
+input,select,textarea{width:100%;background:rgba(3,42,46,.85);border:1px solid var(--faint);border-radius:8px;padding:10px 12px;min-height:44px;color:var(--sand)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--teal);outline-offset:1px}
+textarea{min-height:64px;resize:vertical}
+.grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:10px;padding:0 16px;min-height:44px;font-weight:600;cursor:pointer;background:var(--foam);color:var(--abyss);text-decoration:none;white-space:nowrap}
+.btn.ghost{background:transparent;color:var(--sand);border:1px solid var(--faint)}
+.btn.warn{background:var(--catch);color:var(--abyss)}
+.btn.bad{background:transparent;color:#ff9b8f;border:1px solid rgba(255,107,90,.5)}
+.btn.wa{background:#1FAF54;color:#fff}
+.btn.sm{min-height:38px;padding:0 12px;font-size:13px}
+.btn[disabled]{opacity:.5;cursor:wait}
+.row-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.pill{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:4px 8px;border-radius:999px;background:rgba(242,237,227,.1);color:var(--sand);white-space:nowrap}
+.pill.good{background:rgba(61,220,151,.18);color:var(--good)}
+.pill.warn{background:rgba(255,184,77,.18);color:var(--catch)}
+.pill.bad{background:rgba(255,107,90,.18);color:#ff9b8f}
+.pill.info{background:rgba(45,212,191,.16);color:var(--teal)}
+.pill.test{background:rgba(255,184,77,.25);color:var(--catch)}
+table.list{width:100%;border-collapse:collapse}
+table.list th{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);font-weight:400;text-align:left;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.list td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+table.list tr.click{cursor:pointer}
+table.list tr.click:hover td{background:rgba(127,212,193,.06)}
+td.num,th.num{text-align:right;white-space:nowrap}
+.mono{font-family:var(--mono)}
+.muted{color:var(--dim)}
+.small{font-size:12.5px}
+.empty{padding:22px;text-align:center;color:var(--dim);border:1px dashed var(--faint);border-radius:12px}
+.attn{display:grid;gap:8px}
+.attn button{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;min-height:48px;cursor:pointer}
+/* drawer */
+.drawer{position:fixed;inset:0;z-index:50;display:flex;justify-content:flex-end;background:rgba(0,0,0,.45)}
+.drawer .panel{width:min(760px,100%);height:100%;overflow-y:auto;background:var(--bg);border-left:1px solid var(--line);padding:0 0 40px}
+.drawer .head{position:sticky;top:0;z-index:2;background:rgba(2,29,32,.96);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.drawer .head h2{font-family:var(--mono);font-size:18px;margin:0}
+.drawer .body{padding:16px;display:grid;gap:14px}
+.drawer .body>*{min-width:0}
+.tblwrap{overflow-x:auto}
+.facts{display:grid;gap:8px 14px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.facts div span{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.lines-edit .ln{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(80px,1fr) minmax(90px,1fr);gap:8px;align-items:end;margin-bottom:8px}
+.tl{list-style:none;display:grid;gap:8px}
+.tl li{display:grid;grid-template-columns:auto 1fr;gap:10px;font-size:13.5px}
+.tl time{font-family:var(--mono);font-size:11px;color:var(--dim);white-space:nowrap}
+.tl .pub{color:var(--teal);font-family:var(--mono);font-size:10px;letter-spacing:.08em}
+.subcard{border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:8px}
+.subcard .r1{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+details.more summary{cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--foam);min-height:40px;display:flex;align-items:center}
+details.more[open] summary{margin-bottom:8px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:80;max-width:min(560px,92vw);padding:12px 16px;border-radius:10px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.toast.ok{background:var(--foam);color:var(--abyss)}.toast.err{background:var(--coral);color:#fff}
+.login{max-width:420px;margin:8vh auto;padding:0 16px}
+.login .card{padding:24px;display:grid;gap:12px}
+.qr svg,.qr img{width:200px;height:200px;background:#fff;border-radius:8px;padding:8px}
+.live{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--dim)}
+.live.on i{background:var(--good);box-shadow:0 0 0 4px rgba(61,220,151,.18)}
+@media (max-width:760px){
+  table.list.resp thead{display:none}
+  table.list.resp tr{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:10px 4px;border-bottom:1px solid var(--line)}
+  table.list.resp td{border:0;padding:2px 4px}
+  table.list.resp td[data-l]::before{content:attr(data-l) " ";font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+  table.list.resp td.hide-m{display:none}
+  .lines-edit .ln{grid-template-columns:1fr 1fr}
+  .lines-edit .ln > span{grid-column:1/-1}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ sign in ============ -->
+<section class="login hidden" id="loginView">
+  <div class="card">
+    <div class="brand">Wholesale Network<small>MombasaFish team</small></div>
+    <label class="lbl" for="em">Email</label><input id="em" type="email" autocomplete="username">
+    <label class="lbl" for="pw">Password</label><input id="pw" type="password" autocomplete="current-password">
+    <button class="btn" id="signInBtn" data-act="signin">Sign in</button>
+  </div>
+</section>
+<section class="login hidden" id="mfaEnroll">
+  <div class="card">
+    <div class="brand">Set up 2-factor<small>Required for wholesale</small></div>
+    <p class="small">Scan this with Google Authenticator or Microsoft Authenticator, then type the 6-digit code it shows.</p>
+    <div class="qr" id="mfaQr"></div>
+    <p class="small muted">Can't scan? Enter this key: <span class="mono" id="mfaSecret"></span></p>
+    <label class="lbl" for="mfaEnrollCode">6-digit code</label><input id="mfaEnrollCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+    <button class="btn" id="mfaEnrollGo" data-act="mfa-enroll">Confirm and continue</button>
+    <button class="btn ghost" data-act="signout">Sign out</button>
+  </div>
+</section>
+<section class="login hidden" id="mfaChallenge">
+  <div class="card">
+    <div class="brand">2-factor check<small>Wholesale Network</small></div>
+    <label class="lbl" for="mfaCode">Code from your authenticator app</label><input id="mfaCode" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+    <button class="btn" id="mfaChallengeGo" data-act="mfa-verify">Verify</button>
+    <button class="btn ghost" data-act="signout">Sign out</button>
+  </div>
+</section>
+<section class="login hidden" id="denied">
+  <div class="card">
+    <div class="brand">No wholesale access<small>Wholesale Network</small></div>
+    <p>This account is not set up for the wholesale network. Ask Hemed to give it the wholesale role.</p>
+    <button class="btn ghost" data-act="signout">Sign out</button>
+  </div>
+</section>
+
+<!-- ============ app ============ -->
+<div id="appView" class="hidden">
+  <header class="top"><div class="wrap">
+    <div class="brand">Wholesale Network<small>Shimoni → Kenya</small></div>
+    <nav class="nav" aria-label="Team pages">
+      <a href="/staff.html">Dispatch</a><a href="/counter.html">Counter</a><a href="/shop-admin.html">Shop admin</a><a href="/dashboard.html">Dashboard</a>
+      <span class="live" id="live"><i></i>Live</span>
+      <span class="who" id="who"></span>
+      <button class="btn ghost sm" data-act="signout">Sign out</button>
+    </nav>
+  </div></header>
+  <main class="wrap">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="overview" aria-selected="true">Overview</button>
+      <button class="tab" role="tab" data-tab="orders" aria-selected="false">Orders</button>
+      <button class="tab" role="tab" data-tab="production" aria-selected="false">Production</button>
+      <button class="tab" role="tab" data-tab="shipments" aria-selected="false">Shipments</button>
+      <button class="tab" role="tab" data-tab="catalogue" aria-selected="false" id="tabCatalogue">Catalogue</button>
+    </div>
+    <div class="bar"><label class="chk"><input type="checkbox" id="showTest"> Show TEST data</label><span class="muted small" id="lastLoad"></span></div>
+    <div id="view"></div>
+  </main>
+</div>
+
+<div class="drawer hidden" id="drawer" role="dialog" aria-modal="true" aria-label="Order detail"><div class="panel" id="drawerPanel"></div></div>
+<div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+
+const SUPABASE_URL = 'https://tcpqbrchpxpshmqprbkv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_7YLqP3JMq8AFZQl4XF--bw_itOMj1gA';
+const SITE = 'https://mombasafish.com';
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const n2 = v => Number(v || 0).toLocaleString('en-KE', {maximumFractionDigits: 2});
+const kg = v => v == null ? '–' : n2(v) + ' kg';
+const kes = v => v == null ? '–' : 'KES ' + n2(v);
+const day = t => t ? new Date(t).toLocaleDateString('en-KE', {timeZone: 'Africa/Nairobi', day: 'numeric', month: 'short', year: 'numeric'}) : '–';
+const stamp = t => t ? new Date(t).toLocaleString('en-KE', {timeZone: 'Africa/Nairobi', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'}) : '';
+const wa = p => 'https://wa.me/' + String(p || '').replace(/\D/g, '');
+
+const STATUS = {requested:['Request received','info'], quote_issued:['Quote sent','warn'], quote_accepted:['Quote accepted','good'], quote_declined:['Quote declined','bad'],
+  confirmed:['Confirmed','good'], processing:['Processing','info'], ready:['Ready','info'], dispatched:['Dispatched','info'], delivered:['Delivered','good'], cancelled:['Cancelled','bad']};
+const PAY = {unpaid:['Unpaid','warn'], part_paid:['Part paid','warn'], paid:['Paid','good'], refunded:['Refunded','']};
+const STAGES = ['Order received','Order confirmed','Production assigned','Processing and drying','Quality verification','Weighed and packaged','Awaiting dispatch','Dispatched from Shimoni','In transit','Delivered'];
+const SHIP = {planned:['Planned',''], dispatched:['Dispatched','info'], in_transit:['In transit','info'], delayed:['Delayed','bad'], delivered:['Delivered','good'], cancelled:['Cancelled','bad']};
+const BATCH = {committed:'Committed', processing:'Processing', drying:'Drying', awaiting_qc:'Awaiting QC', accepted:'Accepted', rejected:'Rejected', closed:'Closed', cancelled:'Cancelled'};
+const MODES = {bus:'Bus / parcel', truck:'Truck', pickup:'Pickup', boat:'Boat', courier:'Courier', motorbike:'Motorbike', collection:'Collection', other:'Other'};
+const CONFIRM = {customer_call:'Customer phoned', customer_whatsapp:'Customer WhatsApp', signed_note:'Signed delivery note', photo:'Photo of handover', customer_portal:'Customer confirmed online', staff_handover:'Handed over by our staff'};
+const OWN = {supplier_until_dispatch:'Processor owns until dispatch', supplier_until_payment:'Processor owns until paid', mombasafish:'MombasaFish own stock'};
+const CATS = {katashingo:'Katashingo', dried:'Dried fish', frozen:'Frozen seafood', fresh:'Fresh fish'};
+const pill = (map, k) => { const v = map[k] || [k, '']; return `<span class="pill ${v[1]}">${esc(v[0])}</span>`; };
+
+const S = {tab: 'overview', test: false, admin: false, kpis: null, orders: [], places: [], products: [], tiers: [], batches: [], processors: [], shipments: [], cands: [],
+  openId: null, detail: null, allocOpts: {}, f: {q: '', cat: '', county: '', status: '', pay: '', ship: '', from: '', to: ''}, shipFilter: 'active'};
+
+/* ---------- plumbing ---------- */
+async function rpc(fn, args) {
+  const { data, error } = await sb.rpc(fn, args || {});
+  if (error) throw new Error(error.message || 'Something went wrong.');
+  return data;
+}
+function toast(msg, kind = 'ok') {
+  const t = $('toast'); t.textContent = msg; t.className = 'toast ' + kind;
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.className = 'toast hidden', kind === 'err' ? 7000 : 3500);
+}
+async function act(btn, fn, okMsg) {
+  if (btn) btn.disabled = true;
+  try { await fn(); if (okMsg) toast(okMsg); await refresh(); }
+  catch (e) { toast(e.message, 'err'); }
+  finally { if (btn) btn.disabled = false; }
+}
+const formData = f => Object.fromEntries(new FormData(f).entries());
+
+/* ---------- loading ---------- */
+async function loadCore() {
+  const t = S.test;
+  const [k, o] = await Promise.all([rpc('mfm_w_kpis', {p_include_test: t}), rpc('mfm_w_orders_list', {p_include_test: t})]);
+  S.kpis = k; S.admin = !!k.is_admin; S.orders = o || [];
+  $('tabCatalogue').hidden = !S.admin;
+}
+async function loadTab() {
+  const t = S.test;
+  if (S.tab === 'production') {
+    [S.processors, S.batches] = await Promise.all([rpc('mfm_w_processors_list', {p_include_test: t}), rpc('mfm_w_batches_list', {p_include_test: t})]);
+    if (!S.products.length) await loadProducts();
+  } else if (S.tab === 'shipments') {
+    [S.shipments, S.cands] = await Promise.all([rpc('mfm_w_shipments_list', {p_include_test: t}), rpc('mfm_w_ship_candidates')]);
+  } else if (S.tab === 'catalogue') {
+    await loadProducts();
+  }
+}
+async function loadProducts() {
+  const [{ data: p, error: e1 }, { data: tr, error: e2 }] = await Promise.all([
+    sb.from('mfm_w_products').select('*').order('sort_order'),
+    sb.from('mfm_w_price_tiers').select('*').order('product_id').order('min_kg').order('valid_from', {ascending: false})]);
+  if (e1 || e2) throw new Error((e1 || e2).message);
+  S.products = p || []; S.tiers = tr || [];
+}
+let refreshing = false;
+async function refresh() {
+  if (refreshing) return; refreshing = true;
+  try {
+    await loadCore(); await loadTab(); render();
+    if (S.openId) await openOrder(S.openId, true);
+    $('lastLoad').textContent = 'Updated ' + new Date().toLocaleTimeString('en-KE', {hour: '2-digit', minute: '2-digit'});
+  } catch (e) { toast(e.message, 'err'); }
+  finally { refreshing = false; }
+}
+
+/* ---------- views ---------- */
+function render() {
+  document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === S.tab)));
+  const v = $('view');
+  if (S.tab === 'overview') v.innerHTML = viewOverview();
+  else if (S.tab === 'orders') v.innerHTML = viewOrders();
+  else if (S.tab === 'production') v.innerHTML = viewProduction();
+  else if (S.tab === 'shipments') v.innerHTML = viewShipments();
+  else if (S.tab === 'catalogue') v.innerHTML = viewCatalogue();
+}
+
+function viewOverview() {
+  const k = S.kpis || {};
+  const card = (label, val, money) => `<div class="kpi${money ? ' money' : ''}"><span>${label}</span><b>${val}</b></div>`;
+  let h = '<section class="sec"><h2>Wholesale overview</h2><div class="kpis">' +
+    card('Wholesale orders', n2(k.orders_total)) + card('Kg requested', kg(k.kg_requested)) + card('Kg confirmed', kg(k.kg_confirmed)) +
+    card('Kg in production', kg(k.kg_in_production)) + card('Kg ready to dispatch', kg(k.kg_ready)) + card('Kg in transit', kg(k.kg_in_transit)) +
+    card('Kg delivered', kg(k.kg_delivered)) + card('Kg still outstanding', kg(k.kg_outstanding)) +
+    card('Quotes to send', n2(k.quotes_to_send)) + card('Quotes awaiting buyer', n2(k.quotes_waiting));
+  if (S.admin) h += card('Payments outstanding', kes(k.outstanding_payments_kes), 1) + card('Wholesale turnover', kes(k.turnover_kes), 1) +
+    card('Commission earned (gross)', kes(k.commission_gross_kes), 1) + card('Net agency income', kes(k.commission_net_kes), 1);
+  h += '</div></section>';
+  const groups = [
+    ['Send a quotation', S.orders.filter(o => o.status === 'requested')],
+    ['Awaiting payment', S.orders.filter(o => ['quote_accepted','confirmed','processing','ready','dispatched'].includes(o.status) && o.payment_status !== 'paid')],
+    ['Ready to ship', S.orders.filter(o => o.stage === 7 && o.status !== 'delivered')],
+  ];
+  h += '<section class="sec"><h2>Needs attention</h2>';
+  const any = groups.some(g => g[1].length);
+  if (!any) h += '<p class="empty">Nothing waiting. New requests from mombasafish.com/wholesale appear here.</p>';
+  groups.forEach(([title, list]) => {
+    if (!list.length) return;
+    h += `<p class="lbl" style="margin-top:12px">${title} · ${list.length}</p><div class="attn">` + list.slice(0, 8).map(o =>
+      `<button data-act="open" data-id="${o.id}"><span><b class="mono">${esc(o.ref)}</b> ${o.is_test ? '<span class="pill test">Test</span>' : ''}<br><span class="small muted">${esc(o.business_name || o.contact_name)} · ${esc(o.dest_town)} · ${kg(o.requested_kg)}</span></span>${pill(STATUS, o.status)}</button>`).join('') + '</div>';
+  });
+  return h + '</section>';
+}
+
+function filteredOrders() {
+  const f = S.f, q = f.q.trim().toLowerCase();
+  return S.orders.filter(o => {
+    if (q && ![o.ref, o.business_name, o.contact_name, o.phone, o.dest_town, o.dest_county, o.products].join(' ').toLowerCase().includes(q)) return false;
+    if (f.cat && !(o.categories || []).includes(f.cat)) return false;
+    if (f.county && o.dest_county !== f.county) return false;
+    if (f.status && o.status !== f.status) return false;
+    if (f.pay && o.payment_status !== f.pay) return false;
+    if (f.ship && (o.shipment_status || 'none') !== f.ship) return false;
+    const d = (o.created_at || '').slice(0, 10);
+    if (f.from && d < f.from) return false;
+    if (f.to && d > f.to) return false;
+    return true;
+  });
+}
+function viewOrders() {
+  const f = S.f, counties = [...new Set(S.orders.map(o => o.dest_county))].sort();
+  const opt = (map, cur, all) => `<option value="">${all}</option>` + Object.entries(map).map(([k, v]) => `<option value="${k}"${cur === k ? ' selected' : ''}>${esc(Array.isArray(v) ? v[0] : v)}</option>`).join('');
+  let h = `<section class="sec"><div class="grid" style="margin-bottom:12px">
+    <div style="grid-column:1/-1"><label class="lbl" for="fq">Search reference, buyer, phone or town</label><input id="fq" data-f="q" value="${esc(f.q)}" placeholder="MF-KAT-… or Lodwar"></div>
+    <div><label class="lbl">Product</label><select data-f="cat">${opt(CATS, f.cat, 'All products')}</select></div>
+    <div><label class="lbl">County</label><select data-f="county"><option value="">All counties</option>${counties.map(c => `<option${f.county === c ? ' selected' : ''}>${esc(c)}</option>`).join('')}</select></div>
+    <div><label class="lbl">Order status</label><select data-f="status">${opt(STATUS, f.status, 'All statuses')}</select></div>
+    <div><label class="lbl">Payment</label><select data-f="pay">${opt(PAY, f.pay, 'All payments')}</select></div>
+    <div><label class="lbl">Shipment</label><select data-f="ship">${opt(Object.assign({none: ['Not shipped', '']}, SHIP), f.ship, 'All shipments')}</select></div>
+    <div><label class="lbl">From</label><input type="date" data-f="from" value="${esc(f.from)}"></div>
+    <div><label class="lbl">To</label><input type="date" data-f="to" value="${esc(f.to)}"></div>
+  </div>`;
+  const list = filteredOrders();
+  if (!list.length) return h + `<p class="empty">${S.orders.length ? 'No orders match these filters.' : 'No wholesale orders yet.'}</p></section>`;
+  h += `<p class="muted small" style="margin-bottom:6px">${list.length} of ${S.orders.length} orders</p><table class="list resp"><thead><tr><th>Reference</th><th>Customer</th><th>Product</th><th>Destination</th><th class="num">Requested</th><th class="num">Confirmed</th><th class="num">Value</th><th>Payment</th><th>Stage</th><th>Shipment</th><th>Created</th></tr></thead><tbody>` +
+    list.map(o => `<tr class="click" data-act="open" data-id="${o.id}">
+      <td><b class="mono">${esc(o.ref)}</b> ${o.is_test ? '<span class="pill test">Test</span>' : ''}<br>${pill(STATUS, o.status)}</td>
+      <td>${esc(o.business_name || o.contact_name)}<br><span class="small muted">${esc(o.business_name ? o.contact_name : '')}</span></td>
+      <td class="hide-m small">${esc(o.products)}</td>
+      <td data-l="To">${esc(o.dest_town)}<span class="small muted">, ${esc(o.dest_county)}${o.dest_approx ? ' (approx.)' : ''}</span></td>
+      <td class="num" data-l="Req">${kg(o.requested_kg)}</td><td class="num" data-l="Conf">${kg(o.confirmed_kg)}</td>
+      <td class="num" data-l="Value">${o.value_kes == null ? '–' : kes(Number(o.value_kes) + Number(o.transport_kes || 0))}</td>
+      <td>${pill(PAY, o.payment_status)}</td><td class="small" data-l="Stage">${o.stage}. ${esc(STAGES[o.stage - 1])}</td>
+      <td>${o.shipment_status ? pill(SHIP, o.shipment_status) : '<span class="muted small">–</span>'}</td><td class="small muted hide-m">${day(o.created_at)}</td></tr>`).join('') +
+    '</tbody></table></section>';
+  return h;
+}
+
+function viewProduction() {
+  const procOpts = S.processors.filter(p => p.active).map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+  const prodOpts = S.products.filter(p => p.active).map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+  let h = '<section class="sec"><h2>Batches</h2>';
+  h += `<details class="more card"><summary>+ New batch</summary><form data-form="batch" class="grid">
+      <div><label class="lbl">Processor</label><select name="processor_id"><option value="">MombasaFish own stock</option>${procOpts}</select></div>
+      <div><label class="lbl">Product</label><select name="product_id" required>${prodOpts}</select></div>
+      <div><label class="lbl">Kg committed</label><input name="committed_kg" type="number" step="0.1" min="0.1" required></div>
+      ${S.admin ? '<div><label class="lbl">Processor price / kg (KES)</label><input name="supplier_price_per_kg" type="number" step="0.01" min="0"></div>' : ''}
+      <div><label class="lbl">Who owns the stock</label><select name="ownership">${Object.entries(OWN).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
+      <div style="grid-column:1/-1"><label class="lbl">Notes</label><input name="notes" maxlength="300"></div>
+      <div><button class="btn">Create batch</button></div></form></details>`;
+  if (!S.batches.length) h += '<p class="empty" style="margin-top:10px">No batches yet. Create one when a processor commits kilograms.</p>';
+  else h += '<div class="attn" style="margin-top:10px">' + S.batches.map(b => {
+    const free = (b.status === 'accepted' ? b.accepted_kg : b.committed_kg) - b.allocated_kg;
+    const open = !['accepted','rejected','closed','cancelled'].includes(b.status);
+    return `<div class="subcard"><div class="r1"><span><b class="mono">${esc(b.ref)}</b> ${b.is_test ? '<span class="pill test">Test</span>' : ''} <span class="pill ${b.status === 'accepted' ? 'good' : b.status === 'rejected' || b.status === 'cancelled' ? 'bad' : 'info'}">${BATCH[b.status]}</span></span><span class="small muted">${esc(b.processor)} · ${esc(b.product)}</span></div>
+      <div class="facts small"><div><span>Committed</span>${kg(b.committed_kg)}</div><div><span>Prepared</span>${kg(b.prepared_kg)}</div><div><span>Accepted</span>${kg(b.accepted_kg)}${Number(b.rejected_kg) ? ` <span class="muted">(${n2(b.rejected_kg)} rejected)</span>` : ''}</div>
+      <div><span>Allocated</span>${kg(b.allocated_kg)}</div><div><span>Free</span>${kg(Math.max(free, 0))}</div><div><span>Shipped</span>${kg(b.shipped_kg)}</div>
+      ${S.admin ? `<div><span>Price / kg</span>${kes(b.supplier_price_per_kg)}</div><div><span>Paid to processor</span>${kes(b.supplier_paid_kes)}</div>` : ''}<div><span>Ownership</span>${esc(OWN[b.ownership])}</div></div>
+      ${open ? `<details class="more"><summary>Update progress</summary><form data-form="batch-status" data-id="${b.id}" class="grid">
+          <div><label class="lbl">Status</label><select name="status"><option value="processing">Processing</option><option value="drying"${b.status === 'processing' ? ' selected' : ''}>Drying</option><option value="awaiting_qc"${b.status === 'drying' ? ' selected' : ''}>Awaiting QC</option></select></div>
+          <div><label class="lbl">Kg prepared so far</label><input name="prepared_kg" type="number" step="0.1" min="0" max="${b.committed_kg}" value="${b.prepared_kg}"></div>
+          <div><label class="lbl">Note</label><input name="note" maxlength="200"></div><div><button class="btn ghost">Save</button></div></form></details>
+        <details class="more"><summary>Quality check</summary><form data-form="batch-qc" data-id="${b.id}" class="grid">
+          <div><label class="lbl">Kg accepted</label><input name="accepted" type="number" step="0.1" min="0" required></div>
+          <div><label class="lbl">Kg rejected</label><input name="rejected" type="number" step="0.1" min="0" value="0"></div>
+          <div><label class="lbl">Note</label><input name="note" maxlength="200" placeholder="dryness, sand, smell…"></div><div><button class="btn">Record QC</button></div></form></details>` : ''}
+      ${S.admin && b.status !== 'cancelled' ? `<details class="more"><summary>Pay processor</summary><form data-form="pay-supplier" data-id="${b.id}" class="grid"><div><label class="lbl">Amount (KES)</label><input name="amount" type="number" step="0.01" min="1" required></div><div><label class="lbl">Note</label><input name="note" maxlength="200" placeholder="M-Pesa ref"></div><div><button class="btn warn">Record payment</button></div></form></details>` : ''}
+      ${open && !Number(b.allocated_kg) ? `<div class="row-btns"><button class="btn bad sm" data-act="batch-cancel" data-id="${b.id}">Cancel batch</button></div>` : ''}
+      ${b.status === 'accepted' && Number(b.shipped_kg) >= Number(b.accepted_kg) ? `<div class="row-btns"><button class="btn ghost sm" data-act="batch-close" data-id="${b.id}">Close batch</button></div>` : ''}
+    </div>`; }).join('') + '</div>';
+  h += '</section><section class="sec"><h2>Processors</h2>';
+  h += `<details class="more card"><summary>+ Add processor</summary>${processorForm({})}</details>`;
+  if (!S.processors.length) h += '<p class="empty" style="margin-top:10px">No processors yet. Add the women preparing katashingo in Shimoni.</p>';
+  else h += '<div class="attn" style="margin-top:10px">' + S.processors.map(p => `<div class="subcard"><div class="r1"><span><b>${esc(p.name)}</b> ${p.is_test ? '<span class="pill test">Test</span>' : ''} ${p.active ? '' : '<span class="pill">Inactive</span>'}</span>
+      <span class="small muted">${esc(p.location)}${p.phone ? ' · ' + esc(p.phone) : ''}</span></div>
+      <div class="facts small"><div><span>Batches</span>${n2(p.batches)}</div><div><span>Committed</span>${kg(p.committed_kg)}</div><div><span>Prepared</span>${kg(p.prepared_kg)}</div><div><span>Accepted</span>${kg(p.accepted_kg)}</div>
+      ${S.admin ? `<div><span>Owed at agreed price</span>${kes(p.owed_kes)}</div><div><span>Paid</span>${kes(p.paid_kes)}</div>` : ''}<div><span>Assigned orders</span>${esc(p.assigned_orders || '–')}</div></div>
+      ${p.phone ? `<div class="row-btns"><a class="btn wa sm" href="${wa(p.phone)}" target="_blank" rel="noopener">WhatsApp</a><a class="btn ghost sm" href="tel:+${esc(p.phone)}">Call</a></div>` : ''}
+      <details class="more"><summary>Edit</summary>${processorForm(p)}</details></div>`).join('') + '</div>';
+  return h + '</section>';
+}
+function processorForm(p) {
+  const prods = S.products.filter(x => x.active);
+  return `<form data-form="processor" data-id="${p.id || ''}" class="grid">
+    <div><label class="lbl">Name</label><input name="name" value="${esc(p.name)}" required maxlength="80"></div>
+    <div><label class="lbl">Phone</label><input name="phone" value="${esc(p.phone)}" inputmode="tel"></div>
+    <div><label class="lbl">Location</label><input name="location" value="${esc(p.location || 'Shimoni')}"></div>
+    ${S.admin ? `<div><label class="lbl">Usual price / kg (KES)</label><input name="default_price_per_kg" type="number" step="0.01" value="${esc(p.default_price_per_kg ?? '')}"></div>` : ''}
+    <div style="grid-column:1/-1"><span class="lbl">Products</span>${prods.map(x => `<label class="chk" style="margin-right:12px"><input type="checkbox" name="prod_${esc(x.code)}"${(p.products || []).includes(x.code) ? ' checked' : ''}> ${esc(x.name)}</label>`).join('')}</div>
+    <div style="grid-column:1/-1"><label class="lbl">Notes</label><input name="notes" value="${esc(p.notes)}"></div>
+    ${p.id ? `<label class="chk"><input type="checkbox" name="active"${p.active ? ' checked' : ''}> Active</label>` : ''}
+    <div><button class="btn">${p.id ? 'Save' : 'Add processor'}</button></div></form>`;
+}
+
+function viewShipments() {
+  const placeOpts = S.places.map(p => `<option value="${p.id}">${esc(p.name)} · ${esc(p.county)}</option>`).join('');
+  const groups = {};
+  S.cands.forEach(c => { (groups[c.order_ref] = groups[c.order_ref] || []).push(c); });
+  let h = '<section class="sec"><h2>Plan a shipment</h2>';
+  if (!S.cands.length) h += '<p class="empty">Nothing ready to ship. Lines appear here once their batch has passed quality check.</p>';
+  else h += `<form data-form="shipment" class="card" style="display:grid;gap:12px">
+    <p class="small muted">Tick what goes on this vehicle. One shipment can carry several orders.</p>
+    ${Object.entries(groups).map(([ref, list]) => `<div class="subcard"><b class="mono">${esc(ref)}</b> <span class="small muted">to ${esc(list[0].dest_town)}, ${esc(list[0].dest_county)}</span>
+      ${list.map(c => `<div class="grid" style="align-items:end"><label class="chk"><input type="checkbox" name="pick_${c.allocation_id}" data-dest="${c.dest_place_id}"> ${esc(c.product)} · ${esc(c.batch_ref)}</label>
+        <div><label class="lbl">Kg (max ${n2(c.left_kg)})</label><input name="kg_${c.allocation_id}" type="number" step="0.1" min="0.1" max="${c.left_kg}" value="${c.left_kg}"></div></div>`).join('')}</div>`).join('')}
+    <div class="grid">
+      <div><label class="lbl">Destination</label><select name="dest_place_id"><option value="">Same as the first order ticked</option>${placeOpts}</select></div>
+      <div><label class="lbl">Transport</label><select name="transport_mode">${Object.entries(MODES).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
+      <div><label class="lbl">Carrier</label><input name="carrier" placeholder="bus company, driver"></div>
+      <div><label class="lbl">Waybill / receipt no.</label><input name="waybill_ref"></div>
+      <div><label class="lbl">Vehicle</label><input name="vehicle_ref" placeholder="registration"></div>
+      <div><label class="lbl">Expected delivery</label><input name="eta" type="date"></div>
+      <div style="grid-column:1/-1"><label class="lbl">Notes</label><input name="notes" maxlength="300"></div>
+    </div><div><button class="btn">Create shipment</button></div></form>`;
+  h += '</section><section class="sec"><h2>Manifest</h2><div class="bar">' +
+    ['active','planned','delivered','delayed','all'].map(k => `<button class="tab" data-act="ship-filter" data-k="${k}" aria-selected="${S.shipFilter === k}">${{active:'On the road',planned:'Awaiting dispatch',delivered:'Delivered',delayed:'Delayed',all:'All'}[k]}</button>`).join('') + '</div>';
+  const list = S.shipments.filter(s => S.shipFilter === 'all' || (S.shipFilter === 'active' ? ['dispatched','in_transit','delayed'].includes(s.status) : s.status === S.shipFilter));
+  if (!list.length) h += '<p class="empty">No shipments here.</p>';
+  else h += '<div class="attn">' + list.map(s => `<div class="subcard"><div class="r1"><span><b class="mono">${esc(s.ref)}</b> ${s.is_test ? '<span class="pill test">Test</span>' : ''} ${pill(SHIP, s.status)}</span><span class="mono">${kg(s.kg)}</span></div>
+      <div class="small">${esc(s.origin.name)} → <b>${esc(s.dest.name)}</b>, ${esc(s.dest.county)} · ${esc(MODES[s.transport_mode])}${s.carrier ? ' · ' + esc(s.carrier) : ''}${s.waybill_ref ? ' · waybill ' + esc(s.waybill_ref) : ''}</div>
+      <div class="small muted">Orders ${esc(s.orders)} · ${esc(s.products)}</div>
+      <div class="small muted">${s.dispatched_at ? 'Left ' + stamp(s.dispatched_at) : 'Not dispatched'}${s.eta ? ' · ETA ' + day(s.eta) : ''}${s.last_location ? ' · last confirmed ' + esc(s.last_location) + ' ' + stamp(s.last_location_at) : ''}${s.delivered_at ? ' · delivered ' + stamp(s.delivered_at) + ' to ' + esc(s.received_by) : ''}</div>
+      ${s.status === 'planned' ? `<div class="row-btns"><button class="btn sm" data-act="ship-dispatch" data-id="${s.id}">Dispatch from Shimoni</button><button class="btn bad sm" data-act="ship-cancel" data-id="${s.id}">Cancel</button></div>` : ''}
+      ${['dispatched','in_transit','delayed'].includes(s.status) ? `<details class="more"><summary>Update location / status</summary><form data-form="ship-update" data-id="${s.id}" class="grid">
+          <div><label class="lbl">Status</label><select name="status"><option value="in_transit">In transit</option><option value="delayed">Delayed</option></select></div>
+          <div><label class="lbl">Last confirmed location</label><input name="location" placeholder="e.g. Kitale bus stage"></div>
+          <div><label class="lbl">Or pick a town</label><select name="place"><option value="">–</option>${placeOpts}</select></div>
+          <div><label class="lbl">Internal note</label><input name="note"></div><div><button class="btn ghost">Save update</button></div></form></details>
+        <details class="more"><summary>Confirm delivery</summary><form data-form="ship-deliver" data-id="${s.id}" class="grid">
+          <div><label class="lbl">Received by</label><input name="received_by" required></div>
+          <div><label class="lbl">How confirmed</label><select name="method">${Object.entries(CONFIRM).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
+          <div><label class="lbl">Note</label><input name="note"></div><div><button class="btn">Mark delivered</button></div></form></details>` : ''}
+    </div>`).join('') + '</div>';
+  return h + '</section>';
+}
+
+function viewCatalogue() {
+  if (!S.admin) return '<p class="empty">Catalogue and prices are owner-only.</p>';
+  const today = new Date().toISOString().slice(0, 10);
+  return '<section class="sec"><h2>Catalogue and prices</h2><p class="muted small" style="margin-bottom:12px">Prices you add here show on mombasafish.com/wholesale. With no current price a product is quote-only. Old prices are kept, never overwritten.</p><div class="attn">' +
+    S.products.map(p => {
+      const tiers = S.tiers.filter(t => t.product_id === p.id);
+      const cur = tiers.filter(t => t.valid_from <= today && (!t.valid_to || t.valid_to >= today));
+      return `<div class="subcard"><div class="r1"><span><b>${esc(p.name)}</b> <span class="small muted">${esc(CATS[p.category])}</span> ${p.active ? '' : '<span class="pill">Hidden</span>'}</span><span class="small">${cur.length ? cur.map(t => kes(t.price_per_kg) + '/kg from ' + n2(t.min_kg) + ' kg').join(' · ') : '<span class="muted">Price on quotation</span>'}</span></div>
+        <details class="more"><summary>Edit product</summary><form data-form="product" data-id="${p.id}" class="grid">
+          <div><label class="lbl">Availability</label><select name="availability">${['available','limited','on_request','unavailable'].map(a => `<option${p.availability === a ? ' selected' : ''} value="${a}">${{available:'In supply',limited:'Limited',on_request:'On request',unavailable:'Unavailable'}[a]}</option>`).join('')}</select></div>
+          <div><label class="lbl">Available now (kg)</label><input name="available_kg" type="number" step="0.1" min="0" value="${esc(p.available_kg ?? '')}"></div>
+          <div><label class="lbl">Minimum order (kg)</label><input name="moq_kg" type="number" step="0.1" min="0" value="${esc(p.moq_kg ?? '')}"></div>
+          <div><label class="lbl">Processing days</label><input name="processing_days" type="number" min="0" max="120" value="${esc(p.processing_days ?? '')}"></div>
+          <div style="grid-column:1/-1"><label class="lbl">Packaging options (comma separated)</label><input name="packaging" value="${esc((p.packaging_options || []).join(', '))}" placeholder="25 kg sack, 10 kg carton"></div>
+          <div style="grid-column:1/-1"><label class="lbl">Description</label><input name="description" value="${esc(p.description)}" maxlength="300"></div>
+          <label class="chk"><input type="checkbox" name="active"${p.active ? ' checked' : ''}> Show on website</label>
+          <div><button class="btn">Save product</button></div></form></details>
+        <details class="more"><summary>Prices</summary>
+          ${tiers.length ? `<table class="list small"><thead><tr><th>From kg</th><th class="num">Price / kg</th><th>Valid</th><th></th></tr></thead><tbody>${tiers.map(t => `<tr><td>${n2(t.min_kg)}</td><td class="num">${kes(t.price_per_kg)}</td><td class="muted">${day(t.valid_from)} – ${t.valid_to ? day(t.valid_to) : 'now'}</td><td>${(!t.valid_to || t.valid_to >= today) ? `<button class="btn bad sm" data-act="tier-end" data-id="${t.id}">End</button>` : ''}</td></tr>`).join('')}</tbody></table>` : '<p class="muted small">No prices yet.</p>'}
+          <form data-form="tier" data-id="${p.id}" class="grid" style="margin-top:8px"><div><label class="lbl">From kg</label><input name="min_kg" type="number" step="0.1" min="0" value="0" required></div>
+          <div><label class="lbl">Price / kg (KES)</label><input name="price" type="number" step="0.01" min="1" required></div><div><label class="lbl">Starts</label><input name="from" type="date" value="${today}"></div>
+          <div><button class="btn warn">Add price</button></div></form></details></div>`; }).join('') + '</div></section>';
+}
+
+/* ---------- order drawer ---------- */
+async function openOrder(id, quiet) {
+  try {
+    S.openId = id;
+    const d = await rpc('mfm_w_order_detail', {p_order: id});
+    S.detail = d;
+    const need = d.lines.filter(l => Number(l.confirmed_kg) > Number(l.allocated_kg));
+    S.allocOpts = {};
+    if (['quote_accepted','confirmed','processing','ready','dispatched'].includes(d.order.status)) {
+      const res = await Promise.all(need.map(l => rpc('mfm_w_alloc_candidates', {p_line: l.line_id})));
+      need.forEach((l, i) => S.allocOpts[l.line_id] = res[i] || []);
+    }
+    const keepScroll = $('drawerPanel').scrollTop;
+    $('drawerPanel').innerHTML = viewDetail(d);
+    $('drawer').classList.remove('hidden');
+    if (quiet) $('drawerPanel').scrollTop = keepScroll;
+  } catch (e) { if (!quiet) toast(e.message, 'err'); }
+}
+function closeOrder() { S.openId = null; S.detail = null; $('drawer').classList.add('hidden'); }
+
+function viewDetail(d) {
+  const o = d.order, c = d.customer, link = SITE + '/track/' + o.token;
+  const msg = `Hello ${c.contact_name}, this is MombasaFish. Your wholesale order ${o.ref} can be followed here: ${link}`;
+  const editable = ['requested','quote_issued','quote_declined'].includes(o.status);
+  const live = ['quote_accepted','confirmed','processing','ready','dispatched'].includes(o.status);
+  const due = Number(o.value_kes || 0) + Number(o.transport_kes || 0);
+  let h = `<div class="head"><button class="btn ghost sm" data-act="close" aria-label="Close">Close</button><h2>${esc(o.ref)}</h2>${o.is_test ? '<span class="pill test">Test</span>' : ''}${pill(STATUS, o.status)}${pill(PAY, o.payment_status)}</div><div class="body">`;
+  h += `<div class="card"><div class="facts">
+      <div><span>Buyer</span>${esc(c.contact_name)}${c.business_name ? '<br><span class="muted small">' + esc(c.business_name) + '</span>' : ''}</div>
+      <div><span>Phone</span><span class="mono">${esc(c.phone)}</span></div>
+      <div><span>Destination</span>${esc(o.dest_town)}, ${esc(o.dest_county)}${o.dest_approx ? '<br><span class="pill warn">Town not listed · county point on map</span>' : ''}</div>
+      <div><span>Delivery</span>${o.delivery_mode === 'collection' ? 'Buyer collects' : 'Deliver'} · ${esc(o.transport_pref)}</div>
+      <div><span>Stage</span>${o.stage}. ${esc(STAGES[o.stage - 1])}</div><div><span>Type</span>${o.kind === 'quote' ? 'Quotation request' : 'Order at listed price'}</div>
+      <div><span>Received</span>${stamp(o.created_at)}</div>${c.buyer_type ? `<div><span>Buyer type</span>${esc(c.buyer_type)}</div>` : ''}
+    </div>
+    ${o.address_note ? `<p class="small" style="margin-top:8px"><span class="lbl">Address / collection</span>${esc(o.address_note)}</p>` : ''}
+    ${o.customer_note ? `<p class="small" style="margin-top:8px"><span class="lbl">Buyer's note</span>${esc(o.customer_note)}</p>` : ''}
+    <div class="row-btns"><a class="btn wa sm" target="_blank" rel="noopener" href="${wa(c.phone)}?text=${encodeURIComponent(msg)}">Send tracking link</a><a class="btn ghost sm" target="_blank" rel="noopener" href="${wa(c.phone)}">WhatsApp</a><a class="btn ghost sm" href="tel:+${esc(c.phone)}">Call</a><button class="btn ghost sm" data-act="copy" data-text="${esc(link)}">Copy tracking link</button></div></div>`;
+
+  h += `<div class="card"><h2>Quantities</h2><div class="tblwrap"><table class="list resp small"><thead><tr><th>Product</th><th class="num">Requested</th><th class="num">Confirmed</th><th class="num">Price/kg</th><th class="num">Allocated</th><th class="num">Prepared</th><th class="num">Dispatched</th><th class="num">Delivered</th><th class="num">Outstanding</th></tr></thead><tbody>` +
+    d.lines.map(l => `<tr><td>${esc(l.product)}${l.packaging ? '<br><span class="muted">' + esc(l.packaging) + '</span>' : ''}</td><td class="num" data-l="Req">${kg(l.requested_kg)}</td><td class="num" data-l="Conf">${kg(l.confirmed_kg)}</td><td class="num" data-l="Price">${kes(l.price_per_kg)}</td>
+      <td class="num" data-l="Alloc">${kg(l.allocated_kg)}</td><td class="num" data-l="Prep">${kg(l.prepared_kg)}</td><td class="num" data-l="Sent">${kg(l.dispatched_kg)}</td><td class="num" data-l="Deliv">${kg(l.delivered_kg)}</td><td class="num" data-l="Out"><b>${kg(l.outstanding_kg)}</b></td></tr>`).join('') +
+    `</tbody></table></div>${o.value_kes != null ? `<p style="margin-top:8px">Goods ${kes(o.value_kes)} · Transport ${kes(o.transport_kes)} · <b>Total ${kes(due)}</b></p>` : ''}</div>`;
+
+  if (editable) {
+    const q = d.quotes.find(x => x.status === 'issued');
+    h += `<div class="card"><h2>${q ? 'Revise the quotation or confirm' : 'Quote or confirm'}</h2><form data-form="quote" class="lines-edit">` +
+      d.lines.map(l => {
+        const ql = q ? (q.lines || []).find(x => x.line_id === l.line_id) : null;
+        return `<div class="ln"><span class="small">${esc(l.product)} <span class="muted">· asked ${kg(l.requested_kg)}</span></span>
+          <div><label class="lbl">Kg</label><input name="kg_${l.line_id}" type="number" step="0.1" min="0" value="${ql ? ql.kg : l.requested_kg}" required></div>
+          <div><label class="lbl">KES / kg</label><input name="price_${l.line_id}" type="number" step="0.01" min="0" value="${ql ? ql.price_per_kg : (l.price_per_kg ?? '')}" required></div></div>`; }).join('') +
+      `<div class="grid"><div><label class="lbl">Transport (KES)</label><input name="transport" type="number" step="0.01" min="0" value="${q ? q.transport_kes : 0}"></div>
+       <div><label class="lbl">Quote valid for (days)</label><input name="days" type="number" min="1" max="60" value="7"></div>
+       <div style="grid-column:1/-1"><label class="lbl">Note to buyer (shows on their page)</label><input name="note" maxlength="500" placeholder="packing, route, timing" value="${esc(q ? q.note : '')}"></div></div>
+      <div class="row-btns"><button class="btn" name="go" value="quote">${q ? 'Send revised quotation' : 'Send quotation'}</button><button class="btn ghost" name="go" value="confirm">Confirm order now (buyer already agreed)</button></div></form></div>`;
+  }
+  if (d.quotes.length) h += `<details class="more card"><summary>Quotation history · ${d.quotes.length}</summary>` + d.quotes.map(q => `<p class="small">v${q.version} · ${esc(q.status)} · total ${kes(q.total_kes)} · valid to ${day(q.valid_until)}${q.response_note ? ' · buyer: “' + esc(q.response_note) + '”' : ''}</p>`).join('') + '</details>';
+
+  if (S.admin && (live || o.status === 'delivered')) {
+    h += `<div class="card"><h2>Payment</h2><p>Due ${kes(due)} · Received ${kes(o.paid_kes)} · ${pill(PAY, o.payment_status)}</p>` +
+      (d.payments || []).map(p => `<div class="subcard small"><div class="r1"><span>${kes(p.amount_kes)} · ${esc(p.method)} ${p.reference ? '· <span class="mono">' + esc(p.reference) + '</span>' : ''}</span><span class="muted">${stamp(p.received_at)}</span></div>
+        ${p.voided_at ? `<span class="pill bad">Voided: ${esc(p.void_reason)}</span>` : `<form data-form="void-pay" data-id="${p.id}" class="grid"><div><input name="reason" placeholder="Reason to void" required></div><div><button class="btn bad sm">Void</button></div></form>`}</div>`).join('') +
+      (o.status !== 'delivered' || o.payment_status !== 'paid' ? `<form data-form="payment" class="grid" style="margin-top:8px"><div><label class="lbl">Amount (KES)</label><input name="amount" type="number" step="0.01" min="1" value="${Math.max(due - Number(o.paid_kes || 0), 0) || ''}" required></div>
+        <div><label class="lbl">Method</label><select name="method"><option value="mpesa_till">M-Pesa till</option><option value="mpesa_paybill">M-Pesa paybill</option><option value="bank">Bank</option><option value="cash">Cash</option><option value="other">Other</option></select></div>
+        <div><label class="lbl">Reference</label><input name="reference" placeholder="M-Pesa code"></div><div><label class="lbl">Received</label><input name="at" type="datetime-local"></div>
+        <div><button class="btn warn">Record payment</button></div></form>` : '') + '</div>';
+  }
+
+  if (live) {
+    const need = d.lines.filter(l => Number(l.confirmed_kg) > Number(l.allocated_kg));
+    h += '<div class="card"><h2>Production</h2>';
+    if (need.length) h += need.map(l => {
+      const opts = S.allocOpts[l.line_id] || [];
+      const gap = Number(l.confirmed_kg) - Number(l.allocated_kg);
+      return `<form data-form="allocate" data-line="${l.line_id}" class="grid" style="margin-bottom:10px"><div style="grid-column:1/-1" class="small">${esc(l.product)}: <b>${kg(gap)}</b> still to assign</div>
+        ${opts.length ? `<div><label class="lbl">Batch</label><select name="batch">${opts.map(b => `<option value="${b.id}">${esc(b.ref)} · ${esc(b.processor)} · ${n2(b.free_kg)} kg free · ${esc(BATCH[b.status])}</option>`).join('')}</select></div>
+        <div><label class="lbl">Kg</label><input name="kg" type="number" step="0.1" min="0.1" max="${gap}" value="${Math.min(gap, Number(opts[0].free_kg))}"></div><div><button class="btn">Assign</button></div>`
+        : '<p class="small muted" style="grid-column:1/-1">No batch of this product has free kilograms. Create one in Production.</p>'}</form>`; }).join('');
+    else h += '<p class="small muted">All confirmed kilograms are assigned.</p>';
+    h += d.allocations.map(a => `<div class="subcard small"><div class="r1"><span><b class="mono">${esc(a.batch_ref)}</b> · ${esc(a.processor)} · ${kg(a.kg)} ${a.released ? '<span class="pill bad">Released</span>' : `<span class="pill">${esc(BATCH[a.batch_status])}</span>`}</span><span class="muted">shipped ${kg(a.shipped_kg)}</span></div>
+      ${!a.released && !Number(a.shipped_kg) ? `<form data-form="release" data-id="${a.id}" class="grid"><div><input name="reason" placeholder="Reason to release" required></div><div><button class="btn bad sm">Release</button></div></form>` : ''}</div>`).join('');
+    if (o.stage >= 5 && o.stage < 7 && ['processing','ready'].includes(o.status)) h += `<div class="row-btns">${o.stage < 6 ? '<button class="btn ghost sm" data-act="stage" data-stage="6">Mark weighed and packaged</button>' : ''}<button class="btn ghost sm" data-act="stage" data-stage="7">Mark awaiting dispatch</button></div>`;
+    h += '</div>';
+  }
+
+  if (d.shipments.length) h += '<div class="card"><h2>Shipments</h2>' + d.shipments.map(s => `<div class="subcard small"><div class="r1"><span><b class="mono">${esc(s.ref)}</b> ${pill(SHIP, s.status)}</span><span>${kg(s.kg)} · ${esc(MODES[s.mode])}</span></div>
+      <span class="muted">${s.dispatched_at ? 'Left ' + stamp(s.dispatched_at) : 'Planned'}${s.eta ? ' · ETA ' + day(s.eta) : ''}${s.last_location ? ' · last at ' + esc(s.last_location) : ''}${s.delivered_at ? ' · delivered to ' + esc(s.received_by) : ''}</span></div>`).join('') + '<p class="small muted" style="margin-top:6px">Dispatch, location updates and delivery are recorded in the Shipments tab.</p></div>';
+
+  if (S.admin && ['delivered','dispatched','processing','ready','confirmed','quote_accepted'].includes(o.status)) {
+    const cm = d.commission || {}, rate = cm.rate ?? d.default_rate ?? 0.1;
+    h += `<div class="card"><h2>Commission</h2><p class="small muted">Gross commission and net agency income are kept apart. On agency orders only the commission counts as your income.</p>
+      ${d.commission ? `<div class="facts" style="margin:8px 0"><div><span>Model</span>${esc(cm.model)}</div><div><span>Commissionable</span>${kes(cm.commissionable_kes)}</div><div><span>Gross commission</span>${kes(cm.gross_commission_kes)}</div><div><span>Processors' share (value − commission)</span>${kes(cm.supplier_payable_kes)}</div><div><span>Other costs</span>${kes(cm.other_costs_kes)}</div><div><span>Net agency income</span><b>${kes(cm.net_income_kes)}</b></div><div><span>Status</span>${esc(cm.status)}</div></div>` : '<p class="small">Calculated automatically when the order is delivered. You can set it earlier.</p>'}
+      <form data-form="commission" class="grid"><div><label class="lbl">Model</label><select name="model"><option value="agency"${cm.model !== 'principal' ? ' selected' : ''}>Agency (processor owns stock)</option><option value="principal"${cm.model === 'principal' ? ' selected' : ''}>Principal (our own stock)</option></select></div>
+        <div><label class="lbl">Rate %</label><input name="rate" type="number" step="0.1" min="0" max="100" value="${n2(rate * 100)}"></div>
+        <div><label class="lbl">Other costs (KES)</label><input name="other" type="number" step="0.01" min="0" value="${cm.other_costs_kes ?? 0}"></div>
+        <div><label class="lbl">Status</label><select name="status">${['pending','earned','received','waived'].map(s => `<option${(cm.status || 'pending') === s ? ' selected' : ''}>${s}</option>`).join('')}</select></div>
+        <div><button class="btn ghost">Save commission</button></div></form></div>`;
+  }
+
+  if (!['cancelled','delivered'].includes(o.status)) h += `<details class="more card"><summary>Cancel this order</summary><form data-form="cancel" class="grid"><div style="grid-column:1/-1"><label class="lbl">Reason (shown in the audit trail)</label><input name="reason" required minlength="3"></div><div><button class="btn bad">Cancel order</button></div></form></details>`;
+
+  h += `<div class="card"><h2>Timeline</h2><ul class="tl">${d.events.map(e => `<li><time>${stamp(e.at)}</time><span>${e.public ? '<span class="pub">BUYER SEES · </span>' : ''}${esc(e.text || e.type.replace(/_/g, ' '))}${e.note ? '<br><span class="muted small">' + esc(e.note) + '</span>' : ''}<br><span class="muted small">${esc(e.by || '')}</span></span></li>`).join('')}</ul></div>`;
+  return h + '</div>';
+}
+
+/* ---------- actions ---------- */
+const ACT = {
+  async signin(b) {
+    b.disabled = true;
+    const { error } = await sb.auth.signInWithPassword({email: $('em').value.trim(), password: $('pw').value});
+    b.disabled = false;
+    if (error) return toast(error.message, 'err');
+    boot();
+  },
+  async signout() { await sb.auth.signOut(); location.reload(); },
+  async 'mfa-enroll'(b) {
+    const code = $('mfaEnrollCode').value.trim();
+    if (!/^\d{6}$/.test(code)) return toast('Enter the 6-digit code your app shows.', 'err');
+    b.disabled = true;
+    const { data: ch, error: e1 } = await sb.auth.mfa.challenge({factorId: mfa.factor});
+    const { error: e2 } = e1 ? {error: e1} : await sb.auth.mfa.verify({factorId: mfa.factor, challengeId: ch.id, code});
+    b.disabled = false;
+    if (e2) return toast("That code didn't match. Check the time on your phone and try again.", 'err');
+    toast('2-factor is set up.'); boot();
+  },
+  async 'mfa-verify'(b) {
+    const code = $('mfaCode').value.trim();
+    if (!/^\d{6}$/.test(code)) return toast('Enter the 6-digit code from your app.', 'err');
+    b.disabled = true;
+    const { error } = await sb.auth.mfa.verify({factorId: mfa.factor, challengeId: mfa.challenge, code});
+    b.disabled = false;
+    if (error) { $('mfaCode').value = ''; return toast('Incorrect code. Try again.', 'err'); }
+    boot();
+  },
+  open(el) { openOrder(el.dataset.id); },
+  close() { closeOrder(); },
+  copy(el) { navigator.clipboard?.writeText(el.dataset.text).then(() => toast('Tracking link copied'), () => toast(el.dataset.text)); },
+  stage(el) { act(el, () => rpc('mfm_w_set_stage', {p_order: S.openId, p_stage: Number(el.dataset.stage), p_note: null}), 'Stage updated'); },
+  'ship-filter'(el) { S.shipFilter = el.dataset.k; render(); },
+  'ship-dispatch'(el) { act(el, () => rpc('mfm_w_dispatch_shipment', {p_ship: Number(el.dataset.id), p_at: new Date().toISOString()}), 'Dispatched. Buyers see it on their tracking page.'); },
+  'ship-cancel'(el) { const r = prompt('Reason for cancelling this planned shipment?'); if (r) act(el, () => rpc('mfm_w_cancel_shipment', {p_ship: Number(el.dataset.id), p_reason: r}), 'Shipment cancelled'); },
+  'batch-cancel'(el) { act(el, () => rpc('mfm_w_update_batch', {p_batch: Number(el.dataset.id), p_status: 'cancelled', p_prepared_kg: null, p_note: null}), 'Batch cancelled'); },
+  'batch-close'(el) { act(el, () => rpc('mfm_w_update_batch', {p_batch: Number(el.dataset.id), p_status: 'closed', p_prepared_kg: null, p_note: null}), 'Batch closed'); },
+  'tier-end'(el) { act(el, () => rpc('mfm_w_end_price_tier', {p_tier: Number(el.dataset.id)}), 'Price ended'); },
+};
+const num = v => v === '' || v == null ? null : Number(v);
+const FORM = {
+  quote(f, d, sub) {
+    const lines = S.detail.lines.map(l => ({line_id: l.line_id, kg: num(d['kg_' + l.line_id]), price_per_kg: num(d['price_' + l.line_id])}));
+    if (sub === 'confirm') return act(sub && f.querySelector('[value=confirm]'), () => rpc('mfm_w_confirm_order', {p_order: S.openId, p_lines: lines, p_transport: num(d.transport) || 0, p_note: d.note || null}), 'Order confirmed. The buyer sees it now.');
+    return act(f.querySelector('[value=quote]'), () => rpc('mfm_w_issue_quote', {p_order: S.openId, p_lines: lines, p_transport: num(d.transport) || 0, p_valid_days: num(d.days) || 7, p_note: d.note || null}), 'Quotation sent to the buyer’s tracking page. Send them the link on WhatsApp.');
+  },
+  payment(f, d) { return act(f.querySelector('button'), () => rpc('mfm_w_record_payment', {p_order: S.openId, p_amount: num(d.amount), p_method: d.method, p_reference: d.reference || null, p_received_at: d.at ? new Date(d.at).toISOString() : new Date().toISOString(), p_note: null}), 'Payment recorded'); },
+  'void-pay'(f, d) { return act(f.querySelector('button'), () => rpc('mfm_w_void_payment', {p_payment: Number(f.dataset.id), p_reason: d.reason}), 'Payment voided'); },
+  allocate(f, d) { return act(f.querySelector('button'), () => rpc('mfm_w_allocate', {p_batch: Number(d.batch), p_line: Number(f.dataset.line), p_kg: num(d.kg)}), 'Production assigned'); },
+  release(f, d) { return act(f.querySelector('button'), () => rpc('mfm_w_release_allocation', {p_alloc: Number(f.dataset.id), p_reason: d.reason}), 'Allocation released'); },
+  commission(f, d) { return act(f.querySelector('button'), () => rpc('mfm_w_set_commission', {p_order: S.openId, p_model: d.model, p_rate: num(d.rate) / 100, p_other_costs: num(d.other) || 0, p_status: d.status, p_note: null}), 'Commission saved'); },
+  cancel(f, d) { return act(f.querySelector('button'), () => rpc('mfm_w_cancel_order', {p_order: S.openId, p_reason: d.reason}), 'Order cancelled'); },
+  batch(f, d) { return act(f.querySelector('button'), () => rpc('mfm_w_create_batch', {p: {processor_id: d.processor_id || null, product_id: Number(d.product_id), committed_kg: num(d.committed_kg), supplier_price_per_kg: num(d.supplier_price_per_kg), ownership: d.processor_id ? d.ownership : 'mombasafish', notes: d.notes || null}}), 'Batch created'); },
+  'batch-status'(f, d) { return act(f.querySelector('button'), () => rpc('mfm_w_update_batch', {p_batch: Number(f.dataset.id), p_status: d.status, p_prepared_kg: num(d.prepared_kg), p_note: d.note || null}), 'Batch updated'); },
+  'batch-qc'(f, d) { return act(f.querySelector('button'), () => rpc('mfm_w_qc_batch', {p_batch: Number(f.dataset.id), p_accepted_kg: num(d.accepted), p_rejected_kg: num(d.rejected) || 0, p_note: d.note || null}), 'Quality check recorded'); },
+  'pay-supplier'(f, d) { return act(f.querySelector('button'), () => rpc('mfm_w_pay_supplier', {p_batch: Number(f.dataset.id), p_amount: num(d.amount), p_note: d.note || null}), 'Processor payment recorded'); },
+  processor(f, d) {
+    const products = S.products.filter(x => d['prod_' + x.code]).map(x => x.code);
+    const p = {id: f.dataset.id || null, name: d.name, phone: d.phone, location: d.location, products, default_price_per_kg: d.default_price_per_kg ?? null, notes: d.notes, active: f.dataset.id ? !!d.active : true};
+    return act(f.querySelector('button'), () => rpc('mfm_w_save_processor', {p}), 'Processor saved');
+  },
+  shipment(f, d) {
+    const items = S.cands.filter(c => d['pick_' + c.allocation_id]).map(c => ({allocation_id: c.allocation_id, kg: num(d['kg_' + c.allocation_id])}));
+    if (!items.length) return toast('Tick at least one line for this shipment.', 'err');
+    return act(f.querySelector('button[class="btn"]') || f.querySelector('button'), () => rpc('mfm_w_create_shipment', {p: {items, dest_place_id: d.dest_place_id || null, transport_mode: d.transport_mode, carrier: d.carrier, waybill_ref: d.waybill_ref, vehicle_ref: d.vehicle_ref, eta: d.eta || null, notes: d.notes}}), 'Shipment planned. Dispatch it when it leaves Shimoni.');
+  },
+  'ship-update'(f, d) { return act(f.querySelector('button'), () => rpc('mfm_w_update_shipment', {p_ship: Number(f.dataset.id), p_status: d.status, p_location: d.location || null, p_place: d.place ? Number(d.place) : null, p_note: d.note || null}), 'Shipment updated'); },
+  'ship-deliver'(f, d) { return act(f.querySelector('button'), () => rpc('mfm_w_confirm_delivery', {p_ship: Number(f.dataset.id), p_received_by: d.received_by, p_method: d.method, p_at: new Date().toISOString(), p_note: d.note || null}), 'Delivery confirmed'); },
+  product(f, d) {
+    const p = {id: Number(f.dataset.id), availability: d.availability, available_kg: d.available_kg, moq_kg: d.moq_kg, processing_days: d.processing_days,
+      packaging_options: (d.packaging || '').split(',').map(s => s.trim()).filter(Boolean), description: d.description, active: !!d.active};
+    return act(f.querySelector('button'), () => rpc('mfm_w_save_product', {p}), 'Product saved. The website shows it now.');
+  },
+  tier(f, d) { return act(f.querySelector('button'), () => rpc('mfm_w_add_price_tier', {p_product: Number(f.dataset.id), p_min_kg: num(d.min_kg), p_price: num(d.price), p_valid_from: d.from || null}), 'Price added'); },
+};
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-tab]');
+  if (t) { S.tab = t.dataset.tab; render(); loadTab().then(render).catch(err => toast(err.message, 'err')); return; }
+  const a = e.target.closest('[data-act]');
+  if (a && ACT[a.dataset.act]) { e.preventDefault(); ACT[a.dataset.act](a); return; }
+  if (e.target === $('drawer')) closeOrder();
+});
+document.addEventListener('submit', e => {
+  const f = e.target.closest('[data-form]'); if (!f) return;
+  e.preventDefault();
+  const fn = FORM[f.dataset.form]; if (!fn) return;
+  fn(f, formData(f), e.submitter && e.submitter.value);
+});
+document.addEventListener('input', e => {
+  const k = e.target.dataset && e.target.dataset.f; if (!k) return;
+  S.f[k] = e.target.value;
+  clearTimeout(S._ft); S._ft = setTimeout(() => {
+    const pos = e.target.selectionStart, id = e.target.id; render();
+    if (id) { const el = $(id); el.focus(); try { el.setSelectionRange(pos, pos); } catch (_) {} }
+  }, e.target.tagName === 'INPUT' && e.target.type !== 'date' ? 250 : 0);
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.openId) closeOrder(); });
+$('showTest').addEventListener('change', e => { S.test = e.target.checked; refresh(); });
+
+/* ---------- sign-in with compulsory 2-factor ---------- */
+const mfa = {factor: null, challenge: null};
+function show(id) { ['loginView','mfaEnroll','mfaChallenge','denied','appView'].forEach(x => $(x).classList.toggle('hidden', x !== id)); }
+async function boot() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return show('loginView');
+  const { data: aal } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (!aal || aal.currentLevel !== 'aal2') {
+    const { data: f } = await sb.auth.mfa.listFactors();
+    const verified = (f?.totp || []).find(x => x.status === 'verified');
+    if (verified) {
+      mfa.factor = verified.id;
+      const { data, error } = await sb.auth.mfa.challenge({factorId: verified.id});
+      if (error) return toast(error.message, 'err');
+      mfa.challenge = data.id; show('mfaChallenge'); setTimeout(() => $('mfaCode').focus(), 50);
+    } else {
+      for (const u of (f?.totp || []).filter(x => x.status === 'unverified')) await sb.auth.mfa.unenroll({factorId: u.id});
+      const { data, error } = await sb.auth.mfa.enroll({factorType: 'totp', friendlyName: 'MombasaFish Wholesale'});
+      if (error) return toast(error.message, 'err');
+      mfa.factor = data.id; $('mfaQr').innerHTML = data.totp.qr_code.startsWith('data:') ? `<img alt="QR code for your authenticator app" src="${data.totp.qr_code}">` : data.totp.qr_code;
+      $('mfaSecret').textContent = data.totp.secret; show('mfaEnroll');
+    }
+    return;
+  }
+  const ok = await rpc('mfm_w_is_ops').catch(() => false);
+  if (!ok) return show('denied');
+  $('who').textContent = session.user.email;
+  show('appView');
+  S.places = await rpc('mfm_w_places_list').catch(() => []);
+  await refresh();
+  startLive();
+}
+let liveStarted = false;
+function startLive() {
+  if (liveStarted) return; liveStarted = true;
+  let t = null;
+  sb.channel('wholesale-ops')
+    .on('postgres_changes', {event: '*', schema: 'public', table: 'mfm_w_events'}, () => { clearTimeout(t); t = setTimeout(refresh, 700); })
+    .on('postgres_changes', {event: 'INSERT', schema: 'public', table: 'mfm_w_orders'}, () => { clearTimeout(t); t = setTimeout(() => { refresh(); toast('New wholesale request received'); }, 700); })
+    .subscribe(status => $('live').classList.toggle('on', status === 'SUBSCRIBED'));
+}
+sb.auth.onAuthStateChange((ev) => { if (ev === 'SIGNED_OUT') show('loginView'); });
+boot();
+</script>
+</body>
+</html>
