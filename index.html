@@ -3,6 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://tcpqbrchpxpshmqprbkv.supabase.co" crossorigin>
+<script>
+/* Tracking links (?order=&code=) start their lookup here, while the rest of the page loads:
+   one call that returns the order, its items, the route and loyalty together. */
+(function(){
+  try {
+    var q = new URLSearchParams(location.search), o = q.get('order'), c = q.get('code');
+    if(!o || !c) return;
+    var K = 'sb_publishable_7YLqP3JMq8AFZQl4XF--bw_itOMj1gA';
+    window.__trk = { o: o, c: c, p: fetch('https://tcpqbrchpxpshmqprbkv.supabase.co/rest/v1/rpc/track_order_bundle', {
+      method: 'POST', headers: { 'apikey': K, 'Authorization': 'Bearer ' + K, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_order: o, p_code: c })
+    }).then(function(r){ return r.json().catch(function(){ return null; }).then(function(j){ return { ok: r.ok, j: j }; }); }) };
+    window.__trk.p.catch(function(){});
+  } catch(e) {}
+})();
+</script>
 <title>Mombasafish iSeafood Hub · Track your order</title>
 <meta name="description" content="Track your Mombasafish order from the Indian Ocean to your door. Quality. Delivery. Freshness. Traceable to the source.">
 
@@ -454,17 +471,30 @@ h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01
   </main>
 </div>
 
-<script src="/kmap.js?v=1"></script>
+<script src="/kmap.js?v=1" async id="kmapjs"></script>
 <script type="module">
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 /* Live lookup against Supabase. The browser cannot read the orders table —
    track_order() requires BOTH the order number and the tracking code, and
    returns only non-sensitive fields. No phone numbers, no prices. */
-const sb = createClient(
-  'https://tcpqbrchpxpshmqprbkv.supabase.co',
-  'sb_publishable_7YLqP3JMq8AFZQl4XF--bw_itOMj1gA'
-);
+const SB_URL = 'https://tcpqbrchpxpshmqprbkv.supabase.co', SB_KEY = 'sb_publishable_7YLqP3JMq8AFZQl4XF--bw_itOMj1gA';
+async function rpc(fn, body){
+  const r = await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, { method: 'POST',
+    headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  let j = null; try { j = await r.json(); } catch(_) {}
+  if(!r.ok) throw new Error((j && j.message) || 'Request failed');
+  return j;
+}
+/* The map script loads in the background; wait for it only when drawing the map. */
+function kmapReady(){
+  if(window.KMap) return Promise.resolve();
+  return new Promise(res => {
+    const s = document.getElementById('kmapjs'), done = () => res();
+    if(s){ s.addEventListener('load', done, { once: true }); s.addEventListener('error', done, { once: true }); }
+    setTimeout(done, 8000);
+    if(window.KMap) done();
+  });
+}
 
 /* Stage art pulled from the Mombasa Fish Market catalogue */
 const CDN = "https://cdn.shopify.com/s/files/1/0657/2153/2515/files/";
@@ -559,18 +589,25 @@ async function track(){
 
   const btn = $('go'); btn.disabled = true; const label = btn.textContent; btn.textContent = 'Checking…';
 
-  let rows, err;
+  let B = null, err = null;
   try{
-    ({ data: rows, error: err } = await sb.rpc('track_order', { p_order: o, p_code: c }));
+    const pre = window.__trk; window.__trk = null;           // started while the page was loading
+    if(pre && pre.o === o && pre.c === c){
+      const res = await pre.p;
+      if(!res.ok) throw new Error((res.j && res.j.message) || 'Request failed');
+      B = res.j;
+    } else {
+      B = await rpc('track_order_bundle', { p_order: o, p_code: c });
+    }
   }catch(e){ err = e; }
 
   btn.disabled = false; btn.textContent = label;
 
   if(err){
-    showMiss('Could not reach the tracker just now. Check your connection and try again.');
+    showMiss(/too many/i.test(err.message || '') ? err.message : 'Could not reach the tracker just now. Check your connection and try again.');
     return;
   }
-  const hit = rows && rows[0];
+  const hit = B && B.found ? B.order : null;
   if(!hit){ showMiss(); return; }
 
   const dt = hit.delivery_type || 'upcountry';
@@ -585,10 +622,7 @@ async function track(){
   $('rName').textContent  = name ? `${name}'s order` : 'Your order';
 
   // Honest basket: if this order has per-item tracking, show each fish's state.
-  try{
-    const { data: items } = await sb.rpc('order_items', { p_order:o, p_code:c });
-    renderBasket(items || []);
-  }catch(e){ renderBasket([]); }
+  renderBasket(Array.isArray(B.items) ? B.items : []);
 
   $('rItems').textContent = hit.items || '—';
   $('rPhone').innerHTML   = hit.contact
@@ -674,22 +708,24 @@ async function track(){
   /* Route map: Shimoni -> Mombasa check point -> the customer's county (never the exact address) */
   const mapBox = $('rMap');
   mapBox.classList.add('hidden'); mapBox.innerHTML = '';
-  try{
-    const { data: route } = await sb.rpc('track_order_route', { p_order: o, p_code: c });
-    const m = window.KMap && window.KMap.retail(route, { cw: Math.max(280, Math.min(mapBox.parentElement.clientWidth || 360, 640) - 44), dark: true });
-    if(m){
-      mapBox.innerHTML = `<div class="chain-hd">Ramani · Route</div>${m.svg}<p class="rmap-cap">${m.caption}</p><p class="rmap-nt">${m.note}</p>`;
-      mapBox.classList.remove('hidden');
-    }
-  }catch(e){ /* the map is a bonus; never block the tracker on it */ }
+  (async () => {
+    try{
+      if(!B.route) return;
+      await kmapReady();
+      const m = window.KMap && window.KMap.retail(B.route, { cw: Math.max(280, Math.min(mapBox.parentElement.clientWidth || 360, 640) - 44), dark: true });
+      if(m){
+        mapBox.innerHTML = `<div class="chain-hd">Ramani · Route</div>${m.svg}<p class="rmap-cap">${m.caption}</p><p class="rmap-nt">${m.note}</p>`;
+        mapBox.classList.remove('hidden');
+      }
+    }catch(e){ /* the map is a bonus; never block the tracker on it */ }
+  })();
 
   /* Loyalty — the fleet. Ngalawa · Mashua · Dau · Meli, boats that grow.
      Count only, no money — safe on a forwarded link. */
   const loyal = $('rLoyal');
   loyal.classList.add('hidden');
   try{
-    const { data: L } = await sb.rpc('order_loyalty', { p_order: o, p_code: c });
-    const row = L && L[0];
+    const row = B.loyalty;
     const n = row ? row.total_orders : 1;
     if(n > 1){
       const first = row.display_name ? row.display_name.split(' ')[0] : null;
@@ -762,9 +798,8 @@ $('confirmBtn').addEventListener('click', async () => {
   }
   armed = false;
   btn.disabled = true; btn.textContent = 'Saving…';
-  const { data, error } = await sb.rpc('confirm_receipt', {
-    p_order: $('ord').value, p_code: $('code').value
-  });
+  let data = null, error = null;
+  try { data = await rpc('confirm_receipt', { p_order: $('ord').value, p_code: $('code').value }); } catch(e) { error = e; }
   if(error || !data || !data.length){
     btn.disabled = false;
     btn.textContent = 'Could not save — try again';
