@@ -286,6 +286,24 @@ input:focus{outline:none;border-color:var(--foam)}
 .seg2 button.on.bad{border-color:var(--coral);color:#fff;background:var(--coral)}
 textarea.cpnote{width:100%;padding:12px;background:rgba(3,42,46,.78);border:1px solid var(--faint);border-radius:3px;color:var(--sand);font-family:var(--body);font-size:15px;margin-bottom:14px;min-height:64px;resize:vertical}
 @media (max-width:520px){.tabs{flex-wrap:wrap}.tab{flex:1 1 30%}}
+/* tracking link, cancel and change-fish */
+.trk{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:9px}
+.trk span{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.trk button,.trk a{padding:6px 11px;border:1px solid var(--faint);border-radius:3px;background:transparent;color:var(--foam);font-family:var(--mono);font-size:12px;letter-spacing:.04em;text-decoration:none;cursor:pointer}
+.trk button:hover,.trk a:hover{border-color:var(--foam);background:rgba(127,212,193,.10)}
+.act.danger{border-color:rgba(255,107,90,.5);color:#FF6B5A}
+.act.danger:hover{border-color:#FF6B5A;background:rgba(255,107,90,.08)}
+.fopt.chg{color:var(--catch)}
+.seg3{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.seg3 button{flex:1 1 30%;min-width:96px;padding:12px 8px;border:1px solid var(--faint);background:transparent;color:var(--sand);border-radius:3px;font-family:var(--mono);font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer}
+.seg3 button.on{border-color:var(--foam);color:var(--abyss);background:var(--foam)}
+#xcSheet .seg3 button.on{border-color:var(--coral);background:var(--coral);color:#fff}
+select.catpick{width:100%;padding:13px 12px;background:rgba(3,42,46,.78);border:1px solid var(--faint);border-radius:3px;color:var(--sand);font-family:var(--body);font-size:15px;margin-bottom:14px}
+.chg-old{font-size:13px;color:var(--dim);margin:-6px 0 14px}
+.chg-sum{border:1px solid var(--faint);border-radius:4px;padding:11px 12px;font-size:14px;margin-bottom:14px;line-height:1.45}
+.chg-sum b{color:var(--foam)}
+.chg-sum .up{color:var(--catch)}.chg-sum .down{color:var(--foam)}
+.btn.danger{background:var(--coral);border-color:var(--coral);color:#fff}
 </style>
 </head>
 <body>
@@ -422,6 +440,62 @@ textarea.cpnote{width:100%;padding:12px;background:rgba(3,42,46,.78);border:1px 
     <div class="sheet-acts">
       <button class="ghost" id="cpCancel">Cancel</button>
       <button class="btn" id="cpGo">Check out</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cancel an order waiting for dispatch -->
+<div class="sheet" id="xcSheet">
+  <div class="sheet-in">
+    <h2>Cancel this order</h2>
+    <div class="for" id="xcFor"></div>
+    <label>Why?</label>
+    <div class="seg3" role="group" aria-label="Reason">
+      <button type="button" class="on" data-xr="Customer cancelled">Customer cancelled</button>
+      <button type="button" data-xr="Fish not available">Fish not available</button>
+      <button type="button" data-xr="Other">Other</button>
+    </div>
+    <label for="xcNote" id="xcNoteLbl">Note (optional)</label>
+    <textarea class="cpnote" id="xcNote" maxlength="300" placeholder="e.g. customer called, travelling this week"></textarea>
+    <div id="xcRefundRow">
+      <label for="xcRefund">Refund owed to the customer (KES)</label>
+      <input id="xcRefund" type="number" inputmode="numeric" min="0" step="1" placeholder="Leave blank if not sure">
+      <p class="opt">This order is paid, so the refund is listed for Hemed to settle. Nothing is sent to the customer automatically.</p>
+    </div>
+    <div class="sheet-acts">
+      <button class="ghost" id="xcBack">Keep order</button>
+      <button class="btn danger" id="xcGo">Cancel order</button>
+    </div>
+  </div>
+</div>
+
+<!-- Change a fish for another item from mombasafish.com -->
+<div class="sheet" id="chgSheet">
+  <div class="sheet-in">
+    <div id="chgForm">
+      <h2>Change this fish</h2>
+      <div class="for" id="chgFor"></div>
+      <p class="chg-old" id="chgOld"></p>
+      <label for="chgPick">New item (mombasafish.com catalogue)</label>
+      <select class="catpick" id="chgPick"><option value="">Loading the catalogue…</option></select>
+      <label for="chgQty" id="chgQtyLbl">Quantity</label>
+      <input id="chgQty" type="number" inputmode="decimal" min="0.25" step="0.25">
+      <div class="chg-sum" id="chgSum">Choose the new item.</div>
+      <label>Why?</label>
+      <div class="seg3" role="group" aria-label="Reason">
+        <button type="button" class="on" data-cr="Not available">Not available</button>
+        <button type="button" data-cr="Customer asked">Customer asked</button>
+      </div>
+      <div class="sheet-acts">
+        <button class="ghost" id="chgBack">Back</button>
+        <button class="btn" id="chgGo">Change fish</button>
+      </div>
+    </div>
+    <div id="chgDone" hidden>
+      <h2>Fish changed</h2>
+      <div class="chg-sum" id="chgDoneSum"></div>
+      <a class="notify" id="chgTell" target="_blank" rel="noopener">💬 Tell the customer on WhatsApp</a>
+      <div class="sheet-acts"><button class="ghost" id="chgUndo">Undo this change</button><button class="btn" id="chgClose">Done</button></div>
     </div>
   </div>
 </div>
@@ -835,6 +909,8 @@ function renderRows(rows){
     else if(o.stage===2) acts = `${labelBtn}${cpButtons('retail', o.order_number, myCp)}${dispatchBtn}`;
     else if(o.stage===3) acts = `${labelBtn}<button class="act" data-s="4" data-o="${o.order_number}">Mark ${dt==='pickup'?'collected':'arrived'}</button>`;
     else if(o.stage===4) acts = labelBtn;
+    if(!unpaid && (o.stage===1 || o.stage===2)) acts += `<button class="act danger" data-xc="${o.order_number}">✕ Cancel order</button>`;
+    const canChange = !unpaid && (o.stage===1 || o.stage===2) && !(myCp && myCp.checked_out_at);
     const rider = (o.stage>=3 && (o.rider_name||o.rider_phone))
       ? `<div class="items">🛵 ${o.rider_name||'Rider'}${o.rider_phone?' · '+o.rider_phone:''}</div>` : '';
     const tel = o.contact ? o.contact.replace(/[^0-9+]/g,'') : '';
@@ -843,7 +919,7 @@ function renderRows(rows){
     const trackUrl = `https://mombasafishteam.netlify.app/?order=${encodeURIComponent(o.order_number)}&code=${encodeURIComponent(o.tracking_code||'')}`;
     // Stage-aware message the customer receives, pre-filled — staff just taps send
     const msgs = {
-      2: `Habari ${first}, oda yako ${o.order_number} imeandaliwa na iko tayari 📦 Tutakujulisha ikiondoka.`,
+      2: `Habari ${first}, oda yako ${o.order_number} imeandaliwa na iko tayari 📦 Tutakujulisha ikiondoka. Fuatilia hapa: ${trackUrl}`,
       3: dt==='mombasa'
           ? `Habari ${first}, oda yako ${o.order_number} iko njiani — rider anakuja sasa 🛵 Fuatilia hapa: ${trackUrl}`
           : `Habari ${first}, oda yako ${o.order_number} imeondoka Mombasa na iko njiani 🚚 Fuatilia hapa: ${trackUrl}`,
@@ -852,6 +928,10 @@ function renderRows(rows){
           : `Habari ${first}, oda yako ${o.order_number} imefika ✅ Asante kwa kuchagua Mombasafish 🐟`
     };
     const notifyMsg = msgs[o.stage];
+    const trackMsg = `Habari ${first}, fuatilia oda yako ${o.order_number} hapa: ${trackUrl}`;
+    const trackBlock = (!unpaid && o.stage >= 1 && o.stage <= 4 && o.tracking_code)
+      ? `<div class="trk"><span>🔗 Tracking link</span><button type="button" data-copy="${trackUrl}">Copy</button>${o.contact ? `<a href="https://wa.me/${wa}?text=${encodeURIComponent(trackMsg)}" target="_blank" rel="noopener">Send on WhatsApp</a>` : ''}</div>`
+      : '';
     const notify = (o.contact && notifyMsg)
       ? `<a class="notify" href="https://wa.me/${wa}?text=${encodeURIComponent(notifyMsg)}" target="_blank" rel="noopener">💬 Notify ${first||'customer'} on WhatsApp</a>`
       : '';
@@ -884,6 +964,7 @@ function renderRows(rows){
             <button class="fopt ${it.state===0?'on':''}" data-pick="0" data-item="${it.id}" data-order="${o.order_number}">○ Not yet caught · at sea</button>
             <button class="fopt ${it.state===1?'on':''}" data-pick="1" data-item="${it.id}" data-order="${o.order_number}">🔪 Caught · to be cleaned</button>
             <button class="fopt ${it.state===2?'on':''}" data-pick="2" data-item="${it.id}" data-order="${o.order_number}">✓ Iced & packed</button>
+            ${canChange ? `<button class="fopt chg" data-chg="${it.id}" data-order="${o.order_number}">⇄ Change this fish (not available)</button>` : ''}
           </div>` : '';
         return `<div class="fishwrap">
           <button class="fish ${cls2} ${isOpen?'open':''}" data-fish="${it.id}">
@@ -926,6 +1007,7 @@ function renderRows(rows){
       </div>
       ${placed}
       ${contact}
+      ${trackBlock}
       ${itemsBlock}
       ${(!unpaid && (o.stage===1 || o.stage===2) && cp.ok) ? cpLine(myCp) : ''}
       ${rider}
@@ -1031,6 +1113,175 @@ async function cpUndo(kind, ref, btn){
   await load();
   note(`${ref}: checkout undone.`);
 }
+/* ---------- tracking link ---------- */
+function copyLink(url){
+  const done = () => note('🔗 Tracking link copied — paste it to the customer.');
+  const fallback = () => {
+    const t = document.createElement('textarea'); t.value = url; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+    document.body.appendChild(t); t.select();
+    try { document.execCommand('copy'); done(); } catch(_) { note(url); }
+    t.remove();
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done, fallback); else fallback();
+}
+
+/* ---------- cancel an order waiting for dispatch ---------- */
+let xcOrder = null, xcReason = 'Customer cancelled';
+function setXcReason(r){
+  xcReason = r;
+  document.querySelectorAll('[data-xr]').forEach(b => b.classList.toggle('on', b.dataset.xr === r));
+  $('xcNoteLbl').textContent = r === 'Other' ? 'What happened? (required)' : 'Note (optional)';
+}
+function openCancel(order){
+  const o = orders.find(x => x.order_number === order); if(!o) return;
+  xcOrder = order;
+  $('xcFor').textContent = `${o.order_number} · ${o.customer_name || 'Customer'} · ${o.destination || ''}`;
+  $('xcNote').value = ''; $('xcRefund').value = '';
+  $('xcRefundRow').hidden = isUnpaid(o);
+  setXcReason('Customer cancelled');
+  $('xcSheet').classList.add('on');
+}
+function closeCancel(){ $('xcSheet').classList.remove('on'); xcOrder = null; }
+async function submitCancel(){
+  if(!xcOrder) return;
+  const order = xcOrder, nt = $('xcNote').value.trim(), rv = $('xcRefund').value.trim();
+  const refund = rv === '' ? null : Math.round(Number(rv));
+  if(xcReason === 'Other' && nt.length < 3){ note('Write what happened for "Other".', 'err'); return; }
+  if(refund !== null && !(refund >= 0)){ note('The refund amount looks wrong.', 'err'); return; }
+  const btn = $('xcGo'); btn.disabled = true; btn.textContent = 'Cancelling…';
+  const { error } = await sb.rpc('mfm_cancel_dispatch_order', { p_order: order, p_reason: xcReason, p_note: nt || null, p_refund_kes: refund });
+  btn.disabled = false; btn.textContent = 'Cancel order';
+  if(error){ note(error.message, 'err'); return; }
+  closeCancel();
+  await load();
+  noteUndo(`✕ ${order} cancelled${refund ? ` — refund of KES ${refund.toLocaleString('en-KE')} listed for Hemed` : ''}.`, async () => {
+    const { error } = await sb.rpc('undo_cancel', { p_order: order, p_staff: window.__staffName || 'staff' });
+    if(error){ note(error.message, 'err'); return; }
+    await load();
+    note(`Undone — ${order} is back on the list.`);
+  });
+}
+
+/* ---------- change a fish for another catalogue item ---------- */
+const CAT_URL = 'https://mombasafish.com/catalogue.html';
+let catalogue = null;
+async function loadCatalogue(){
+  if(catalogue) return catalogue;
+  let html;
+  try {
+    const r = await fetch(CAT_URL, { cache: 'no-store' });
+    if(!r.ok) throw new Error();
+    html = await r.text();
+  } catch(_) { throw new Error('Could not load the mombasafish.com catalogue. Check the internet and try again.'); }
+  const doc = new DOMParser().parseFromString(html, 'text/html'), seen = new Set(), list = [];
+  doc.querySelectorAll('.card[data-name][data-price]').forEach(c => {
+    if(c.dataset.box) return;                       // cooler boxes are packaging, not fish
+    const name = (c.dataset.name || '').trim(), price = Math.round(Number(c.dataset.price));
+    if(!name || !(price > 0) || seen.has(name) || /[;|]/.test(name)) return;
+    seen.add(name);
+    list.push({ name, price, unit: c.dataset.unit === 'kg' ? 'kg' : 'pc' });
+  });
+  if(!list.length) throw new Error('The mombasafish.com catalogue came back empty. Try again in a minute.');
+  return (catalogue = list);
+}
+function parseLine(name){
+  const m = String(name || '').match(/^(.*?) — ([0-9.]+) (kg|pc) — KES ([0-9,]+)$/);
+  return m ? { name: m[1], qty: Number(m[2]), unit: m[3], kes: Number(m[4].replace(/,/g, '')) } : { name: String(name || ''), qty: null, unit: null, kes: null };
+}
+const kes = n => 'KES ' + Math.round(n).toLocaleString('en-KE');
+let chg = null, chgReason = 'Not available';
+function setChgReason(r){ chgReason = r; document.querySelectorAll('[data-cr]').forEach(b => b.classList.toggle('on', b.dataset.cr === r)); }
+function chgPicked(){ return chg && catalogue ? catalogue.find(x => x.name === $('chgPick').value) || null : null; }
+function chgUpdate(){
+  const p = chgPicked(), sum = $('chgSum');
+  if(!p){ sum.textContent = 'Choose the new item.'; return; }
+  $('chgQtyLbl').textContent = p.unit === 'kg' ? 'Quantity (kg)' : 'Quantity (pieces)';
+  $('chgQty').step = p.unit === 'kg' ? '0.25' : '1'; $('chgQty').min = p.unit === 'kg' ? '0.25' : '1';
+  const q = Number($('chgQty').value);
+  if(!(q > 0)){ sum.textContent = 'Enter the quantity.'; return; }
+  const total = Math.round(q * p.price), old = chg.old.kes;
+  let diff = '';
+  if(old != null){
+    const d = total - old;
+    diff = d > 0 ? `<br><span class="up">Customer pays ${kes(d)} more</span>` : d < 0 ? `<br><span class="down">Customer is owed ${kes(-d)} back</span>` : '<br>Same price as before';
+  }
+  sum.innerHTML = `New line: <b>${esc(p.name)} — ${q} ${p.unit} — ${kes(total)}</b><br>${kes(p.price)} per ${p.unit === 'kg' ? 'kg' : 'piece'}${old != null ? ` · was ${kes(old)}` : ''}${diff}`;
+}
+async function openChange(itemId, order){
+  const o = orders.find(x => x.order_number === order), it = (itemsByOrder[order] || []).find(x => x.id === itemId);
+  if(!o || !it) return;
+  chg = { item: itemId, order, o, old: parseLine(it.item_name), oldName: it.item_name };
+  $('chgForm').hidden = false; $('chgDone').hidden = true;
+  $('chgFor').textContent = `${o.order_number} · ${o.customer_name || 'Customer'}`;
+  $('chgOld').textContent = `Now: ${it.item_name}`;
+  $('chgQty').value = ''; setChgReason('Not available');
+  const sel = $('chgPick'); sel.innerHTML = '<option value="">Loading the catalogue…</option>'; sel.disabled = true;
+  $('chgSum').textContent = 'Loading the mombasafish.com catalogue…';
+  $('chgSheet').classList.add('on');
+  try {
+    const list = await loadCatalogue();
+    const opt = x => `<option value="${esc(x.name)}">${esc(x.name)} — ${kes(x.price)}/${x.unit === 'kg' ? 'kg' : 'pc'}</option>`;
+    sel.innerHTML = '<option value="">Choose the new item…</option>' +
+      `<optgroup label="Sold by the kg">${list.filter(x => x.unit === 'kg').map(opt).join('')}</optgroup>` +
+      `<optgroup label="Packs, boxes and pieces">${list.filter(x => x.unit === 'pc').map(opt).join('')}</optgroup>`;
+    sel.disabled = false;
+    $('chgSum').textContent = 'Choose the new item.';
+  } catch(e) { sel.innerHTML = '<option value="">Catalogue not available</option>'; $('chgSum').textContent = e.message; }
+}
+function closeChange(){ $('chgSheet').classList.remove('on'); chg = null; }
+async function submitChange(){
+  const p = chgPicked();
+  if(!chg) return;
+  if(!p){ note('Choose the new item from the catalogue.', 'err'); return; }
+  const q = Number($('chgQty').value);
+  if(!(q > 0) || q > 500 || (p.unit === 'pc' && q !== Math.floor(q))){ note(p.unit === 'pc' ? 'Enter whole pieces.' : 'Enter the kg.', 'err'); return; }
+  const c = chg, btn = $('chgGo'); btn.disabled = true; btn.textContent = 'Saving…';
+  const { data, error } = await sb.rpc('mfm_change_order_item', { p_item: c.item, p_name: p.name, p_unit: p.unit, p_qty: q, p_unit_price: p.price, p_reason: chgReason });
+  btn.disabled = false; btn.textContent = 'Change fish';
+  if(error){ note(error.message, 'err'); return; }
+  const first = (c.o.customer_name || '').split(' ')[0] || '';
+  const d = data && data.difference_kes != null ? Number(data.difference_kes) : null;
+  const trackUrl = `https://mombasafishteam.netlify.app/?order=${encodeURIComponent(c.order)}&code=${encodeURIComponent(c.o.tracking_code || '')}`;
+  const money = d == null ? '' : d > 0 ? ` Tofauti ni ${kes(d)} zaidi.` : d < 0 ? ` Tutakurudishia ${kes(-d)}.` : ' Bei ni ile ile.';
+  const what = `${p.name} (${q} ${p.unit === 'kg' ? 'kg' : 'pc'})`;
+  const msg = chgReason === 'Customer asked'
+    ? `Habari ${first}, tumebadilisha ${c.old.name} kwenye oda yako ${c.order} na ${what} kama ulivyoomba.${money} Fuatilia hapa: ${trackUrl}`
+    : `Habari ${first}, samahani — ${c.old.name} haipatikani leo kwa oda yako ${c.order}. Tumeibadilisha na ${what}.${money} Fuatilia hapa: ${trackUrl}`;
+  $('chgDoneSum').innerHTML = `<b>${esc(data.new_name)}</b><br>was ${esc(data.old_name)}` +
+    (d == null ? '' : d > 0 ? `<br><span class="up">Customer pays ${kes(d)} more</span>` : d < 0 ? `<br><span class="down">Customer is owed ${kes(-d)} back</span>` : '<br>Same price') +
+    '<br>The new fish starts as "not yet caught" — pack it before dispatch.';
+  const tel = (c.o.contact || '').replace(/[^0-9+]/g, '').replace(/^\+/, '').replace(/^0/, '254');
+  $('chgTell').hidden = !tel; $('chgTell').href = `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`;
+  $('chgForm').hidden = true; $('chgDone').hidden = false;
+  openItem = null;
+  await load();
+  note(`⇄ ${c.order}: changed to ${p.name}.`);
+}
+async function undoChange(){
+  if(!chg) return;
+  const c = chg, btn = $('chgUndo'); btn.disabled = true;
+  const { error } = await sb.rpc('mfm_undo_item_change', { p_item: c.item });
+  btn.disabled = false;
+  if(error){ note(error.message, 'err'); return; }
+  closeChange();
+  await load();
+  note(`Undone — ${c.order} has its original fish again.`);
+}
+$('xcGo').addEventListener('click', submitCancel);
+$('xcBack').addEventListener('click', closeCancel);
+$('xcSheet').addEventListener('click', e => { if(e.target.id === 'xcSheet') closeCancel(); const r = e.target.closest('[data-xr]'); if(r) setXcReason(r.dataset.xr); });
+$('chgGo').addEventListener('click', submitChange);
+$('chgBack').addEventListener('click', closeChange);
+$('chgClose').addEventListener('click', closeChange);
+$('chgUndo').addEventListener('click', undoChange);
+$('chgPick').addEventListener('change', () => {
+  const p = chgPicked();
+  if(p) $('chgQty').value = (chg.old.unit === p.unit && chg.old.qty) ? chg.old.qty : 1;
+  chgUpdate();
+});
+$('chgQty').addEventListener('input', chgUpdate);
+$('chgSheet').addEventListener('click', e => { if(e.target.id === 'chgSheet') closeChange(); const r = e.target.closest('[data-cr]'); if(r) setChgReason(r.dataset.cr); });
+
 $('cpGo').addEventListener('click', cpSubmit);
 $('cpCancel').addEventListener('click', cpClose);
 $('cpSheet').addEventListener('click', e => { if(e.target.id === 'cpSheet') cpClose(); const c = e.target.closest('[data-cond]'); if(c) setCond(c.dataset.cond); });
@@ -1285,6 +1536,13 @@ $('list').addEventListener('click', e=>{
     cancelOrder(cancel.dataset.cancel, cancel);
     return;
   }
+  // Tracking link, cancel, change fish
+  const cpy = e.target.closest('[data-copy]');
+  if(cpy){ e.stopPropagation(); copyLink(cpy.dataset.copy); return; }
+  const xc = e.target.closest('[data-xc]');
+  if(xc){ e.stopPropagation(); openCancel(xc.dataset.xc); return; }
+  const chgBtn = e.target.closest('[data-chg]');
+  if(chgBtn){ e.stopPropagation(); openChange(Number(chgBtn.dataset.chg), chgBtn.dataset.order); return; }
   // Item state pick (from the 3-button picker)
   const pick = e.target.closest('[data-pick]');
   if(pick){
