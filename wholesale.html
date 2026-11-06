@@ -92,6 +92,9 @@ td.num,th.num{text-align:right;white-space:nowrap}
 .tl .pub{color:var(--teal);font-family:var(--mono);font-size:10px;letter-spacing:.08em}
 .subcard{border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:8px}
 .subcard .r1{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+.cpl{font-size:13px;border-left:3px solid var(--line);padding:2px 0 2px 8px}
+.cpl.ok{border-color:#3ddc97}.cpl.wait{border-color:var(--catch)}.cpl.bad{border-color:#ff7a33}
+.lockmsg{font-size:13px;color:var(--catch);background:rgba(255,184,77,.08);border-radius:8px;padding:8px 10px}
 details.more summary{cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--foam);min-height:40px;display:flex;align-items:center}
 details.more[open] summary{margin-bottom:8px}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:80;max-width:min(560px,92vw);padding:12px 16px;border-radius:10px;font-weight:600;box-shadow:0 10px 30px rgba(0,0,0,.4)}
@@ -192,6 +195,17 @@ const PAY = {unpaid:['Unpaid','warn'], part_paid:['Part paid','warn'], paid:['Pa
 const STAGES = ['Order received','Order confirmed','Production assigned','Processing and drying','Quality verification','Weighed and packaged','Awaiting dispatch','Dispatched from Shimoni','In transit','Delivered'];
 const SHIP = {planned:['Planned',''], dispatched:['Dispatched','info'], in_transit:['In transit','info'], delayed:['Delayed','bad'], delivered:['Delivered','good'], cancelled:['Cancelled','bad']};
 const BATCH = {committed:'Committed', processing:'Processing', drying:'Drying', awaiting_qc:'Awaiting QC', accepted:'Accepted', rejected:'Rejected', closed:'Closed', cancelled:'Cancelled'};
+// Mombasa check point: every shipment from Shimoni stops at Mombasa and is checked out by the shop staff (Dispatch page) before it goes on
+const ONROAD = ['dispatched','in_transit','delayed'];
+const cpDone = s => !!(s.checkpoint && s.checkpoint.checked_out_at);
+function cpLine(s) {
+  if (['planned','cancelled'].includes(s.status)) return '';
+  if (s.collection) return '<div class="cpl muted">Shimoni collection · no Mombasa stop</div>';
+  const c = s.checkpoint;
+  if (c && c.checked_out_at) return `<div class="cpl ${c.condition === 'issue' ? 'bad' : 'ok'}">✓ Checked out at Mombasa ${stamp(c.checked_out_at)}${c.checked_out_by ? ' by ' + esc(c.checked_out_by) : ''}${c.packages ? ' · ' + c.packages + ' pkg' : ''}${c.weight_kg != null ? ' · ' + kg(c.weight_kg) : ''}${c.condition === 'issue' ? ' · <b>problem</b>' : ''}${c.note ? ' · ' + esc(c.note) : ''}</div>`;
+  if (c && c.arrived_at) return `<div class="cpl wait">At the Mombasa check point since ${stamp(c.arrived_at)} · waiting to be checked out</div>`;
+  return ONROAD.includes(s.status) ? '<div class="cpl wait">Not at the Mombasa check point yet</div>' : '';
+}
 const MODES = {bus:'Bus / parcel', truck:'Truck', pickup:'Pickup', boat:'Boat', courier:'Courier', motorbike:'Motorbike', collection:'Collection', other:'Other'};
 const CONFIRM = {customer_call:'Customer phoned', customer_whatsapp:'Customer WhatsApp', signed_note:'Signed delivery note', photo:'Photo of handover', customer_portal:'Customer confirmed online', staff_handover:'Handed over by our staff'};
 const OWN = {supplier_until_dispatch:'Processor owns until dispatch', supplier_until_payment:'Processor owns until paid', mombasafish:'MombasaFish own stock'};
@@ -199,7 +213,7 @@ const CATS = {katashingo:'Katashingo', dried:'Dried fish', frozen:'Frozen seafoo
 const pill = (map, k) => { const v = map[k] || [k, '']; return `<span class="pill ${v[1]}">${esc(v[0])}</span>`; };
 
 const S = {tab: 'overview', test: false, admin: false, kpis: null, orders: [], places: [], products: [], tiers: [], batches: [], processors: [], shipments: [], cands: [],
-  openId: null, detail: null, allocOpts: {}, f: {q: '', cat: '', county: '', status: '', pay: '', ship: '', from: '', to: ''}, shipFilter: 'active'};
+  openId: null, detail: null, allocOpts: {}, f: {q: '', cat: '', county: '', status: '', pay: '', ship: '', from: '', to: ''}, shipFilter: 'active', cpOn: false};
 
 /* ---------- plumbing ---------- */
 async function rpc(fn, args) {
@@ -232,7 +246,9 @@ async function loadTab() {
     [S.processors, S.batches] = await Promise.all([rpc('mfm_w_processors_list', {p_include_test: t}), rpc('mfm_w_batches_list', {p_include_test: t})]);
     if (!S.products.length) await loadProducts();
   } else if (S.tab === 'shipments') {
-    [S.shipments, S.cands] = await Promise.all([rpc('mfm_w_shipments_list', {p_include_test: t}), rpc('mfm_w_ship_candidates')]);
+    let on;
+    [S.shipments, S.cands, on] = await Promise.all([rpc('mfm_w_shipments_list', {p_include_test: t}), rpc('mfm_w_ship_candidates'), rpc('mfm_cp_enforced').catch(() => false)]);
+    S.cpOn = on === true;
   } else if (S.tab === 'catalogue') {
     await loadProducts();
   }
@@ -415,23 +431,25 @@ function viewShipments() {
       <div style="grid-column:1/-1"><label class="lbl">Notes</label><input name="notes" maxlength="300"></div>
     </div><div><button class="btn">Create shipment</button></div></form>`;
   h += '</section><section class="sec"><h2>Manifest</h2><div class="bar">' +
-    ['active','planned','delivered','delayed','all'].map(k => `<button class="tab" data-act="ship-filter" data-k="${k}" aria-selected="${S.shipFilter === k}">${{active:'On the road',planned:'Awaiting dispatch',delivered:'Delivered',delayed:'Delayed',all:'All'}[k]}</button>`).join('') + '</div>';
-  const list = S.shipments.filter(s => S.shipFilter === 'all' || (S.shipFilter === 'active' ? ['dispatched','in_transit','delayed'].includes(s.status) : s.status === S.shipFilter));
+    ['active','mombasa','planned','delivered','delayed','all'].map(k => `<button class="tab" data-act="ship-filter" data-k="${k}" aria-selected="${S.shipFilter === k}">${{active:'On the road',mombasa:'At Mombasa',planned:'Awaiting dispatch',delivered:'Delivered',delayed:'Delayed',all:'All'}[k]}</button>`).join('') + '</div>';
+  const atCp = s => ONROAD.includes(s.status) && s.checkpoint && s.checkpoint.arrived_at && !s.checkpoint.checked_out_at;
+  const list = S.shipments.filter(s => S.shipFilter === 'all' || (S.shipFilter === 'active' ? ONROAD.includes(s.status) : S.shipFilter === 'mombasa' ? atCp(s) : s.status === S.shipFilter));
   if (!list.length) h += '<p class="empty">No shipments here.</p>';
   else h += '<div class="attn">' + list.map(s => `<div class="subcard"><div class="r1"><span><b class="mono">${esc(s.ref)}</b> ${s.is_test ? '<span class="pill test">Test</span>' : ''} ${pill(SHIP, s.status)}</span><span class="mono">${kg(s.kg)}</span></div>
       <div class="small">${esc(s.origin.name)} → <b>${esc(s.dest.name)}</b>, ${esc(s.dest.county)} · ${esc(MODES[s.transport_mode])}${s.carrier ? ' · ' + esc(s.carrier) : ''}${s.waybill_ref ? ' · waybill ' + esc(s.waybill_ref) : ''}</div>
       <div class="small muted">Orders ${esc(s.orders)} · ${esc(s.products)}</div>
       <div class="small muted">${s.dispatched_at ? 'Left ' + stamp(s.dispatched_at) : 'Not dispatched'}${s.eta ? ' · ETA ' + day(s.eta) : ''}${s.last_location ? ' · last confirmed ' + esc(s.last_location) + ' ' + stamp(s.last_location_at) : ''}${s.delivered_at ? ' · delivered ' + stamp(s.delivered_at) + ' to ' + esc(s.received_by) : ''}</div>
+      ${cpLine(s)}
       ${s.status === 'planned' ? `<div class="row-btns"><button class="btn sm" data-act="ship-dispatch" data-id="${s.id}">Dispatch from Shimoni</button><button class="btn bad sm" data-act="ship-cancel" data-id="${s.id}">Cancel</button></div>` : ''}
       ${['dispatched','in_transit','delayed'].includes(s.status) ? `<details class="more"><summary>Update location / status</summary><form data-form="ship-update" data-id="${s.id}" class="grid">
           <div><label class="lbl">Status</label><select name="status"><option value="in_transit">In transit</option><option value="delayed">Delayed</option></select></div>
           <div><label class="lbl">Last confirmed location</label><input name="location" placeholder="e.g. Kitale bus stage"></div>
           <div><label class="lbl">Or pick a town</label><select name="place"><option value="">–</option>${placeOpts}</select></div>
           <div><label class="lbl">Internal note</label><input name="note"></div><div><button class="btn ghost">Save update</button></div></form></details>
-        <details class="more"><summary>Confirm delivery</summary><form data-form="ship-deliver" data-id="${s.id}" class="grid">
+        ${!s.collection && !cpDone(s) && S.cpOn ? '<div class="lockmsg">🔒 Confirm delivery opens after the Mombasa shop checks this shipment out (Dispatch page → Mombasa check).</div>' : `<details class="more"><summary>Confirm delivery</summary>${!s.collection && !cpDone(s) ? '<p class="small muted">Not checked out at Mombasa yet. This will be required once the Mombasa check point rule is switched on.</p>' : ''}<form data-form="ship-deliver" data-id="${s.id}" class="grid">
           <div><label class="lbl">Received by</label><input name="received_by" required></div>
           <div><label class="lbl">How confirmed</label><select name="method">${Object.entries(CONFIRM).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
-          <div><label class="lbl">Note</label><input name="note"></div><div><button class="btn">Mark delivered</button></div></form></details>` : ''}
+          <div><label class="lbl">Note</label><input name="note"></div><div><button class="btn">Mark delivered</button></div></form></details>`}` : ''}
     </div>`).join('') + '</div>';
   return h + '</section>';
 }
@@ -547,7 +565,7 @@ function viewDetail(d) {
   }
 
   if (d.shipments.length) h += '<div class="card"><h2>Shipments</h2>' + d.shipments.map(s => `<div class="subcard small"><div class="r1"><span><b class="mono">${esc(s.ref)}</b> ${pill(SHIP, s.status)}</span><span>${kg(s.kg)} · ${esc(MODES[s.mode])}</span></div>
-      <span class="muted">${s.dispatched_at ? 'Left ' + stamp(s.dispatched_at) : 'Planned'}${s.eta ? ' · ETA ' + day(s.eta) : ''}${s.last_location ? ' · last at ' + esc(s.last_location) : ''}${s.delivered_at ? ' · delivered to ' + esc(s.received_by) : ''}</span></div>`).join('') + '<p class="small muted" style="margin-top:6px">Dispatch, location updates and delivery are recorded in the Shipments tab.</p></div>';
+      <span class="muted">${s.dispatched_at ? 'Left ' + stamp(s.dispatched_at) : 'Planned'}${s.eta ? ' · ETA ' + day(s.eta) : ''}${s.last_location ? ' · last at ' + esc(s.last_location) : ''}${s.delivered_at ? ' · delivered to ' + esc(s.received_by) : ''}</span>${cpLine(s)}</div>`).join('') + '<p class="small muted" style="margin-top:6px">Dispatch, location updates and delivery are recorded in the Shipments tab. The Mombasa check is done on the Dispatch page.</p></div>';
 
   if (S.admin && ['delivered','dispatched','processing','ready','confirmed','quote_accepted'].includes(o.status)) {
     const cm = d.commission || {}, rate = cm.rate ?? d.default_rate ?? 0.1;

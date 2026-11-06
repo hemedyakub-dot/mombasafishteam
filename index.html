@@ -360,6 +360,11 @@ h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01
   .hero{min-height:440px}
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+.rmap{padding:4px 22px 18px}
+.rmap.hidden{display:none}
+.rmap .chain-hd{margin-bottom:10px}
+.rmap-cap{margin:10px 0 2px;font-size:14px;font-weight:600;color:var(--sand)}
+.rmap-nt{margin:0;font-size:12px;color:rgba(242,237,227,.6)}
 </style>
 </head>
 <body>
@@ -427,6 +432,7 @@ h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01
           <div id="rChain"></div>
           <div id="rExtra" class="hidden"></div>
         </div>
+        <div class="rmap hidden" id="rMap"></div>
         <div class="detail">
           <dl>
             <div class="row"><dt>Mzigo · Your catch</dt><dd id="rItems"></dd></div>
@@ -448,6 +454,7 @@ h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01
   </main>
 </div>
 
+<script src="/kmap.js?v=1"></script>
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -663,6 +670,18 @@ async function track(){
     if(hit.stage === 3) cbtn.classList.remove('hidden');
   }
   $('result').classList.add('on');
+
+  /* Route map: Shimoni -> Mombasa check point -> the customer's county (never the exact address) */
+  const mapBox = $('rMap');
+  mapBox.classList.add('hidden'); mapBox.innerHTML = '';
+  try{
+    const { data: route } = await sb.rpc('track_order_route', { p_order: o, p_code: c });
+    const m = window.KMap && window.KMap.retail(route, { cw: Math.max(280, Math.min(mapBox.parentElement.clientWidth || 360, 640) - 44), dark: true });
+    if(m){
+      mapBox.innerHTML = `<div class="chain-hd">Ramani · Route</div>${m.svg}<p class="rmap-cap">${m.caption}</p><p class="rmap-nt">${m.note}</p>`;
+      mapBox.classList.remove('hidden');
+    }
+  }catch(e){ /* the map is a bonus; never block the tracker on it */ }
 
   /* Loyalty — the fleet. Ngalawa · Mashua · Dau · Meli, boats that grow.
      Count only, no money — safe on a forwarded link. */

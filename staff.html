@@ -264,6 +264,28 @@ input:focus{outline:none;border-color:var(--foam)}
   color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
 .ghost:hover{border-color:var(--sand);color:var(--sand)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* Mombasa checkpoint */
+.cp{margin-top:9px;padding:9px 11px;border-radius:4px;font-size:13px;line-height:1.45;border:1px solid var(--faint);background:rgba(242,237,227,.05)}
+.cp b{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;margin-right:6px}
+.cp.cp0{color:var(--dim)}
+.cp.cp1{border-color:rgba(255,184,77,.5);background:rgba(255,184,77,.08)}
+.cp.cp1 b{color:var(--catch)}
+.cp.cp2{border-color:rgba(127,212,193,.45);background:rgba(127,212,193,.08)}
+.cp.cp2 b{color:var(--foam)}
+.cp.cpX{border-color:rgba(255,107,90,.55);background:rgba(255,107,90,.08)}
+.act.cp-go{border-color:var(--foam);color:var(--foam)}
+.cp-banner{border:1px dashed rgba(255,184,77,.55);color:var(--catch);border-radius:4px;padding:10px 12px;font-size:13px;margin-bottom:14px}
+.cp-h{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--foam);margin:20px 0 9px}
+.cp-h span{color:var(--dim)}
+.wtag{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;padding:3px 7px;border-radius:2px;margin-left:8px;vertical-align:middle;background:rgba(127,212,193,.16);color:var(--foam)}
+.ttag{background:rgba(255,184,77,.25);color:var(--catch)}
+.seg2{display:flex;gap:8px;margin-bottom:14px}
+.seg2 button{flex:1;padding:13px;border:1px solid var(--faint);background:transparent;color:var(--sand);border-radius:3px;font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+.seg2 button.on.ok{border-color:var(--foam);color:var(--abyss);background:var(--foam)}
+.seg2 button.on.bad{border-color:var(--coral);color:#fff;background:var(--coral)}
+textarea.cpnote{width:100%;padding:12px;background:rgba(3,42,46,.78);border:1px solid var(--faint);border-radius:3px;color:var(--sand);font-family:var(--body);font-size:15px;margin-bottom:14px;min-height:64px;resize:vertical}
+@media (max-width:520px){.tabs{flex-wrap:wrap}.tab{flex:1 1 30%}}
 </style>
 </head>
 <body>
@@ -330,6 +352,7 @@ input:focus{outline:none;border-color:var(--foam)}
     <div class="tabs">
       <button class="tab" data-f="unpaid">Awaiting payment</button>
       <button class="tab on" data-f="todo">To dispatch</button>
+      <button class="tab" data-f="mombasa">Mombasa check</button>
       <button class="tab" data-f="road">On the road</button>
       <button class="tab" data-f="done">Arrived</button>
       <button class="tab owner-only hidden" data-f="repeats">Repeat customers</button>
@@ -362,6 +385,30 @@ input:focus{outline:none;border-color:var(--foam)}
     <div class="sheet-acts">
       <button class="ghost" id="sheetCancel">Cancel</button>
       <button class="btn" id="sheetGo">Dispatch</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mombasa checkpoint: check out -->
+<div class="sheet" id="cpSheet">
+  <div class="sheet-in">
+    <h2>Check out at Mombasa</h2>
+    <div class="for" id="cpFor"></div>
+    <label for="cpPk">Packages (boxes, bags or sacks)</label>
+    <input id="cpPk" type="number" inputmode="numeric" min="1" max="999" value="1">
+    <label for="cpKg" id="cpKgLbl">Weight (kg)</label>
+    <input id="cpKg" type="number" inputmode="decimal" step="0.1" min="0.1">
+    <p class="opt" id="cpKgHint"></p>
+    <label>Condition</label>
+    <div class="seg2" role="group" aria-label="Condition">
+      <button type="button" class="on ok" data-cond="ok">✓ OK</button>
+      <button type="button" data-cond="issue">⚠ Problem</button>
+    </div>
+    <label for="cpNote" id="cpNoteLbl">Note (optional)</label>
+    <textarea class="cpnote" id="cpNote" maxlength="300" placeholder="e.g. ice melted, one box damaged, seal broken"></textarea>
+    <div class="sheet-acts">
+      <button class="ghost" id="cpCancel">Cancel</button>
+      <button class="btn" id="cpGo">Check out</button>
     </div>
   </div>
 </div>
@@ -566,7 +613,34 @@ async function load(){
       itemsByOrder = {};
     }
   }
+  await loadCp();
   render();
+}
+
+/* ---- Mombasa checkpoint: every order from Shimoni stops at Mombasa and is checked out ---- */
+let cp = { retail: {}, wholesale: [], enforced: false, ok: false };
+async function loadCp(){
+  try{
+    const { data, error } = await sb.rpc('mfm_cp_board', { p_include_test: false });
+    if(error) throw error;
+    cp = { retail: {}, wholesale: data.wholesale || [], enforced: !!data.enforced, ok: true };
+    (data.retail || []).forEach(r => { cp.retail[r.order_number] = r; });
+  }catch(e){ cp = { retail: {}, wholesale: [], enforced: false, ok: false }; }
+}
+const cpOf = no => cp.retail[no] || null;
+function cpTime(iso){ return iso ? new Date(iso).toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' }) : ''; }
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+/* status line shown on an order card */
+function cpLine(c){
+  if(c && c.checked_out_at) return `<div class="cp cp2"><b>✓ Checked out at Mombasa</b>${cpTime(c.checked_out_at)} · ${esc(c.checked_out_by || '')}${c.packages ? ' · ' + c.packages + ' pkg' : ''}${c.weight_kg ? ' · ' + c.weight_kg + ' kg' : ''}${c.condition === 'issue' ? ' · <span style="color:var(--coral)">⚠ ' + esc(c.note || 'problem') + '</span>' : ''}</div>`;
+  if(c && c.arrived_at) return `<div class="cp cp1"><b>📍 At Mombasa</b>since ${cpTime(c.arrived_at)} · check it, then check out</div>`;
+  return `<div class="cp cp0"><b>🚚 From Shimoni</b>not at Mombasa yet</div>`;
+}
+/* the two checkpoint buttons */
+function cpButtons(kind, ref, c){
+  if(c && c.checked_out_at) return '';
+  const a = (c && c.arrived_at) ? '' : `<button class="act" data-cpa="${esc(ref)}" data-kind="${kind}">📍 Arrived at Mombasa</button>`;
+  return a + `<button class="act cp-go" data-cpo="${esc(ref)}" data-kind="${kind}">✓ Check out</button>`;
 }
 
 const ITEM_STATE = {
@@ -658,6 +732,7 @@ function render(){
   $('searchInfo').style.display = 'none';
 
   if(filter === 'repeats'){ renderRepeats(); return; }
+  if(filter === 'mombasa'){ renderMombasa(); return; }
   const sets = {
     unpaid: o => isUnpaid(o),
     todo:   o => (o.stage===1||o.stage===2) && !isUnpaid(o),
@@ -688,9 +763,13 @@ function renderRows(rows){
     const hasItems = myItems.length > 0;
     const allItemsPacked = hasItems ? myItems.every(x => x.state === 2) : true;
     const notPacked = hasItems ? myItems.filter(x => x.state !== 2).length : 0;
-    const dispatchBtn = allItemsPacked
-      ? `<button class="act go" data-d="${o.order_number}">Dispatch →</button>`
-      : `<button class="act go locked" disabled title="Pack all items first">🔒 Dispatch (${notPacked} item${notPacked>1?'s':''} not packed)</button>`;
+    const myCp = cpOf(o.order_number);
+    const cpBlocked = cp.enforced && !(myCp && myCp.checked_out_at);
+    const dispatchBtn = !allItemsPacked
+      ? `<button class="act go locked" disabled title="Pack all items first">🔒 Dispatch (${notPacked} item${notPacked>1?'s':''} not packed)</button>`
+      : cpBlocked
+        ? `<button class="act go locked" disabled title="Check out at Mombasa first">🔒 Dispatch (check out at Mombasa first)</button>`
+        : `<button class="act go" data-d="${o.order_number}">Dispatch →</button>`;
 
     const labelBtn = `<button class="act" data-label="${o.order_number}">🏷️ Print label</button>`;
     let acts = '';
@@ -702,9 +781,9 @@ function renderRows(rows){
       const markBtn = allItemsPacked
         ? `<button class="act" data-s="2" data-o="${o.order_number}">Mark ${dt==='mombasa'?'prepared':'packed'}</button>`
         : `<button class="act locked" disabled title="Pack all items first">🔒 Pack all items to continue</button>`;
-      acts = `${labelBtn}${markBtn}${allItemsPacked ? dispatchBtn : ''}`;
+      acts = `${labelBtn}${markBtn}${allItemsPacked ? cpButtons('retail', o.order_number, myCp) + dispatchBtn : ''}`;
     }
-    else if(o.stage===2) acts = `${labelBtn}${dispatchBtn}`;
+    else if(o.stage===2) acts = `${labelBtn}${cpButtons('retail', o.order_number, myCp)}${dispatchBtn}`;
     else if(o.stage===3) acts = `${labelBtn}<button class="act" data-s="4" data-o="${o.order_number}">Mark ${dt==='pickup'?'collected':'arrived'}</button>`;
     else if(o.stage===4) acts = labelBtn;
     const rider = (o.stage>=3 && (o.rider_name||o.rider_phone))
@@ -799,12 +878,113 @@ function renderRows(rows){
       ${placed}
       ${contact}
       ${itemsBlock}
+      ${(!unpaid && (o.stage===1 || o.stage===2) && cp.ok) ? cpLine(myCp) : ''}
       ${rider}
       ${unpaid ? payBlock : notify}
       ${acts ? `<div class="acts">${acts}</div>` : ''}
     </div>`;
   }).join('');
 }
+
+function renderMombasa(){
+  const list = $('list');
+  if(!cp.ok){ list.innerHTML = '<div class="empty">Could not load the Mombasa checkpoint. Pull down to refresh or try again.</div>'; return; }
+  const paid = orders.filter(o => (o.stage===1 || o.stage===2) && !isUnpaid(o));
+  const rAt = paid.filter(o => { const c = cpOf(o.order_number); return c && c.arrived_at && !c.checked_out_at; });
+  const rComing = paid.filter(o => { const c = cpOf(o.order_number); return !c || !c.arrived_at; });
+  const rOut = paid.filter(o => { const c = cpOf(o.order_number); return c && c.checked_out_at; });
+  const wAt = cp.wholesale.filter(w => w.arrived_at && !w.checked_out_at);
+  const wComing = cp.wholesale.filter(w => !w.arrived_at && !w.checked_out_at);
+  const wOut = cp.wholesale.filter(w => w.checked_out_at);
+
+  const rCard = o => {
+    const c = cpOf(o.order_number), dt = o.delivery_type || 'upcountry';
+    return `<div class="order"><div class="order-top"><div>
+        <div class="ono">${esc(o.order_number)}<span class="dtype d-${dt}">${DTYPE[dt]}</span></div>
+        <div class="cust">${esc(o.customer_name || 'Customer')}</div><div class="dest">${esc(o.destination || '')}</div></div>
+        <div class="pills"><span class="pill ${(STAGE[o.stage]||['','p1'])[1]}">${(STAGE[o.stage]||['—'])[0]}</span></div></div>
+      ${cpLine(c)}
+      ${c && c.checked_out_at ? `<div class="acts"><button class="act" data-cpu="${esc(o.order_number)}" data-kind="retail">Undo checkout</button></div>` : `<div class="acts">${cpButtons('retail', o.order_number, c)}</div>`}
+    </div>`;
+  };
+  const wCard = w => `<div class="order"><div class="order-top"><div>
+        <div class="ono">${esc(w.ref)}<span class="wtag">Wholesale</span>${w.is_test ? '<span class="wtag ttag">Test</span>' : ''}</div>
+        <div class="cust">${Number(w.kg).toLocaleString('en-KE')} kg → ${esc(w.to_town)}, ${esc(w.to_county)}</div>
+        <div class="dest">${[w.carrier, w.waybill_ref ? 'waybill ' + w.waybill_ref : '', w.vehicle_ref].filter(Boolean).map(esc).join(' · ') || esc(w.transport_mode)}${w.dispatched_at ? ' · left Shimoni ' + cpTime(w.dispatched_at) : ''}</div></div></div>
+      ${w.checked_out_at ? cpLine(w) : w.arrived_at ? cpLine(w) : cpLine(null)}
+      ${w.checked_out_at ? '' : `<div class="acts">${cpButtons('wholesale', w.ref, w)}</div>`}
+    </div>`;
+  const sec = (title, n, html) => `<div class="cp-h">${title} <span>· ${n}</span></div>` + (n ? html : '<div class="empty" style="padding:18px">None</div>');
+
+  list.innerHTML =
+    (cp.enforced ? '' : '<div class="cp-banner">Practice mode: dispatch is not blocked yet. Record every arrival and checkout anyway — Hemed will switch the rule on.</div>') +
+    sec('At Mombasa now — check these out', rAt.length + wAt.length, wAt.map(wCard).join('') + rAt.map(rCard).join('')) +
+    sec('Coming from Shimoni', rComing.length + wComing.length, wComing.map(wCard).join('') + rComing.map(rCard).join('')) +
+    sec('Checked out — ready to go', rOut.length, rOut.map(rCard).join('')) +
+    (wOut.length ? sec('Wholesale checked out (last 2 days)', wOut.length, wOut.map(wCard).join('')) : '');
+}
+
+/* ---- checkpoint actions ---- */
+let cpPending = null, cpCond = 'ok';
+async function cpArrive(kind, ref, btn){
+  btn.disabled = true; const old = btn.textContent; btn.textContent = 'Saving…';
+  const { error } = await sb.rpc('mfm_cp_arrive', { p_kind: kind, p_ref: ref, p_note: null });
+  if(error){ note(error.message, 'err'); btn.disabled = false; btn.textContent = old; return; }
+  await load();
+  note(`📍 ${ref} marked as arrived at Mombasa.`);
+}
+function cpOpen(kind, ref){
+  const w = kind === 'wholesale' ? cp.wholesale.find(x => x.ref === ref) : null;
+  const o = kind === 'retail' ? orders.find(x => x.order_number === ref) : null;
+  cpPending = { kind, ref };
+  $('cpFor').textContent = w ? `${w.ref} · ${Number(w.kg).toLocaleString('en-KE')} kg sent → ${w.to_town}` : `${ref} · ${o ? (o.customer_name || '') + ' · ' + (o.destination || '') : ''}`;
+  $('cpPk').value = 1;
+  $('cpKg').value = '';
+  $('cpKgLbl').textContent = w ? 'Weight on the scale (kg) — required' : 'Weight (kg) — optional';
+  $('cpKgHint').textContent = w ? `Shimoni sent ${Number(w.kg).toLocaleString('en-KE')} kg. Weigh it here; a big difference is flagged to Hemed.` : '';
+  $('cpNote').value = '';
+  setCond('ok');
+  $('cpSheet').classList.add('on');
+  setTimeout(() => $('cpPk').focus(), 50);
+}
+function setCond(c){
+  cpCond = c;
+  document.querySelectorAll('[data-cond]').forEach(b => { b.classList.toggle('on', b.dataset.cond === c); });
+  $('cpNoteLbl').textContent = c === 'issue' ? 'What is the problem? (required)' : 'Note (optional)';
+}
+function cpClose(){ $('cpSheet').classList.remove('on'); cpPending = null; }
+async function cpSubmit(){
+  if(!cpPending) return;
+  const { kind, ref } = cpPending;
+  const pk = parseInt($('cpPk').value, 10), kg = $('cpKg').value === '' ? null : Number($('cpKg').value), nt = $('cpNote').value.trim();
+  if(!pk || pk < 1){ note('Count the packages.', 'err'); return; }
+  if(kind === 'wholesale' && !(kg > 0)){ note('Weigh the shipment and enter the kg.', 'err'); return; }
+  if(cpCond === 'issue' && nt.length < 3){ note('Describe the problem in the note.', 'err'); return; }
+  const btn = $('cpGo'); btn.disabled = true; btn.textContent = 'Saving…';
+  const { error } = await sb.rpc('mfm_cp_checkout', { p_kind: kind, p_ref: ref, p_packages: pk, p_weight_kg: kg, p_condition: cpCond, p_note: nt || null });
+  btn.disabled = false; btn.textContent = 'Check out';
+  if(error){ note(error.message, 'err'); return; }
+  cpClose();
+  await load();
+  noteUndo(`✓ ${ref} checked out at Mombasa${kind === 'retail' ? ' — you can dispatch it now' : ''}.`, async () => {
+    const { error } = await sb.rpc('mfm_cp_undo', { p_kind: kind, p_ref: ref, p_reason: 'Undone right after checkout' });
+    if(error){ note(error.message, 'err'); return; }
+    await load();
+    note(`Undone — ${ref} is back to not checked out.`);
+  });
+}
+async function cpUndo(kind, ref, btn){
+  const why = prompt(`Why undo the Mombasa checkout for ${ref}?`);
+  if(!why || why.trim().length < 3) return;
+  btn.disabled = true;
+  const { error } = await sb.rpc('mfm_cp_undo', { p_kind: kind, p_ref: ref, p_reason: why.trim() });
+  if(error){ note(error.message, 'err'); btn.disabled = false; return; }
+  await load();
+  note(`${ref}: checkout undone.`);
+}
+$('cpGo').addEventListener('click', cpSubmit);
+$('cpCancel').addEventListener('click', cpClose);
+$('cpSheet').addEventListener('click', e => { if(e.target.id === 'cpSheet') cpClose(); const c = e.target.closest('[data-cond]'); if(c) setCond(c.dataset.cond); });
 
 let repeatsData = null;
 async function renderRepeats(){
@@ -1065,6 +1245,13 @@ $('list').addEventListener('click', e=>{
   // Seed items for an order that has none yet
   const seed = e.target.closest('[data-seed]');
   if(seed){ seedItems(seed.dataset.seed); return; }
+  // Mombasa checkpoint
+  const cpa = e.target.closest('[data-cpa]');
+  if(cpa){ cpArrive(cpa.dataset.kind, cpa.dataset.cpa, cpa); return; }
+  const cpo = e.target.closest('[data-cpo]');
+  if(cpo){ cpOpen(cpo.dataset.kind, cpo.dataset.cpo); return; }
+  const cpu = e.target.closest('[data-cpu]');
+  if(cpu){ cpUndo(cpu.dataset.kind, cpu.dataset.cpu, cpu); return; }
   // Dispatch
   const d = e.target.closest('[data-d]');
   if(d){ openSheet(d.dataset.d); return; }

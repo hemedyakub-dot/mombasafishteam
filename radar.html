@@ -92,6 +92,16 @@ a{color:var(--foam)}
 .rt.flow.delayed{stroke:var(--st-delayed);animation-duration:2.6s}
 .rt.planned{stroke:rgba(242,237,227,.55);stroke-width:1.6;stroke-dasharray:1 6}
 .rt.delivered{stroke:rgba(143,163,163,.40);stroke-width:1.3}
+.rt.doneleg{stroke:rgba(61,220,151,.55);stroke-width:1.8}
+.rt.rflow{stroke:#9ad7ff;stroke-width:1.6;stroke-dasharray:3 6;animation:flow 1.6s linear infinite}
+.rm{cursor:pointer}
+.rm rect.sq{stroke:#021d20;stroke-width:1.6}
+.rm text,.cpm text{font-family:var(--mono);font-size:11px;fill:var(--sand);paint-order:stroke;stroke:#021a1d;stroke-width:3px;stroke-linejoin:round;pointer-events:none}
+.rm text.sub{font-size:10px;fill:var(--dim)}
+.cpm{cursor:pointer}
+.cpm .badge{font-size:10px;fill:#021d20;stroke:none;font-weight:600}
+.lay{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+@media (prefers-reduced-motion:reduce){.rt.rflow{animation:none}}
 .routes.has-sel .rtg:not(.sel){opacity:.14}
 .rtg.sel .rt{stroke-width:3.6}
 @keyframes flow{to{stroke-dashoffset:-32}}
@@ -124,7 +134,7 @@ a{color:var(--foam)}
 .legend{position:absolute;right:10px;bottom:10px;max-width:min(262px,calc(100% - 20px));background:rgba(2,29,32,.88);border:1px solid var(--faint);border-radius:12px;padding:8px 12px;font-size:11.5px;line-height:1.35;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 .legend summary{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);cursor:pointer;min-height:24px;display:flex;align-items:center}
 .legend ul{list-style:none;display:grid;gap:3px;margin-top:6px}
-.legend:not([open]){padding:0 12px}
+.legend:not([open]){padding:0 12px;right:auto;left:10px}
 .legend summary{min-height:38px}
 .legend li{display:flex;align-items:center;gap:8px}
 .legend .sw{width:22px;flex:none;display:inline-flex;justify-content:center}
@@ -223,10 +233,15 @@ td.num,th.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-n
   <main class="radar">
     <section class="mapcol" aria-label="Map">
       <div class="mapbox" id="mapbox">
-        <svg id="map" role="img" aria-labelledby="mapTitle"><title id="mapTitle">Map of Kenya showing wholesale demand and shipments from Shimoni</title></svg>
+        <svg id="map" role="img" aria-labelledby="mapTitle"><title id="mapTitle">Map of Kenya showing orders and shipments from Shimoni through the Mombasa check point</title></svg>
         <div class="tools">
-          <div class="seg" role="group" aria-label="Map view">
-            <button data-act="view" data-v="markers" aria-pressed="true">Markers</button><button data-act="view" data-v="heat" aria-pressed="false">Heat</button><button data-act="view" data-v="counties" aria-pressed="false">Counties</button>
+          <div class="lay">
+            <div class="seg" role="group" aria-label="Map view">
+              <button data-act="view" data-v="markers" aria-pressed="true">Markers</button><button data-act="view" data-v="heat" aria-pressed="false">Heat</button><button data-act="view" data-v="counties" aria-pressed="false">Counties</button>
+            </div>
+            <div class="seg" role="group" aria-label="Orders shown">
+              <button data-act="layer" data-l="both" aria-pressed="true">All</button><button data-act="layer" data-l="wholesale" aria-pressed="false">Wholesale</button><button data-act="layer" data-l="retail" aria-pressed="false">Retail</button>
+            </div>
           </div>
           <div class="seg zoom" role="group" aria-label="Zoom">
             <button data-act="zin" aria-label="Zoom in">+</button><button data-act="zout" aria-label="Zoom out">−</button><button data-act="zreset" aria-label="Show all of Kenya">Kenya</button>
@@ -236,7 +251,7 @@ td.num,th.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-n
         <div class="pop hidden" id="pop" role="dialog" aria-label="Details"></div>
         <div class="emptymap hidden" id="emptyMap"></div>
       </div>
-      <p class="note">Vehicle pins mark where our team last confirmed the shipment (driver call, waybill or delivery note). They are not live GPS and do not move between updates. A town marked “approx.” uses the county headquarters because the buyer’s town is not on our list.</p>
+      <p class="note">Vehicle pins mark where our team last confirmed a shipment on the road (driver call, waybill or delivery note). They are not live GPS and do not move between updates. Shipments with no update since Shimoni or the Mombasa check point show no pin; see the Manifest. A town marked “approx.” uses the county headquarters because the buyer’s town is not on our list.</p>
     </section>
 
     <aside class="side" aria-label="Radar panels">
@@ -284,8 +299,10 @@ const COLOR = s => css('--st-' + s) || '#ccc';
 const st = (s, label) => `<span class="st st-${s}"><i></i>${esc(label || STATE_SHORT[s] || s)}</span>`;
 const test = x => x ? ' <span class="pill test">TEST</span>' : '';
 
-const S = {data: null, test: false, tab: 'hub', view: 'markers', filter: 'all', q: '', sel: null, live: false};
-try { S.test = localStorage.getItem('mfm_radar_test') === '1'; S.view = localStorage.getItem('mfm_radar_view') || 'markers'; } catch (_) {}
+const S = {data: null, test: false, tab: 'hub', view: 'markers', layer: 'both', filter: 'all', q: '', sel: null, live: false};
+try { S.test = localStorage.getItem('mfm_radar_test') === '1'; S.view = localStorage.getItem('mfm_radar_view') || 'markers'; S.layer = localStorage.getItem('mfm_radar_layer') || 'both'; } catch (_) {}
+if (!['both', 'wholesale', 'retail'].includes(S.layer)) S.layer = 'both';
+const wantW = () => S.layer !== 'retail', wantR = () => S.layer !== 'wholesale';
 if (!['markers', 'heat', 'counties'].includes(S.view)) S.view = 'markers';
 
 async function rpc(fn, args) {
@@ -310,6 +327,7 @@ const gCtyLbl = root.append('g');
 const gHeat = root.append('g').attr('class', 'heat').attr('filter', 'url(#blur)');
 const gRoutes = root.append('g').attr('class', 'routes');
 const gPlaces = root.append('g').attr('class', 'places');
+const gRetail = root.append('g').attr('class', 'retail');
 const gVeh = root.append('g').attr('class', 'vehs');
 const gHub = root.append('g');
 let W = 0, H = 0, proj, geoPath, T = d3.zoomIdentity;
@@ -326,7 +344,8 @@ function layout(force) {
   W = w; H = h;
   svg.attr('viewBox', `0 0 ${W} ${H}`);
   const pad = Math.max(16, Math.min(W, H) * .04);
-  proj = d3.geoMercator().fitExtent([[pad, pad + 40], [W - pad, H - pad]], GEO.counties);
+  const keyW = $('legendBox').open && W >= 760 ? Math.min(280, W * .3) : 0;   // the open key sits bottom-right, over the coast
+  proj = d3.geoMercator().fitExtent([[pad, pad + 40], [W - pad - keyW, H - pad]], GEO.counties);
   geoPath = d3.geoPath(proj);
   zoom.translateExtent([[-W * .5, -H * .5], [W * 1.5, H * 1.5]]).extent([[0, 0], [W, H]]);
   drawBase(); drawData();
@@ -358,6 +377,24 @@ function vehPos(s) {
   const o = P(s.origin.lng, s.origin.lat);
   return {xy: o, where: 'Left ' + s.origin.name + ', no update yet', at: s.dispatched_at};
 }
+// where a shipment is relative to the Mombasa check point
+const ONROAD = ['dispatched', 'in_transit', 'delayed'];
+function phase(s) {
+  if (s.status === 'planned') return 'planned';
+  if (s.status === 'delivered') return 'delivered';
+  if (s.collection) return 'direct';
+  const c = s.checkpoint || {};
+  if (c.checked_out_at) return 'leg2';
+  if (c.arrived_at) return 'atcp';
+  return 'leg1';
+}
+const PHASE_TXT = {planned: 'not yet dispatched', leg1: 'heading to the Mombasa check point', atcp: 'at the Mombasa check point', leg2: 'checked at Mombasa, on the road', delivered: 'delivered', direct: 'Shimoni collection'};
+function cpText(s) {
+  const c = s.checkpoint || {};
+  if (c.checked_out_at) return `Mombasa: checked out ${stamp(c.checked_out_at)}${c.checked_out_by ? ' by ' + c.checked_out_by : ''}${c.packages ? ' · ' + c.packages + ' pkg' : ''}${c.weight_kg ? ' · ' + n2(c.weight_kg) + ' kg' : ''}${c.condition === 'issue' ? ' · PROBLEM' : ''}`;
+  if (c.arrived_at) return `Mombasa: arrived ${stamp(c.arrived_at)}, not checked out yet`;
+  return s.collection ? 'Shimoni collection (no Mombasa stop)' : ONROAD.includes(s.status) ? 'Not at the Mombasa check point yet' : '';
+}
 let sizeScale = d3.scaleSqrt().domain([0, 200]).range([6, 30]);
 let CSET = new Set();   // counties with demand
 const placeKg = p => p.state === 'completed' ? Number(p.delivered_kg) : Number(p.active_kg);
@@ -365,7 +402,7 @@ const placeKg = p => p.state === 'completed' ? Number(p.delivered_kg) : Number(p
 function drawData() {
   if (!proj) return;
   const d = S.data || {places: [], shipments: [], counties: [], hub: null};
-  const places = (d.places || []).filter(hasXY);
+  const places = wantW() ? (d.places || []).filter(hasXY) : [];
   const ships = (d.shipments || []).filter(s => hasXY(s.origin) && hasXY(s.dest));
   sizeScale = d3.scaleSqrt().domain([0, Math.max(200, d3.max(places, placeKg) || 0)]).range([6, 30]);
 
@@ -387,22 +424,36 @@ function drawData() {
   // routes: delivered under, then planned, then moving
   const order = {delivered: 0, planned: 1, dispatched: 2, in_transit: 2, delayed: 3};
   const pairs = new Map();
-  const rows = ships.slice().sort((a, b) => order[a.status] - order[b.status]).map(s => {
+  // every route runs Shimoni -> Mombasa check point -> town (Shimoni collections excepted)
+  const CPXY = d.checkpoint && hasXY(d.checkpoint) ? P(d.checkpoint.lng, d.checkpoint.lat) : null;
+  const rows = (wantW() ? ships : []).slice().sort((a, b) => order[a.status] - order[b.status]).map(s => {
     const key = s.origin.id + '-' + s.dest.id, i = pairs.get(key) || 0; pairs.set(key, i + 1);
-    return Object.assign({}, s, {_d: arcPath(P(s.origin.lng, s.origin.lat), P(s.dest.lng, s.dest.lat), i)});
+    const o = P(s.origin.lng, s.origin.lat), t = P(s.dest.lng, s.dest.lat), ph = phase(s);
+    const two = CPXY && !s.collection && Math.hypot(t[0] - CPXY[0], t[1] - CPXY[1]) > 3;
+    const via = CPXY && !s.collection;
+    const d1 = via ? arcPath(o, CPXY, i * .5) : arcPath(o, t, i), d2 = two ? arcPath(CPXY, t, i) : null;
+    const late = s.status === 'delayed' ? ' delayed' : '';
+    let c1, c2, f1 = null, f2 = null;
+    if (ph === 'planned') { c1 = 'planned'; c2 = 'planned'; }
+    else if (ph === 'delivered') { c1 = 'delivered'; c2 = 'delivered'; }
+    else if (ph === 'leg1' || ph === 'direct') { c1 = 'base' + late; f1 = 'flow' + late; c2 = 'planned'; }
+    else if (ph === 'atcp') { c1 = 'doneleg'; c2 = 'planned'; }
+    else { c1 = 'doneleg'; c2 = 'base' + late; f2 = 'flow' + late; }
+    return Object.assign({}, s, {_ph: ph, _d1: d1, _d2: d2, _c1: c1, _c2: c2, _f1: f1, _f2: f2, _d: d1 + (d2 ? ' ' + d2 : '')});
   });
   const rg = gRoutes.selectAll('g.rtg').data(rows, s => s.id).join(enter => {
     const g = enter.append('g').attr('class', 'rtg');
     g.append('path').attr('class', 'rt-hit').append('title');
-    g.append('path').attr('class', 'rt r1');
-    g.append('path').attr('class', 'rt r2');
+    g.append('path').attr('class', 'rt a1'); g.append('path').attr('class', 'rt f1');
+    g.append('path').attr('class', 'rt a2'); g.append('path').attr('class', 'rt f2');
     return g;
   });
   rg.attr('data-id', s => s.id).on('click', (e, s) => { e.stopPropagation(); select({type: 'ship', id: s.id}, true); });
-  rg.select('.rt-hit').attr('d', s => s._d).select('title').text(s => `${s.ref} → ${s.dest.name} · ${SHIP[s.status][0]}`);
-  rg.select('.r1').attr('d', s => s._d).attr('class', s => 'rt r1 ' + (['dispatched', 'in_transit', 'delayed'].includes(s.status) ? 'base' + (s.status === 'delayed' ? ' delayed' : '') : s.status));
-  rg.select('.r2').attr('d', s => ['dispatched', 'in_transit', 'delayed'].includes(s.status) ? s._d : null)
-    .attr('class', s => 'rt r2 flow' + (s.status === 'delayed' ? ' delayed' : ''));
+  rg.select('.rt-hit').attr('d', s => s._d).select('title').text(s => `${s.ref} → ${s.dest.name} · ${PHASE_TXT[s._ph]}`);
+  rg.select('.a1').attr('d', s => s._d1).attr('class', s => 'rt a1 ' + s._c1);
+  rg.select('.f1').attr('d', s => s._f1 ? s._d1 : null).attr('class', s => 'rt f1 ' + (s._f1 || ''));
+  rg.select('.a2').attr('d', s => s._d2).attr('class', s => 'rt a2 ' + s._c2);
+  rg.select('.f2').attr('d', s => s._f2 && s._d2 ? s._d2 : null).attr('class', s => 'rt f2 ' + (s._f2 || ''));
 
   // demand markers
   const pm = gPlaces.selectAll('g.pm').data(places, p => p.place_id).join(enter => {
@@ -425,7 +476,8 @@ function drawData() {
     .on('keydown', (e, p) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select({type: 'place', id: p.place_id}, true); } });
 
   // vehicles at last verified location (static)
-  const vs = rows.filter(s => ['dispatched', 'in_transit', 'delayed'].includes(s.status));
+  const atBase = s => !hasXY(s.last_place) || (d.hub && s.last_place.id === d.hub.id) || (d.checkpoint && s.last_place.id === d.checkpoint.id);
+  const vs = rows.filter(s => ONROAD.includes(s.status) && s._ph !== 'atcp' && !atBase(s));
   const vg = gVeh.selectAll('g.veh').data(vs, s => s.id).join(enter => {
     // a pin: the tip marks the confirmed spot, so a town marker underneath stays visible
     const g = enter.append('g').attr('class', 'veh').attr('tabindex', 0).attr('role', 'button');
@@ -451,6 +503,29 @@ function drawData() {
   }).on('click', (e, s) => { e.stopPropagation(); select({type: 'ship', id: s.id}, true); })
     .on('keydown', (e, s) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select({type: 'ship', id: s.id}, true); } });
 
+  // retail (shop and home-delivery) orders, county level, squares
+  const rp = wantR() ? ((d.retail || {}).places || []).filter(hasXY) : [];
+  const rmax = d3.max(rp, x => Number(x.orders)) || 1;
+  gRetail.selectAll('*').remove();
+  if (CPXY) gRetail.append('g').selectAll('path').data(rp.filter(x => Number(x.on_road) > 0 && !/pickup/.test(x.name))).join('path')
+    .attr('class', 'rt rflow').attr('d', x => arcPath(CPXY, P(x.lng, x.lat), 0)).append('title').text(x => `${x.on_road} retail order(s) on the road to ${x.county}`);
+  const rtop = new Set(rp.slice().sort((a, b) => b.orders - a.orders).slice(0, 8).map(x => x.name));
+  gRetail.append('g').selectAll('g.rm').data(rp).join('g').attr('class', 'rm').attr('tabindex', 0).attr('role', 'button')
+    .each(function (x) {
+      const pickup = /pickup/.test(x.name), [px, py] = P(x.lng, x.lat), sz = 8 + Math.sqrt(Number(x.orders) / rmax) * 16, g = d3.select(this);
+      this.__xy = [px, py];
+      const ox = -(sz / 2 + 6), oy = pickup ? 16 : 0;
+      g.attr('aria-label', `Retail ${x.county}: ${x.orders} orders`);
+      g.append('rect').attr('class', 'sq').attr('x', ox - sz / 2).attr('y', oy - sz / 2).attr('width', sz).attr('height', sz).attr('rx', 3)
+        .attr('fill', COLOR(x.state)).attr('fill-opacity', x.state === 'completed' ? .55 : .9);
+      if (rtop.has(x.name) || rp.length <= 10) {
+        g.append('text').attr('x', ox - sz / 2 - 5).attr('y', oy - 1).attr('text-anchor', 'end').text(pickup ? 'Shop pickups' : x.county);
+        g.append('text').attr('class', 'sub').attr('x', ox - sz / 2 - 5).attr('y', oy + 11).attr('text-anchor', 'end').text(`${x.orders} retail${Number(x.on_road) && W >= 640 ? ' · ' + x.on_road + ' on road' : ''}`);
+      }
+    })
+    .on('click', (e, x) => { e.stopPropagation(); select({type: 'retail', id: x.name}, true); })
+    .on('keydown', (e, x) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); select({type: 'retail', id: x.name}, true); } });
+
   // hub
   gHub.selectAll('*').remove();
   if (d.hub && hasXY(d.hub)) {
@@ -460,13 +535,28 @@ function drawData() {
     const gs = d3.select(g);
     gs.append('circle').attr('class', 'pulse').attr('r', 12);
     gs.append('rect').attr('x', -8).attr('y', -8).attr('width', 16).attr('height', 16).attr('rx', 2).attr('transform', 'rotate(45)').attr('fill', 'var(--catch)').attr('stroke', '#021d20').attr('stroke-width', 2);
-    gs.append('text').attr('x', 15).attr('y', 4).text('SHIMONI HUB');
+    gs.append('text').attr('x', 15).attr('y', 4).text(W < 640 ? 'SHIMONI' : 'SHIMONI HUB');
     gs.on('click', e => { e.stopPropagation(); S.tab = 'hub'; S.sel = null; closePop(); drawSel(); renderPanel(); });
   }
+  if (CPXY) {
+    const c = d.checkpoint, waiting = (wantW() ? Number(c.w_at) : 0) + (wantR() ? Number(c.r_at) : 0);
+    const g = gHub.append('g').attr('class', 'cpm').attr('tabindex', 0).attr('role', 'button').attr('aria-label', `Mombasa check point: ${waiting} waiting to be checked out`).node();
+    g.__xy = CPXY;
+    const gs = d3.select(g);
+    gs.append('rect').attr('x', -9).attr('y', -9).attr('width', 18).attr('height', 18).attr('rx', 4).attr('fill', '#07474C').attr('stroke', '#F2EDE3').attr('stroke-width', 2);
+    gs.append('path').attr('d', 'M-4.5 0l3 3 6-6').attr('fill', 'none').attr('stroke', '#7FD4C1').attr('stroke-width', 2.4).attr('stroke-linecap', 'round');
+    gs.append('text').attr('x', 15).attr('y', 4).text(W < 640 ? 'MOMBASA' : 'MOMBASA CHECK POINT');
+    if (waiting) {
+      gs.append('circle').attr('cx', 11).attr('cy', -11).attr('r', 8).attr('fill', 'var(--catch)');
+      gs.append('text').attr('class', 'badge').attr('x', 11).attr('y', -7.5).attr('text-anchor', 'middle').text(waiting);
+    }
+    gs.on('click', e => { e.stopPropagation(); S.tab = 'manifest'; S.filter = 'atcp'; S.sel = null; closePop(); drawSel(); renderPanel(); });
+  }
 
-  const empty = !places.length && !ships.length;
+  const empty = !places.length && !rows.length && !rp.length;
   $('emptyMap').classList.toggle('hidden', !empty || !S.data);
-  $('emptyMap').innerHTML = `<b>No wholesale demand recorded yet</b>Requests from mombasafish.com/wholesale appear here as they arrive.${S.test ? '' : '<br><span class="muted small">TEST orders are hidden. Tick “TEST data” to see them.</span>'}`;
+  $('emptyMap').innerHTML = S.layer === 'retail' ? '<b>No open retail orders</b>Shop and home-delivery orders appear here by county.'
+    : `<b>No ${S.layer === 'wholesale' ? 'wholesale demand' : 'orders'} recorded yet</b>Requests from mombasafish.com/wholesale${S.layer === 'both' ? ' and shop orders' : ''} appear here as they arrive.${S.test ? '' : '<br><span class="muted small">TEST orders are hidden. Tick “TEST data” to see them.</span>'}`;
   drawLegend(cmax, ramp);
   rescale(); drawSel();
 }
@@ -476,7 +566,8 @@ function rescale() {
   const inv = el => { if (el.__xy) el.setAttribute('transform', `translate(${el.__xy[0]},${el.__xy[1]}) scale(${1 / k})`); };
   gPlaces.selectAll('g.pm').each(function () { inv(this); });
   gVeh.selectAll('g.veh').each(function () { inv(this); });
-  gHub.selectAll('g.hubm').each(function () { inv(this); });
+  gHub.selectAll('g.hubm,g.cpm').each(function () { inv(this); });
+  gRetail.selectAll('g.rm').each(function () { inv(this); });
   gHeat.selectAll('circle').attr('r', function () { return this.getAttribute('data-r') / k; });
   defs.select('feGaussianBlur').attr('stdDeviation', 14 / k);
   gCtyLbl.attr('display', S.view === 'counties' || k >= 2.4 ? null : 'none')
@@ -494,27 +585,36 @@ function drawLegend(cmax, ramp) {
     h += '<div class="small">Glow = where demand is concentrated, by kilograms ordered. Brighter and warmer means more.</div>';
   } else {
     h += '<ul>' + ['new', 'processing', 'moving', 'delayed', 'completed'].map(s => `<li><span class="sw"><svg width="14" height="14"><circle cx="7" cy="7" r="6" fill="${COLOR(s)}"/></svg></span>${esc(STATE[s])}</li>`).join('') + '</ul>'
-      + '<div class="small muted" style="margin-top:6px">Circle size = kg still to deliver (grey: kg delivered).</div>';
+      + (wantW() ? '<div class="small muted" style="margin-top:6px">Wholesale circle size = kg still to deliver (grey: kg delivered).</div>' : '');
   }
   h += `<ul style="margin-top:8px">
     <li><span class="sw"><svg width="22" height="8"><line x1="1" y1="4" x2="21" y2="4" stroke="${COLOR('moving')}" stroke-width="2.6" stroke-dasharray="5 4"/></svg></span>On the road (animation shows direction only)</li>
     <li><span class="sw"><svg width="22" height="8"><line x1="1" y1="4" x2="21" y2="4" stroke="rgba(242,237,227,.6)" stroke-width="1.6" stroke-dasharray="1 4" stroke-linecap="round"/></svg></span>Planned, not yet dispatched</li>
     <li><span class="sw"><svg width="22" height="8"><line x1="1" y1="4" x2="21" y2="4" stroke="${COLOR('completed')}" stroke-width="1.4"/></svg></span>Delivered (last 90 days)</li>
     <li><span class="sw"><svg width="16" height="22"><line x1="8" y1="21" x2="8" y2="12" stroke="${COLOR('moving')}" stroke-width="2"/><circle cx="8" cy="7" r="6.5" fill="${COLOR('moving')}"/><circle cx="8" cy="20" r="2" fill="#F2EDE3"/></svg></span>Vehicle pin: tip = last confirmed location</li>
-    <li><span class="sw"><svg width="16" height="16"><rect x="3.5" y="3.5" width="9" height="9" transform="rotate(45 8 8)" fill="#FFB84D"/></svg></span>Shimoni hub</li></ul>`;
+    <li><span class="sw"><svg width="16" height="16"><rect x="3.5" y="3.5" width="9" height="9" transform="rotate(45 8 8)" fill="#FFB84D"/></svg></span>Shimoni hub</li>
+    <li><span class="sw"><svg width="16" height="16"><rect x="2" y="2" width="12" height="12" rx="3" fill="#07474C" stroke="#F2EDE3" stroke-width="1.5"/></svg></span>Mombasa check point (badge = waiting)</li>
+    <li><span class="sw"><svg width="22" height="8"><line x1="1" y1="4" x2="21" y2="4" stroke="rgba(61,220,151,.7)" stroke-width="1.8"/></svg></span>Leg already done</li>
+    ${wantR() ? `<li><span class="sw"><svg width="14" height="14"><rect x="1" y="1" width="12" height="12" rx="3" fill="${COLOR('moving')}"/></svg></span>Retail orders by county (size = orders)</li>` : ''}</ul>
+    <div class="small muted" style="margin-top:6px">Every route runs Shimoni → Mombasa check point → town.</div>`;
   $('legend').innerHTML = h;
 }
 
 /* ---------- selection, popups, fly-to ---------- */
 const findShip = id => (S.data?.shipments || []).find(s => s.id === id);
 const findPlace = id => (S.data?.places || []).find(p => p.place_id === id);
+const findRetail = name => ((S.data?.retail || {}).places || []).find(p => p.name === name);
 function select(sel, fly) {
   S.sel = sel; drawSel();
   if (sel.type === 'ship') {
     const s = findShip(sel.id); if (!s) return;
-    if (fly) { const pts = [[s.origin.lng, s.origin.lat], [s.dest.lng, s.dest.lat]]; if (hasXY(s.last_place)) pts.push([s.last_place.lng, s.last_place.lat]); flyTo(pts, W > 640 ? {r: 360} : {b: H * .55}); }
+    if (fly) { const pts = [[s.origin.lng, s.origin.lat], [s.dest.lng, s.dest.lat]]; if (hasXY(s.last_place)) pts.push([s.last_place.lng, s.last_place.lat]); if (S.data.checkpoint && !s.collection) pts.push([S.data.checkpoint.lng, S.data.checkpoint.lat]); flyTo(pts, W > 640 ? {r: 360} : {b: H * .55}); }
     openPop(shipHtml(s), null);
     if (S.tab !== 'manifest') { S.tab = 'manifest'; }
+  } else if (sel.type === 'retail') {
+    const p = findRetail(sel.id); if (!p) return;
+    if (fly) flyTo([[p.lng, p.lat]], W > 640 ? {} : {b: H * .55});
+    openPop(retailHtml(p), () => P(p.lng, p.lat));
   } else {
     const p = findPlace(sel.id); if (!p) return;
     if (fly) flyTo([[p.lng, p.lat]], W > 640 ? {} : {b: H * .55});
@@ -529,6 +629,19 @@ function drawSel() {
   gVeh.selectAll('g.veh').classed('dim', s => sel && sel.type === 'ship' && s.id !== sel.id);
   gPlaces.classed('has-sel', !!(sel && sel.type === 'place'));
   gPlaces.selectAll('g.pm').classed('sel', p => sel && sel.type === 'place' && p.place_id === sel.id);
+}
+function retailHtml(p) {
+  const pick = /pickup/.test(p.name);
+  const rows = ((S.data.retail || {}).rows || []).filter(r => r.point && r.point.name === p.name);
+  const RST = r => r.stage === 4 ? 'Delivered' : r.stage === 3 ? 'On the road' : r.unpaid ? 'Awaiting payment' : r.checked_out_at ? 'Checked out at Mombasa' : r.arrived_at ? 'At Mombasa' : 'Preparing';
+  return `<h3>${esc(pick ? 'Shop pickups (Mombasa)' : p.county)} <span class="pill">Retail</span></h3>
+    <div class="sub">${pick ? 'Collected at the Mombasa shop' : 'County centre — exact addresses stay on the Dispatch page'} · ${st(p.state)}</div>
+    <div class="facts">
+      <div><span>Open + last 7 days</span>${n_(p.orders)}</div><div><span>Awaiting payment</span>${n_(p.unpaid)}</div>
+      <div><span>Preparing at Shimoni</span>${n_(p.preparing)}</div><div><span>At Mombasa</span>${n_(p.at_mombasa)}</div>
+      <div><span>Checked out, not sent</span>${n_(p.checked_out)}</div><div><span>On the road</span>${n_(p.on_road)}</div>
+      <div><span>Delivered (7 days)</span>${n_(p.delivered_7d)}</div></div>
+    <ul class="olist">${rows.map(r => `<li><span><b class="mono">${esc(r.order_number)}</b><br><span class="muted small">${esc(RST(r))}${r.rider ? ' · ' + esc(r.rider) : ''}</span></span><span class="mono small">${esc(r.delivery_type || '')}</span></li>`).join('')}</ul>`;
 }
 function flyTo(lnglats, pad = {}) {
   const r = pad.r || 0, b = pad.b || 0, top = 56;          // keep clear of the map controls and any docked popup
@@ -580,6 +693,7 @@ function shipHtml(s) {
       <div><span>${s.status === 'delivered' ? 'Delivered' : 'Last confirmed'}</span>${esc(s.status === 'delivered' ? stamp(s.delivered_at) : v ? v.where + ' · ' + stamp(v.at) : '–')}</div></div>
     <div class="small"><span class="muted">Orders: </span><span class="mono">${(s.orders || []).map(esc).join(', ')}</span></div>
     <div class="small"><span class="muted">Products: </span>${esc(s.products || '–')}</div>
+    ${cpText(s) ? `<div class="small" style="margin-top:6px"><span class="muted">Check point: </span>${esc(cpText(s))}${(s.checkpoint || {}).note ? ' · ' + esc(s.checkpoint.note) : ''}</div>` : ''}
     ${v ? '<p class="small muted" style="margin-top:8px">Position is the last update our team recorded, not live tracking.</p>' : ''}`;
 }
 
@@ -608,49 +722,73 @@ function hubHtml(d) {
     + tile('Buyers', n_(s.buyers), `${plural(s.places_with_demand, 'town')} · ${plural(s.counties_with_demand, 'county', 'counties')}`)
     + tile('New requests', n_(s.new_requests_7d), 'Last 7 days')
     + '</div>';
+  const c = d.checkpoint;
+  if (c) {
+    const rr = (d.retail || {}).rows || [];
+    h = (wantW() ? h : '') + '<div class="h2">Mombasa check point</div><div class="tiles">'
+      + (wantW() ? tile('Heading to Mombasa', plural(c.w_heading, 'shipment'), kg(c.w_heading_kg) + ' from Shimoni') : '')
+      + tile('Waiting at Mombasa', n_((wantW() ? Number(c.w_at) : 0) + (wantR() ? Number(c.r_at) : 0)),
+             [wantW() ? plural(c.w_at, 'shipment') + ' · ' + kg(c.w_at_kg) : '', wantR() ? plural(c.r_at, 'retail order') : ''].filter(Boolean).join(' · '), ((wantW() ? Number(c.w_at) : 0) + (wantR() ? Number(c.r_at) : 0)) > 0)
+      + (wantR() ? tile('Checked, not sent', plural(c.r_ready, 'retail order'), 'Ready to dispatch from Mombasa') : '')
+      + tile('Checked out today', n_((wantW() ? Number(c.w_out_today) : 0) + (wantR() ? Number(c.r_out_today) : 0)), 'Since midnight')
+      + (wantR() ? tile('Retail on the road', n_(rr.filter(r => r.stage === 3).length), plural(rr.filter(r => r.unpaid).length, 'order') + ' awaiting payment') : '')
+      + '</div>';
+  }
   const items = [];
-  (d.shipments || []).filter(x => x.status === 'delayed').forEach(x => items.push([`${x.ref} to ${x.dest.name} is delayed`, st('delayed', 'Delayed'), `data-act="sel-ship" data-id="${x.id}"`]));
-  (d.awaiting || []).filter(a => Number(a.ready_kg) > 0 && a.status !== 'dispatched').forEach(a => items.push([`${a.ref}: ${kg(a.ready_kg)} ready for ${a.dest?.name || a.town}`, st('processing', 'Ready'), a.dest ? `data-act="sel-place" data-id="${a.dest.id}"` : '']));
-  (d.places || []).filter(p => p.state === 'new').forEach(p => items.push([`New demand in ${p.name}: ${kg(p.active_kg)}`, st('new', 'New'), `data-act="sel-place" data-id="${p.place_id}"`]));
+  if (wantW()) (d.shipments || []).filter(x => ONROAD.includes(x.status) && phase(x) === 'atcp').forEach(x => items.push([`${x.ref} (${kg(x.kg)}) waiting to be checked out at Mombasa`, st('processing', 'At Mombasa'), `data-act="sel-ship" data-id="${x.id}"`]));
+  if (wantR()) ((d.retail || {}).rows || []).filter(r => r.stage <= 2 && r.arrived_at && !r.checked_out_at).forEach(r => items.push([`Retail ${r.order_number} waiting to be checked out at Mombasa`, st('processing', 'At Mombasa'), r.point ? `data-act="sel-retail" data-c="${esc(r.point.name)}"` : '']));
+  if (wantW()) (d.shipments || []).filter(x => x.status === 'delayed').forEach(x => items.push([`${x.ref} to ${x.dest.name} is delayed`, st('delayed', 'Delayed'), `data-act="sel-ship" data-id="${x.id}"`]));
+  if (wantW()) (d.awaiting || []).filter(a => Number(a.ready_kg) > 0 && a.status !== 'dispatched').forEach(a => items.push([`${a.ref}: ${kg(a.ready_kg)} ready for ${a.dest?.name || a.town}`, st('processing', 'Ready'), a.dest ? `data-act="sel-place" data-id="${a.dest.id}"` : '']));
+  if (wantW()) (d.places || []).filter(p => p.state === 'new').forEach(p => items.push([`New demand in ${p.name}: ${kg(p.active_kg)}`, st('new', 'New'), `data-act="sel-place" data-id="${p.place_id}"`]));
   h += '<div class="h2">Needs attention</div>' + (items.length ? '<div class="attn">' + items.slice(0, 8).map(i => `<button ${i[2]}><span>${esc(i[0])}</span>${i[1]}</button>`).join('') + '</div>' : '<div class="empty">Nothing waiting on the hub right now.</div>');
   return h;
 }
 
 const GROUP = s => s === 'planned' ? 'awaiting' : s === 'delayed' ? 'delayed' : s === 'delivered' ? 'delivered' : 'transit';
+const RGROUP = r => r.stage === 4 ? 'delivered' : r.stage === 3 ? 'transit' : (r.arrived_at && !r.checked_out_at) ? 'atcp' : 'awaiting';
 function manifestRows(d) {
   const planned = new Set((d.shipments || []).filter(s => s.status === 'planned').flatMap(s => s.orders || []));
-  const rows = (d.shipments || []).map(s => {
-    const v = ['dispatched', 'in_transit', 'delayed'].includes(s.status) ? vehPos(s) : null;
-    return {kind: 'ship', id: s.id, ref: s.ref, grp: GROUP(s.status), sc: SHIP[s.status][1], sl: SHIP[s.status][0], is_test: s.is_test,
+  const rows = (wantW() ? d.shipments || [] : []).map(s => {
+    const v = ONROAD.includes(s.status) && phase(s) !== 'atcp' ? vehPos(s) : null, ph = phase(s);
+    return {kind: 'ship', id: s.id, ref: s.ref, grp: ph === 'atcp' ? 'atcp' : GROUP(s.status), sc: ph === 'atcp' ? 'processing' : SHIP[s.status][1], sl: ph === 'atcp' ? 'At Mombasa' : SHIP[s.status][0], is_test: s.is_test,
       t: s.status === 'delivered' ? s.delivered_at : s.dispatched_at, tl: s.status === 'planned' ? 'PLAN' : s.status === 'delivered' ? 'ARR' : 'DEP',
       to: `${s.dest.name}, ${s.dest.county}`, kg: s.kg,
-      ln3: [MODES[s.transport_mode] || s.transport_mode, s.carrier, s.status === 'delivered' ? 'delivered ' + stamp(s.delivered_at) : v ? 'last: ' + v.where + ' ' + (isToday(v.at) ? hm(v.at) : stamp(v.at)) : 'not yet dispatched', s.eta && s.status !== 'delivered' ? 'ETA ' + dshort(s.eta + 'T09:00:00Z') : ''].filter(Boolean).join(' · '),
+      ln3: [MODES[s.transport_mode] || s.transport_mode, s.carrier, s.status === 'delivered' ? 'delivered ' + stamp(s.delivered_at) : ph === 'atcp' ? cpText(s) : v ? 'last: ' + v.where + ' ' + (isToday(v.at) ? hm(v.at) : stamp(v.at)) : 'not yet dispatched',
+            ph === 'leg2' ? 'checked at Mombasa' : ph === 'leg1' ? 'not checked at Mombasa yet' : '', s.eta && s.status !== 'delivered' ? 'ETA ' + dshort(s.eta + 'T09:00:00Z') : ''].filter(Boolean).join(' · '),
       hay: [s.ref, ...(s.orders || []), s.dest.name, s.dest.county, s.carrier, s.waybill_ref, s.vehicle_ref, s.products].join(' ').toLowerCase()};
   });
-  (d.awaiting || []).filter(a => !planned.has(a.ref)).forEach(a => rows.push({kind: 'order', id: a.dest?.id, ref: a.ref, grp: 'awaiting', sc: 'processing', sl: Number(a.ready_kg) > 0 ? 'Ready' : 'Preparing', is_test: a.is_test,
+  (wantW() ? d.awaiting || [] : []).filter(a => !planned.has(a.ref)).forEach(a => rows.push({kind: 'order', id: a.dest?.id, ref: a.ref, grp: 'awaiting', sc: 'processing', sl: Number(a.ready_kg) > 0 ? 'Ready' : 'Preparing', is_test: a.is_test,
     t: a.created_at, tl: 'ORD', to: `${a.town || a.dest?.name}${a.dest ? ', ' + a.dest.county : ''}`, kg: a.outstanding_kg,
     ln3: [STATUS[a.status] || a.status, Number(a.ready_kg) > 0 ? kg(a.ready_kg) + ' ready at Shimoni' : 'no shipment planned yet', a.products].filter(Boolean).join(' · '),
     hay: [a.ref, a.town, a.dest?.name, a.dest?.county, a.products].join(' ').toLowerCase()}));
-  const rank = {delayed: 0, transit: 1, awaiting: 2, delivered: 3};
+  if (wantR()) ((d.retail || {}).rows || []).forEach(r => {
+    const g = RGROUP(r), RST = r.stage === 4 ? ['Delivered', 'completed'] : r.stage === 3 ? ['On the road', 'moving'] : r.unpaid ? ['Unpaid', 'new'] : r.checked_out_at ? ['Checked out', 'processing'] : r.arrived_at ? ['At Mombasa', 'processing'] : ['Preparing', 'processing'];
+    rows.push({kind: 'retail', id: r.point ? r.point.name : '', ref: r.order_number, retail: true, grp: g, sc: RST[1], sl: RST[0],
+      t: r.stage === 4 ? r.delivered_at : r.stage === 3 ? r.dispatched_at : r.created_at, tl: r.stage === 4 ? 'ARR' : r.stage === 3 ? 'DEP' : 'ORD',
+      to: r.delivery_type === 'pickup' ? 'Pickup at the Mombasa shop' : (r.county || 'County not recorded'), kg: null,
+      ln3: [r.delivery_type, r.rider, r.eta_note, r.checked_out_at ? 'checked at Mombasa ' + stamp(r.checked_out_at) : r.arrived_at ? 'at Mombasa since ' + stamp(r.arrived_at) : r.stage <= 2 ? 'not at Mombasa yet' : ''].filter(Boolean).join(' · '),
+      hay: [r.order_number, r.county, r.delivery_type, r.rider, 'retail'].join(' ').toLowerCase()});
+  });
+  const rank = {delayed: 0, atcp: 1, transit: 2, awaiting: 3, delivered: 4};
   return rows.sort((a, b) => rank[a.grp] - rank[b.grp] || (a.grp === 'awaiting' ? new Date(a.t) - new Date(b.t) : new Date(b.t || 0) - new Date(a.t || 0)));
 }
 function manifestHtml(d) {
   const rows = manifestRows(d);
-  const counts = {all: rows.length, awaiting: 0, transit: 0, delayed: 0, delivered: 0};
+  const counts = {all: rows.length, awaiting: 0, atcp: 0, transit: 0, delayed: 0, delivered: 0};
   rows.forEach(r => { counts[r.grp]++; if (r.grp === 'delayed') counts.transit++; });
-  const F = [['all', 'All'], ['awaiting', 'Awaiting dispatch'], ['transit', 'In transit'], ['delayed', 'Delayed'], ['delivered', 'Delivered']];
+  const F = [['all', 'All'], ['awaiting', 'Awaiting dispatch'], ['atcp', 'At Mombasa'], ['transit', 'In transit'], ['delayed', 'Delayed'], ['delivered', 'Delivered']];
   const q = S.q.trim().toLowerCase();
   const shown = rows.filter(r => (S.filter === 'all' || r.grp === S.filter || (S.filter === 'transit' && r.grp === 'delayed')) && (!q || r.hay.includes(q)));
   const sel = S.sel;
   let h = '<div class="chips" role="group" aria-label="Filter manifest">' + F.map(f => `<button class="chip" data-act="filter" data-k="${f[0]}" aria-pressed="${S.filter === f[0]}">${f[1]}<b>${counts[f[0]]}</b></button>`).join('') + '</div>'
     + `<input class="search" id="q" type="search" placeholder="Search ref, town, county, carrier, waybill" value="${esc(S.q)}" aria-label="Search manifest">`
-    + '<div class="board"><div class="bh"><span>Departures · Shimoni</span><span>' + esc(hm(new Date())) + '</span></div>';
+    + '<div class="board"><div class="bh"><span>Departures · Shimoni → Mombasa</span><span>' + esc(hm(new Date())) + '</span></div>';
   h += shown.length ? shown.map(r => {
-    const isSel = sel && ((r.kind === 'ship' && sel.type === 'ship' && sel.id === r.id) || (r.kind === 'order' && sel.type === 'place' && sel.id === r.id));
-    return `<button class="brow${isSel ? ' sel' : ''}" data-act="${r.kind === 'ship' ? 'sel-ship' : 'sel-place'}" data-id="${r.id ?? ''}">
+    const isSel = sel && ((r.kind === 'ship' && sel.type === 'ship' && sel.id === r.id) || (r.kind === 'order' && sel.type === 'place' && sel.id === r.id) || (r.kind === 'retail' && sel.type === 'retail' && sel.id === r.id));
+    return `<button class="brow${isSel ? ' sel' : ''}" ${r.kind === 'retail' ? `data-act="sel-retail" data-c="${esc(r.id)}"` : `data-act="${r.kind === 'ship' ? 'sel-ship' : 'sel-place'}" data-id="${r.id ?? ''}"`}>
       <span class="t">${r.t ? esc(isToday(r.t) ? hm(r.t) : dshort(r.t)) : '––:––'}<small>${r.tl}</small></span>
-      <span class="m"><b>${esc(r.ref)}</b>${test(r.is_test)}<span class="to">→ ${esc(r.to)}</span><span class="ln3">${esc(r.ln3)}</span></span>
-      <span class="r"><span class="kgv">${kg(r.kg)}</span>${st(r.sc, r.sl)}</span></button>`;
+      <span class="m"><b>${esc(r.ref)}</b>${test(r.is_test)}${r.retail ? ' <span class="pill">Retail</span>' : ''}<span class="to">→ ${esc(r.to)}</span><span class="ln3">${esc(r.ln3)}</span></span>
+      <span class="r"><span class="kgv">${r.kg == null ? '' : kg(r.kg)}</span>${st(r.sc, r.sl)}</span></button>`;
   }).join('') : `<div class="empty" style="border:0">${rows.length ? 'No rows match this filter.' : 'No shipments or orders waiting for dispatch.'}</div>`;
   return h + '</div>';
 }
@@ -690,6 +828,8 @@ const ACT = {
   zreset() { S.sel = null; closePop(); drawSel(); renderPanel(); svg.transition().duration(reduced ? 0 : 600).call(zoom.transform, d3.zoomIdentity); },
   filter(b) { S.filter = b.dataset.k; renderPanel(); },
   'sel-ship'(b) { select({type: 'ship', id: Number(b.dataset.id)}, true); },
+  'sel-retail'(b) { if (b.dataset.c) { const keep = S.tab; select({type: 'retail', id: b.dataset.c}, true); S.tab = keep; renderPanel(); } },
+  layer(b) { S.layer = b.dataset.l; try { localStorage.setItem('mfm_radar_layer', S.layer); } catch (_) {} syncView(); S.sel = null; closePop(); drawData(); renderPanel(); },
   'sel-place'(b) { if (b.dataset.id) { const keep = S.tab; select({type: 'place', id: Number(b.dataset.id)}, true); S.tab = keep; renderPanel(); } },
   'sel-county'(b) {
     const f = GEO.counties.features.find(x => x.properties.county === b.dataset.c); if (!f) return;
@@ -698,7 +838,10 @@ const ACT = {
   },
   'pop-close'() { S.sel = null; closePop(); drawSel(); renderPanel(); },
 };
-function syncView() { document.querySelectorAll('[data-act="view"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === S.view))); }
+function syncView() {
+  document.querySelectorAll('[data-act="view"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === S.view)));
+  document.querySelectorAll('[data-act="layer"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.l === S.layer)));
+}
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-tab]');
   if (t) { S.tab = t.dataset.tab; renderPanel(); return; }
