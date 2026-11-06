@@ -342,6 +342,19 @@ textarea.cpnote{width:100%;padding:12px;background:rgba(3,42,46,.78);border:1px 
     </div>
   </section>
 
+  <!-- Emailed sign-in code (every staff sign-in, valid 12 hours on this device) -->
+  <section id="emailCode" class="hidden">
+    <div class="card">
+      <h1>Check your email</h1>
+      <p class="lead" id="codeSentTo" aria-live="polite">Sending a 6-digit code to your email…</p>
+      <label for="emailCodeIn">6-digit code</label>
+      <input id="emailCodeIn" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="123456" autocomplete="one-time-code">
+      <button class="btn" id="emailCodeGo">Verify &amp; sign in</button>
+      <button class="link" id="codeResend" style="margin-top:14px;display:block">Email me a new code</button>
+      <button class="link" id="emailCodeOut" style="margin-top:10px;display:block">Sign out</button>
+    </div>
+  </section>
+
   <!-- ORDERS -->
   <section id="appView" class="hidden">
     <div class="search-wrap" id="searchWrap">
@@ -529,6 +542,27 @@ async function verifyChallenge(){
   boot();
 }
 
+async function sendCode(){
+  const msg = $('codeSentTo'), btn = $('codeResend');
+  btn.disabled = true;
+  msg.textContent = 'Sending a 6-digit code to your email…';
+  const { data, error } = await sb.rpc('mfm_staff_send_login_code');
+  if(error) msg.textContent = /just sent/i.test(error.message) ? 'We emailed you a code a moment ago. Check your inbox (and spam).' : error.message;
+  else msg.textContent = `We emailed a 6-digit code to ${data.sent_to}. It works for 10 minutes and can take a minute to arrive. Check spam if you don't see it.`;
+  setTimeout(()=> btn.disabled = false, 45000);
+}
+
+async function verifyEmailCode(){
+  const code = $('emailCodeIn').value.replace(/\D/g, '');
+  if(code.length !== 6){ note('Enter the 6-digit code from the email.', 'err'); return; }
+  const btn = $('emailCodeGo'); btn.disabled = true; btn.textContent = 'Checking…';
+  const { data: ok, error } = await sb.rpc('mfm_w_verify_login_code', { p_code: code });
+  btn.disabled = false; btn.textContent = 'Verify & sign in';
+  if(error){ note(error.message, 'err'); return; }
+  if(!ok){ note('That code is not right. Use the newest email and try again.', 'err'); $('emailCodeIn').value=''; $('emailCodeIn').focus(); return; }
+  boot();
+}
+
 async function signIn(){
   const btn = $('in'); btn.disabled = true; btn.textContent = 'Signing in…';
   const { error } = await sb.auth.signInWithPassword({ email:$('em').value.trim(), password:$('pw').value });
@@ -545,6 +579,7 @@ async function boot(){
     $('loginView').classList.remove('hidden');
     $('mfaEnroll').classList.add('hidden');
     $('mfaChallenge').classList.add('hidden');
+    $('emailCode').classList.add('hidden');
     $('appView').classList.add('hidden');
     $('who').classList.add('hidden');
     return;
@@ -568,6 +603,20 @@ async function boot(){
   }
   $('mfaEnroll').classList.add('hidden');
   $('mfaChallenge').classList.add('hidden');
+
+  // Emailed code gate — the database refuses every Dispatch action until this session has entered it.
+  const { data: codeOk, error: codeErr } = await sb.rpc('mfm_staff_code_ok');
+  if(!codeErr && codeOk === false){
+    $('loginView').classList.add('hidden');
+    $('appView').classList.add('hidden');
+    $('emailCode').classList.remove('hidden');
+    $('emailCodeIn').value = '';
+    setTimeout(()=> $('emailCodeIn').focus(), 50);
+    const key = session.access_token.slice(-16);
+    if(boot._sentFor !== key){ boot._sentFor = key; sendCode(); }
+    return;
+  }
+  $('emailCode').classList.add('hidden');
 
   const { data:staff } = await sb.from('mfm_staff').select('full_name, role').eq('user_id', session.user.id).maybeSingle();
   if(!staff){
@@ -1198,6 +1247,10 @@ $('mfaEnrollOut').addEventListener('click', async ()=>{ await sb.auth.signOut();
 $('mfaChallengeGo').addEventListener('click', verifyChallenge);
 $('mfaCode').addEventListener('keydown', e=>{ if(e.key==='Enter') verifyChallenge(); });
 $('mfaChallengeOut').addEventListener('click', async ()=>{ await sb.auth.signOut(); location.reload(); });
+$('emailCodeGo').addEventListener('click', verifyEmailCode);
+$('emailCodeIn').addEventListener('keydown', e => { if(e.key === 'Enter') verifyEmailCode(); });
+$('codeResend').addEventListener('click', sendCode);
+$('emailCodeOut').addEventListener('click', async ()=>{ await sb.auth.signOut(); location.reload(); });
 $('out').addEventListener('click', async ()=>{ await sb.auth.signOut(); location.reload(); });
 
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>{
