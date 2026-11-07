@@ -304,6 +304,21 @@ select.catpick{width:100%;padding:13px 12px;background:rgba(3,42,46,.78);border:
 .chg-sum b{color:var(--foam)}
 .chg-sum .up{color:var(--catch)}.chg-sum .down{color:var(--foam)}
 .btn.danger{background:var(--coral);border-color:var(--coral);color:#fff}
+/* order total, added fish, mark paid amount, where they found us */
+.ototal{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:8px;padding:9px 12px;border:1px solid var(--faint);border-radius:6px}
+.ototal span{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.ototal div{text-align:right}
+.ototal b{font-family:var(--display);font-size:16px;color:var(--sand);font-variant-numeric:tabular-nums}
+.ototal small{display:block;font-size:11.5px;color:var(--catch);margin-top:2px}
+.fadd{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:2px;background:rgba(255,184,77,.22);color:var(--catch);margin-left:7px;vertical-align:middle;white-space:nowrap}
+.seed-btn.add-fish{border-style:solid;border-color:rgba(255,184,77,.45);color:var(--catch)}
+.seed-btn.add-fish:hover{border-color:var(--catch);color:var(--catch);background:rgba(255,184,77,.08)}
+.src{margin-top:9px;font-size:13px;color:var(--dim);line-height:1.7}
+.src b{color:var(--sand);font-weight:600}
+.src-chg{margin-left:8px;padding:3px 10px;border:1px solid var(--faint);border-radius:3px;background:transparent;color:var(--foam);font-family:var(--mono);font-size:11px;cursor:pointer}
+.src-chg:hover{border-color:var(--foam)}
+.seed-btn.src-ask{border-style:dashed}
+#srcSheet .seg3 button{flex:1 1 45%}
 </style>
 </head>
 <body>
@@ -496,6 +511,80 @@ select.catpick{width:100%;padding:13px 12px;background:rgba(3,42,46,.78);border:
       <div class="chg-sum" id="chgDoneSum"></div>
       <a class="notify" id="chgTell" target="_blank" rel="noopener">💬 Tell the customer on WhatsApp</a>
       <div class="sheet-acts"><button class="ghost" id="chgUndo">Undo this change</button><button class="btn" id="chgClose">Done</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Add extra fish from mombasafish.com when the customer pays more -->
+<div class="sheet" id="addSheet">
+  <div class="sheet-in">
+    <div id="addForm">
+      <h2>Add fish to this order</h2>
+      <div class="for" id="addFor"></div>
+      <p class="chg-old" id="addNow"></p>
+      <label for="addPick">Item (mombasafish.com catalogue)</label>
+      <select class="catpick" id="addPick"><option value="">Loading the catalogue…</option></select>
+      <label for="addQty" id="addQtyLbl">Quantity</label>
+      <input id="addQty" type="number" inputmode="decimal" min="0.25" step="0.25">
+      <div class="chg-sum" id="addSum">Choose the item.</div>
+      <label for="addPaid">Extra money received (KES)</label>
+      <input id="addPaid" type="number" inputmode="numeric" min="0" step="1">
+      <label for="addRef">M-Pesa code (optional)</label>
+      <input id="addRef" type="text" maxlength="24" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. QK7A1B2C3D">
+      <p class="opt">Add the fish once you have seen the customer's extra M-Pesa payment.</p>
+      <div class="sheet-acts">
+        <button class="ghost" id="addBack">Back</button>
+        <button class="btn" id="addGo">Add fish</button>
+      </div>
+    </div>
+    <div id="addDone" hidden>
+      <h2>Fish added</h2>
+      <div class="chg-sum" id="addDoneSum"></div>
+      <a class="notify" id="addTell" target="_blank" rel="noopener">💬 Tell the customer on WhatsApp</a>
+      <div class="sheet-acts"><button class="ghost" id="addUndo">Undo — remove it</button><button class="btn" id="addClose">Done</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Mark paid: record the amount received -->
+<div class="sheet" id="paySheet">
+  <div class="sheet-in">
+    <h2>Mark as paid</h2>
+    <div class="for" id="payFor"></div>
+    <label for="payAmt">Amount received on M-Pesa (KES)</label>
+    <input id="payAmt" type="number" inputmode="numeric" min="1" step="1">
+    <p class="opt" id="payHint"></p>
+    <p class="opt">Only do this once you have seen the M-Pesa payment.</p>
+    <div class="sheet-acts">
+      <button class="ghost" id="payBack">Back</button>
+      <button class="btn" id="payGo">✓ Mark PAID</button>
+    </div>
+  </div>
+</div>
+
+<!-- Where did the customer find us -->
+<div class="sheet" id="srcSheet">
+  <div class="sheet-in">
+    <h2>Where did they find us?</h2>
+    <div class="for" id="srcFor"></div>
+    <div class="seg3" role="group" aria-label="Where they found us">
+      <button type="button" data-src="tiktok">TikTok</button>
+      <button type="button" data-src="meta">Instagram / Facebook</button>
+      <button type="button" data-src="whatsapp">WhatsApp status / group</button>
+      <button type="button" data-src="youtube">YouTube</button>
+      <button type="button" data-src="search">Google / search</button>
+      <button type="button" data-src="repeat">Bought before</button>
+      <button type="button" data-src="referral">Friend told them</button>
+      <button type="button" data-src="walk_in">Walk-in</button>
+      <button type="button" data-src="broadcast">Our WhatsApp broadcast</button>
+      <button type="button" data-src="other">Other</button>
+      <button type="button" data-src="unknown">Didn't say</button>
+    </div>
+    <label for="srcNote" id="srcNoteLbl">Note (optional)</label>
+    <textarea class="cpnote" id="srcNote" maxlength="200" placeholder="e.g. saw the prawns video, friend Amina sent them"></textarea>
+    <div class="sheet-acts">
+      <button class="ghost" id="srcBack">Back</button>
+      <button class="btn" id="srcGo">Save</button>
     </div>
   </div>
 </div>
@@ -710,7 +799,7 @@ async function boot(){
 }
 let isOwner = false;
 
-let itemsByOrder = {};
+let itemsByOrder = {}, srcByOrder = {};
 
 async function load(){
   const { data, error } = await sb.from('mfm_orders')
@@ -721,20 +810,25 @@ async function load(){
 
   // Pull per-item states for all visible orders in one query
   const nums = orders.map(o => o.order_number);
-  itemsByOrder = {};
+  itemsByOrder = {}; srcByOrder = {};
   if(nums.length){
     try{
-      const { data: items } = await sb.from('mfm_order_items')
-        .select('id, order_number, item_name, qty, state, sort_order')
-        .in('order_number', nums)
-        .order('sort_order', { ascending:true });
-      (items || []).forEach(function(it){
+      const q = cols => sb.from('mfm_order_items').select(cols).in('order_number', nums).order('sort_order', { ascending:true });
+      let r = await q('id, order_number, item_name, qty, state, sort_order, added_at');
+      if(r.error) r = await q('id, order_number, item_name, qty, state, sort_order');   // before the add-fish update
+      (r.data || []).forEach(function(it){
         if(!itemsByOrder[it.order_number]) itemsByOrder[it.order_number] = [];
         itemsByOrder[it.order_number].push(it);
       });
     }catch(e){
       itemsByOrder = {};
     }
+    try{
+      const { data: src } = await sb.from('mfm_order_source')
+        .select('order_number, channel, method, recorded_by, staff_note')
+        .in('order_number', nums);
+      (src || []).forEach(s => { srcByOrder[s.order_number] = s; });
+    }catch(e){ srcByOrder = {}; }
   }
   await loadCp();
   render();
@@ -969,7 +1063,7 @@ function renderRows(rows){
         return `<div class="fishwrap">
           <button class="fish ${cls2} ${isOpen?'open':''}" data-fish="${it.id}">
             <span class="fdot">${dot}</span>
-            <span class="fname">${it.item_name}</span>
+            <span class="fname">${it.item_name}${it.added_at ? '<span class="fadd">＋ added</span>' : ''}</span>
             <span class="fstate">${txt}</span>
           </button>${picker}
         </div>`;
@@ -978,7 +1072,9 @@ function renderRows(rows){
       const readyNote = allPacked
         ? `<div class="all-ready">✓ All iced & packed — ready to dispatch</div>`
         : `<div class="items-progress">${myItems.filter(x=>x.state===2).length}/${myItems.length} packed · ${myItems.filter(x=>x.state===0).length} still at sea</div>`;
-      itemsBlock = `<div class="checklist">${rows}${readyNote}</div>`;
+      itemsBlock = `<div class="checklist">${rows}${readyNote}</div>`
+        + totalBlock(o, myItems)
+        + (canChange ? `<button class="seed-btn add-fish" data-add="${esc(o.order_number)}">＋ Add fish — customer paid more</button>` : '');
     } else {
       itemsBlock = `${o.items ? `<div class="items">${o.items}</div>` : ''}
         <button class="seed-btn" data-seed="${o.order_number}">＋ Track items individually</button>`;
@@ -1011,6 +1107,7 @@ function renderRows(rows){
       ${itemsBlock}
       ${(!unpaid && (o.stage===1 || o.stage===2) && cp.ok) ? cpLine(myCp) : ''}
       ${rider}
+      ${srcBlock(o)}
       ${unpaid ? payBlock : notify}
       ${acts ? `<div class="acts">${acts}</div>` : ''}
     </div>`;
@@ -1267,6 +1364,168 @@ async function undoChange(){
   await load();
   note(`Undone — ${c.order} has its original fish again.`);
 }
+/* ---------- order total (fish + cooler, as on the website basket) ---------- */
+const kesIn = s => { const m = String(s || '').match(/KES\s*([0-9][0-9,]*)/i); return m ? Number(m[1].replace(/,/g, '')) : null; };
+const basketOf = o => { const m = String(o.items || '').match(/Items total:\s*KES\s*([0-9][0-9,]*)/i); return m ? Number(m[1].replace(/,/g, '')) : null; };
+function orderTotal(o, items){
+  items = items || [];
+  if(items.length && items.every(it => kesIn(it.item_name) != null)){
+    return { total: items.reduce((s, it) => s + kesIn(it.item_name), 0),
+             added: items.filter(it => it.added_at).reduce((s, it) => s + kesIn(it.item_name), 0) };
+  }
+  const b = basketOf(o);
+  return b == null ? null : { total: b, added: 0 };
+}
+function totalBlock(o, items){
+  const t = orderTotal(o, items);
+  if(!t) return '';
+  return `<div class="ototal"><span>Items total</span><div><b>${kes(t.total)}</b>${t.added ? `<small>incl. ${kes(t.added)} added on dispatch</small>` : ''}</div></div>`;
+}
+
+/* ---------- add extra fish when the customer pays more ---------- */
+let add = null;
+function addPicked(){ return add && catalogue ? catalogue.find(x => x.name === $('addPick').value) || null : null; }
+function addUpdate(){
+  const p = addPicked(), sum = $('addSum');
+  if(!p){ sum.textContent = 'Choose the item.'; return; }
+  $('addQtyLbl').textContent = p.unit === 'kg' ? 'Quantity (kg)' : 'Quantity (pieces)';
+  $('addQty').step = p.unit === 'kg' ? '0.25' : '1'; $('addQty').min = p.unit === 'kg' ? '0.25' : '1';
+  const q = Number($('addQty').value);
+  if(!(q > 0)){ sum.textContent = 'Enter the quantity.'; return; }
+  const line = Math.round(q * p.price);
+  if(!add.paidEdited) $('addPaid').value = line;
+  const pv = $('addPaid').value.trim(), paid = pv === '' ? null : Number(pv);
+  let money = '';
+  if(paid != null && paid >= 0){
+    const d = paid - line;
+    money = d < 0 ? `<br><span class="up">Customer still owes ${kes(-d)} for this fish</span>` : d > 0 ? `<br><span class="down">${kes(d)} more than this fish costs</span>` : '<br>Paid in full for this fish';
+  }
+  const tot = add.total != null ? `<br>Items total: ${kes(add.total)} → <b>${kes(add.total + line)}</b>` : '';
+  sum.innerHTML = `New line: <b>${esc(p.name)} — ${q} ${p.unit} — ${kes(line)}</b><br>${kes(p.price)} per ${p.unit === 'kg' ? 'kg' : 'piece'}${tot}${money}`;
+}
+async function openAdd(order){
+  const o = orders.find(x => x.order_number === order); if(!o) return;
+  const t = orderTotal(o, itemsByOrder[order]);
+  add = { order, o, total: t ? t.total : null, paidEdited: false, done: null };
+  $('addForm').hidden = false; $('addDone').hidden = true;
+  $('addFor').textContent = `${o.order_number} · ${o.customer_name || 'Customer'}`;
+  $('addNow').textContent = t ? `Items total now: ${kes(t.total)}` : '';
+  $('addQty').value = ''; $('addPaid').value = ''; $('addRef').value = '';
+  const sel = $('addPick'); sel.innerHTML = '<option value="">Loading the catalogue…</option>'; sel.disabled = true;
+  $('addSum').textContent = 'Loading the mombasafish.com catalogue…';
+  $('addSheet').classList.add('on');
+  try {
+    const list = await loadCatalogue();
+    const opt = x => `<option value="${esc(x.name)}">${esc(x.name)} — ${kes(x.price)}/${x.unit === 'kg' ? 'kg' : 'pc'}</option>`;
+    sel.innerHTML = '<option value="">Choose the item…</option>' +
+      `<optgroup label="Sold by the kg">${list.filter(x => x.unit === 'kg').map(opt).join('')}</optgroup>` +
+      `<optgroup label="Packs, boxes and pieces">${list.filter(x => x.unit === 'pc').map(opt).join('')}</optgroup>`;
+    sel.disabled = false;
+    $('addSum').textContent = 'Choose the item.';
+  } catch(e) { sel.innerHTML = '<option value="">Catalogue not available</option>'; $('addSum').textContent = e.message; }
+}
+function closeAdd(){ $('addSheet').classList.remove('on'); add = null; }
+async function submitAdd(){
+  const p = addPicked();
+  if(!add || add.done) return;
+  if(!p){ note('Choose the item from the catalogue.', 'err'); return; }
+  const q = Number($('addQty').value);
+  if(!(q > 0) || q > 500 || (p.unit === 'pc' && q !== Math.floor(q))){ note(p.unit === 'pc' ? 'Enter whole pieces.' : 'Enter the kg.', 'err'); return; }
+  const pv = $('addPaid').value.trim(), paid = pv === '' ? null : Number(pv);
+  if(paid !== null && !(paid >= 0 && paid === Math.floor(paid))){ note('Enter the extra money received in whole shillings.', 'err'); return; }
+  const ref = $('addRef').value.replace(/\s+/g, '').toUpperCase();
+  if(ref && !/^[A-Z0-9]{6,20}$/.test(ref)){ note('The M-Pesa code looks wrong — letters and numbers only.', 'err'); return; }
+  const a = add, btn = $('addGo'); btn.disabled = true; btn.textContent = 'Saving…';
+  const { data, error } = await sb.rpc('mfm_add_order_item', { p_order: a.order, p_name: p.name, p_unit: p.unit, p_qty: q, p_unit_price: p.price, p_paid_kes: paid, p_mpesa_ref: ref || null, p_note: null });
+  btn.disabled = false; btn.textContent = 'Add fish';
+  if(error){ note(error.message, 'err'); return; }
+  a.done = data;
+  const total = data.items_total != null ? Number(data.items_total) : (a.total != null ? a.total + Number(data.line_kes) : null);
+  const first = (a.o.customer_name || '').split(' ')[0] || '';
+  const trackUrl = `https://mombasafishteam.netlify.app/?order=${encodeURIComponent(a.order)}&code=${encodeURIComponent(a.o.tracking_code || '')}`;
+  const what = `${p.name} (${q} ${p.unit === 'kg' ? 'kg' : 'pc'})`;
+  const msg = (paid ? `Habari ${first}, tumepokea malipo yako ya ziada ${kes(paid)} 🙏 Tumeongeza ${what} kwenye oda yako ${a.order}.` : `Habari ${first}, tumeongeza ${what} kwenye oda yako ${a.order}.`)
+    + (total != null ? ` Jumla ya bidhaa sasa ni ${kes(total)}.` : '') + ` Fuatilia hapa: ${trackUrl}`;
+  $('addDoneSum').innerHTML = `<b>${esc(data.line)}</b>` +
+    (total != null ? `<br>Items total now <b>${kes(total)}</b>${data.items_total_before != null ? ` (was ${kes(data.items_total_before)})` : ''}` : '') +
+    (paid ? `<br>Extra received: ${kes(paid)}${ref ? ' · M-Pesa ' + esc(ref) : ''}` : '<br><span class="up">No extra payment recorded</span>') +
+    '<br>The new fish starts as "not yet caught" — pack it before dispatch.';
+  const tel = (a.o.contact || '').replace(/[^0-9+]/g, '').replace(/^\+/, '').replace(/^0/, '254');
+  $('addTell').hidden = !tel; $('addTell').href = `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`;
+  $('addForm').hidden = true; $('addDone').hidden = false;
+  await load();
+  note(`＋ ${a.order}: ${p.name} added.`);
+}
+async function undoAdd(){
+  if(!add || !add.done) return;
+  const a = add, btn = $('addUndo'); btn.disabled = true;
+  const { error } = await sb.rpc('mfm_undo_item_add', { p_item: a.done.item_id });
+  btn.disabled = false;
+  if(error){ note(error.message, 'err'); return; }
+  closeAdd();
+  await load();
+  note(`Undone — the added fish is off ${a.order}.`);
+}
+$('addGo').addEventListener('click', submitAdd);
+$('addBack').addEventListener('click', closeAdd);
+$('addClose').addEventListener('click', closeAdd);
+$('addUndo').addEventListener('click', undoAdd);
+$('addPick').addEventListener('change', () => { if(addPicked() && !$('addQty').value) $('addQty').value = 1; addUpdate(); });
+$('addQty').addEventListener('input', addUpdate);
+$('addPaid').addEventListener('input', () => { if(add) add.paidEdited = true; addUpdate(); });
+$('addSheet').addEventListener('click', e => { if(e.target.id === 'addSheet') closeAdd(); });
+
+/* ---------- where did the customer find us ---------- */
+const SRC = { tiktok:'TikTok', meta:'Instagram / Facebook', whatsapp:'WhatsApp status / group', youtube:'YouTube', search:'Google / search',
+  repeat:'Bought before', referral:'Friend told them', walk_in:'Walk-in', broadcast:'Our WhatsApp broadcast', other:'Other',
+  unknown:"Didn't say", direct:'Came straight to the website', ai_assistant:'AI assistant (ChatGPT etc.)' };
+function srcBlock(o){
+  if(o.stage === -1) return '';
+  const s = srcByOrder[o.order_number];
+  const web = s && (s.method === 'website_tag' || s.method === 'backfill_website_tag') && !['direct', 'unknown'].includes(s.channel);
+  if(web) return `<div class="src">📣 Found us: <b>${esc(SRC[s.channel] || s.channel)}</b> · website link</div>`;
+  if(s && s.method === 'staff') return `<div class="src">📣 Found us: <b>${esc(SRC[s.channel] || s.channel)}</b>${s.staff_note ? ' · ' + esc(s.staff_note) : ''}${s.recorded_by ? ' · ' + esc(s.recorded_by) : ''}<button type="button" class="src-chg" data-src-open="${esc(o.order_number)}">Change</button></div>`;
+  return `<button type="button" class="seed-btn src-ask" data-src-open="${esc(o.order_number)}">📣 Where did they find us?</button>`;
+}
+let srcOrder = null, srcPick = null;
+function setSrc(c){
+  srcPick = c;
+  document.querySelectorAll('[data-src]').forEach(b => b.classList.toggle('on', b.dataset.src === c));
+  $('srcNoteLbl').textContent = c === 'other' ? 'Where? (required)' : 'Note (optional)';
+}
+function openSrc(order){
+  const o = orders.find(x => x.order_number === order); if(!o) return;
+  srcOrder = order;
+  const s = srcByOrder[order];
+  $('srcFor').textContent = `${o.order_number} · ${o.customer_name || 'Customer'}`;
+  $('srcNote').value = (s && s.method === 'staff' && s.staff_note) || '';
+  setSrc(s && s.method === 'staff' ? s.channel : null);
+  $('srcSheet').classList.add('on');
+}
+function closeSrc(){ $('srcSheet').classList.remove('on'); srcOrder = null; }
+async function submitSrc(){
+  if(!srcOrder) return;
+  if(!srcPick){ note('Choose where the customer found us.', 'err'); return; }
+  const order = srcOrder, nt = $('srcNote').value.trim();
+  if(srcPick === 'other' && nt.length < 2){ note('Write a short note for "Other".', 'err'); return; }
+  const btn = $('srcGo'); btn.disabled = true; btn.textContent = 'Saving…';
+  const { error } = await sb.rpc('mfm_set_order_source', { p_order: order, p_channel: srcPick, p_note: nt || null });
+  btn.disabled = false; btn.textContent = 'Save';
+  if(error){ note(error.message, 'err'); return; }
+  const label = SRC[srcPick] || srcPick;
+  closeSrc();
+  await load();
+  noteUndo(`📣 ${order}: ${label} saved.`, async () => {
+    const { error } = await sb.rpc('mfm_undo_order_source', { p_order: order });
+    if(error){ note(error.message, 'err'); return; }
+    await load();
+    note(`Undone — ${order} is back to how it was.`);
+  });
+}
+$('srcGo').addEventListener('click', submitSrc);
+$('srcBack').addEventListener('click', closeSrc);
+$('srcSheet').addEventListener('click', e => { if(e.target.id === 'srcSheet') closeSrc(); const b = e.target.closest('[data-src]'); if(b) setSrc(b.dataset.src); });
+
 $('xcGo').addEventListener('click', submitCancel);
 $('xcBack').addEventListener('click', closeCancel);
 $('xcSheet').addEventListener('click', e => { if(e.target.id === 'xcSheet') closeCancel(); const r = e.target.closest('[data-xr]'); if(r) setXcReason(r.dataset.xr); });
@@ -1379,15 +1638,34 @@ async function saveLabelAsJpg(){
   btn.disabled = false; btn.textContent = old;
 }
 
-async function markPaid(orderNo, btn){
-  const o = orders.find(x => x.order_number === orderNo);
+/* Mark paid asks for the amount received (prefilled with the website basket) so order values are recorded. */
+let payOrder = null;
+function markPaid(orderNo){
+  const o = orders.find(x => x.order_number === orderNo); if(!o) return;
+  payOrder = orderNo;
+  const b = basketOf(o);
+  $('payFor').textContent = `${o.order_number} · ${o.customer_name || 'Customer'}`;
+  $('payAmt').value = b != null ? b : '';
+  $('payHint').textContent = b != null
+    ? `Website basket: ${kes(b)} (fish + cooler, no transport). Change it if the customer paid a different amount.`
+    : 'Enter what the customer actually sent.';
+  $('paySheet').classList.add('on');
+  setTimeout(() => { try { $('payAmt').focus(); $('payAmt').select(); } catch(_){} }, 50);
+}
+function closePay(){ $('paySheet').classList.remove('on'); payOrder = null; }
+async function submitPay(){
+  if(!payOrder) return;
+  const orderNo = payOrder, o = orders.find(x => x.order_number === orderNo);
   const who = o ? (o.customer_name || orderNo) : orderNo;
-  if(!confirm(`Mark ${who}'s order as PAID?\n\nOnly do this once you've confirmed the M-Pesa payment.`)) return;
-  btn.disabled = true; const old = btn.textContent; btn.textContent = 'Saving…';
-  const { error } = await sb.rpc('mark_order_paid', { p_order: orderNo, p_staff: window.__staffName || 'staff' });
-  if(error){ note(error.message,'err'); btn.disabled=false; btn.textContent=old; return; }
+  const amt = Number($('payAmt').value);
+  if(!(amt > 0) || amt !== Math.floor(amt)){ note('Enter the amount received in KES.', 'err'); return; }
+  const btn = $('payGo'); btn.disabled = true; btn.textContent = 'Saving…';
+  const { error } = await sb.rpc('mark_order_paid', { p_order: orderNo, p_staff: window.__staffName || 'staff', p_amount: amt });
+  btn.disabled = false; btn.textContent = '✓ Mark PAID';
+  if(error){ note(error.message,'err'); return; }
+  closePay();
   await load();
-  noteUndo(`✓ ${who} marked paid — now in the dispatch queue.`, async ()=>{
+  noteUndo(`✓ ${who} marked paid (${kes(amt)}) — now in the dispatch queue.`, async ()=>{
     const { error } = await sb.rpc('undo_mark_paid', { p_order: orderNo, p_staff: window.__staffName || 'staff' });
     if(error){ note(error.message,'err'); return; }
     await load();
@@ -1484,6 +1762,10 @@ async function doDispatch(){
   });
 }
 
+$('payGo').addEventListener('click', submitPay);
+$('payBack').addEventListener('click', closePay);
+$('payAmt').addEventListener('keydown', e => { if(e.key === 'Enter') submitPay(); });
+$('paySheet').addEventListener('click', e => { if(e.target.id === 'paySheet') closePay(); });
 $('sheetGo').addEventListener('click', doDispatch);
 $('sheetCancel').addEventListener('click', closeSheet);
 $('sheet').addEventListener('click', e => { if(e.target.id === 'sheet') closeSheet(); });
@@ -1526,9 +1808,14 @@ $('list').addEventListener('click', e=>{
   const paid = e.target.closest('[data-paid]');
   if(paid){
     e.stopPropagation();
-    markPaid(paid.dataset.paid, paid);
+    markPaid(paid.dataset.paid);
     return;
   }
+  // Add extra fish / where they found us
+  const ad = e.target.closest('[data-add]');
+  if(ad){ e.stopPropagation(); openAdd(ad.dataset.add); return; }
+  const so = e.target.closest('[data-src-open]');
+  if(so){ e.stopPropagation(); openSrc(so.dataset.srcOpen); return; }
   // Cancel an awaiting-payment order
   const cancel = e.target.closest('[data-cancel]');
   if(cancel){
