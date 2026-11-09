@@ -276,6 +276,21 @@ input:focus{outline:none;border-color:var(--foam)}
 .cp.cpX{border-color:rgba(255,107,90,.55);background:rgba(255,107,90,.08)}
 .act.cp-go{border-color:var(--foam);color:var(--foam)}
 .cp-banner{border:1px dashed rgba(255,184,77,.55);color:var(--catch);border-radius:4px;padding:10px 12px;font-size:13px;margin-bottom:14px}
+/* orders grouped by area */
+.zones{display:flex;gap:6px;flex-wrap:wrap;margin:-6px 0 14px}
+.zones:empty{display:none}
+.zchip{display:inline-flex;align-items:center;gap:6px;padding:7px 11px;border:1px solid var(--faint);border-radius:999px;background:transparent;color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.05em;cursor:pointer}
+.zchip b{color:var(--sand);font-weight:600}
+.zchip.on{border-color:var(--foam);color:var(--foam);background:rgba(127,212,193,.09)}
+.zchip::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--zc,var(--dim))}
+.zchip[data-zone="all"]::before{display:none}
+.z-msa{--zc:#7FD4C1}.z-coast{--zc:#62B6F0}.z-nbi{--zc:#FFB84D}.z-nbiA{--zc:#D9B36C}.z-far{--zc:#FF6B5A}.z-other{--zc:#9AA5B1}
+.zone-h{position:sticky;top:0;z-index:4;background:var(--abyss);display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:22px 0 10px;padding:10px 0 8px;border-bottom:1px solid var(--faint);font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--sand)}
+.zone-h:first-child{margin-top:4px}
+.zone-h::before{content:'';width:10px;height:10px;border-radius:50%;background:var(--zc)}
+.zone-h .zn{color:var(--dim)}
+.zone-h .zc{flex-basis:100%;font-family:var(--body);font-size:12.5px;letter-spacing:0;text-transform:none;color:var(--dim)}
+.dest .cty{color:var(--sand)}
 .cp-h{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--foam);margin:20px 0 9px}
 .cp-h span{color:var(--dim)}
 .wtag{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;padding:3px 7px;border-radius:2px;margin-left:8px;vertical-align:middle;background:rgba(127,212,193,.16);color:var(--foam)}
@@ -403,6 +418,7 @@ select.catpick{width:100%;padding:13px 12px;background:rgba(3,42,46,.78);border:
       <button class="tab" data-f="done">Arrived</button>
       <button class="tab owner-only hidden" data-f="repeats">Repeat customers</button>
     </div>
+    <div class="zones" id="zones" role="group" aria-label="Show orders for one area"></div>
     <div id="list"></div>
   </section>
 
@@ -803,7 +819,7 @@ let itemsByOrder = {}, srcByOrder = {};
 
 async function load(){
   const { data, error } = await sb.from('mfm_orders')
-    .select('order_number, tracking_code, customer_name, contact, destination, items, stage, status, created_at, stage_changed_at, dispatched_at, delivery_type, rider_name, rider_phone, eta_note')
+    .select('order_number, tracking_code, customer_name, contact, county, destination, items, stage, status, created_at, stage_changed_at, dispatched_at, delivery_type, rider_name, rider_phone, eta_note')
     .order('date_ordered', { ascending:true });
   if(error){ note(error.message,'err'); return; }
   orders = data || [];
@@ -943,20 +959,77 @@ function render(){
     const rows = orders.filter(o => matchesSearch(o, q));
     $('searchInfo').style.display = 'block';
     $('searchInfo').textContent = `${rows.length} result${rows.length===1?'':'s'} for "${searchQuery.trim()}" — across all orders`;
+    $('zones').innerHTML = '';
     renderRows(rows);
     return;
   }
   $('searchInfo').style.display = 'none';
 
-  if(filter === 'repeats'){ renderRepeats(); return; }
-  if(filter === 'mombasa'){ renderMombasa(); return; }
+  if(filter === 'repeats'){ $('zones').innerHTML = ''; renderRepeats(); return; }
+  if(filter === 'mombasa'){ $('zones').innerHTML = ''; renderMombasa(); return; }
   const sets = {
     unpaid: o => isUnpaid(o),
     todo:   o => (o.stage===1||o.stage===2) && !isUnpaid(o),
     road:   o => o.stage===3,
     done:   o => o.stage===4||o.stage===-1
   };
-  renderRows(orders.filter(sets[filter]));
+  renderGrouped(orders.filter(sets[filter]));
+}
+
+/* ---------- orders grouped by area: Mombasa, coast, Nairobi, around Nairobi, far upcountry ---------- */
+const ZONES = [
+  { id:'msa',   name:'Mombasa',                   chip:'Mombasa' },
+  { id:'coast', name:'Coast near Mombasa',        chip:'Coast' },
+  { id:'nbi',   name:'Nairobi',                   chip:'Nairobi' },
+  { id:'nbiA',  name:'Around Nairobi',            chip:'Near Nairobi' },
+  { id:'far',   name:'Far upcountry',             chip:'Far upcountry' },
+  { id:'other', name:'Outside Kenya / no county', chip:'Other' }];
+const COAST = ['kilifi', 'kwale', 'taita-taveta', 'taita taveta', 'lamu', 'tana river'];
+const NEAR_NBI = ['kiambu', 'kajiado', 'machakos', "murang'a", 'muranga'];
+function zoneOf(o){
+  const c = String(o.county || '').trim().toLowerCase();
+  const pre = String(o.order_number || '').split('-')[0].toUpperCase();
+  if(!c) return (o.delivery_type === 'mombasa' || pre === 'MSA') ? 'msa' : pre === 'NRB' ? 'nbi' : 'other';
+  if(c === 'mombasa') return 'msa';
+  if(COAST.includes(c)) return 'coast';
+  if(c === 'nairobi') return 'nbi';
+  if(NEAR_NBI.includes(c)) return 'nbiA';
+  if(c.startsWith('outside')) return 'other';
+  return 'far';
+}
+let zoneFilter = (() => { try { return localStorage.getItem('mf_zone') || 'all'; } catch(_) { return 'all'; } })();
+if(zoneFilter !== 'all' && !ZONES.some(z => z.id === zoneFilter)) zoneFilter = 'all';
+function renderGrouped(rows){
+  const by = {}; ZONES.forEach(z => { by[z.id] = []; });
+  rows.forEach(o => by[zoneOf(o)].push(o));
+  $('zones').innerHTML = rows.length
+    ? `<button type="button" class="zchip ${zoneFilter === 'all' ? 'on' : ''}" data-zone="all" aria-pressed="${zoneFilter === 'all'}">All <b>${rows.length}</b></button>` +
+      ZONES.filter(z => by[z.id].length || zoneFilter === z.id).map(z =>
+        `<button type="button" class="zchip z-${z.id} ${zoneFilter === z.id ? 'on' : ''}" data-zone="${z.id}" aria-pressed="${zoneFilter === z.id}">${z.chip} <b>${by[z.id].length}</b></button>`).join('')
+    : '';
+  if(!rows.length){ $('list').innerHTML = '<div class="empty">Nothing here right now.</div>'; return; }
+  let html = '';
+  ZONES.filter(z => zoneFilter === 'all' || zoneFilter === z.id).forEach(z => {
+    let list = by[z.id];
+    if(!list.length) return;
+    let towns = '';
+    if(z.id !== 'msa' && z.id !== 'nbi'){
+      list = list.slice().sort((a, b) => String(a.county || '').localeCompare(String(b.county || '')));   // same county together, date order kept
+      const n = {}; list.forEach(o => { const c = o.county || 'County not given'; n[c] = (n[c] || 0) + 1; });
+      towns = Object.entries(n).map(([c, k]) => esc(c) + (k > 1 ? ` (${k})` : '')).join(', ');
+    }
+    html += `<div class="zone-h z-${z.id}">${z.name}<span class="zn">· ${list.length}</span>${towns ? `<span class="zc">${towns}</span>` : ''}</div>` + list.map(orderCard).join('');
+  });
+  if(!html){
+    const z = ZONES.find(x => x.id === zoneFilter);
+    html = `<div class="empty">No ${z ? z.name : ''} orders in this tab.<br><button type="button" class="link" data-zone="all">Show all areas</button></div>`;
+  }
+  $('list').innerHTML = html;
+}
+function setZone(id){
+  zoneFilter = id;
+  try { localStorage.setItem('mf_zone', id); } catch(_) {}
+  render();
 }
 
 function renderRows(rows){
@@ -966,8 +1039,11 @@ function renderRows(rows){
       : '<div class="empty">Nothing here right now.</div>';
     return;
   }
+  $('list').innerHTML = rows.map(orderCard).join('');
+}
 
-  $('list').innerHTML = rows.map(o=>{
+function orderCard(o){
+  {
     const unpaid = isUnpaid(o);
     let [label, cls] = STAGE[o.stage] || ['—','p1'];
     if(unpaid){ label = 'Awaiting payment'; cls = 'pPay'; }
@@ -1095,9 +1171,9 @@ function renderRows(rows){
     return `<div class="order${unpaid ? ' is-unpaid' : ''}">
       <div class="order-top">
         <div>
-          <div class="ono">${o.order_number}<span class="dtype d-${dt}">${DTYPE[dt]}</span></div>
-          <div class="cust">${o.customer_name || 'Customer'}</div>
-          <div class="dest">${o.destination || ''}</div>
+          <div class="ono">${esc(o.order_number)}<span class="dtype d-${dt}">${DTYPE[dt]}</span></div>
+          <div class="cust">${esc(o.customer_name || 'Customer')}</div>
+          <div class="dest">${esc(o.destination || '')}${o.county && !String(o.destination || '').toLowerCase().includes(String(o.county).toLowerCase()) ? `${o.destination ? ' · ' : ''}<span class="cty">${esc(o.county)}</span>` : ''}</div>
         </div>
         <div class="pills"><span class="pill ${cls}">${label}</span>${ageBadge}</div>
       </div>
@@ -1111,7 +1187,7 @@ function renderRows(rows){
       ${unpaid ? payBlock : notify}
       ${acts ? `<div class="acts">${acts}</div>` : ''}
     </div>`;
-  }).join('');
+  }
 }
 
 function renderMombasa(){
@@ -1608,7 +1684,7 @@ function openLabel(orderNo){
   if(!o) return;
   $('labelFor').textContent = `For ${o.customer_name || 'customer'} · ${o.order_number}`;
   $('lfName').value    = o.customer_name || '';
-  $('lfAddr').value    = [o.destination, o.county].filter(Boolean).join(', ');
+  $('lfAddr').value    = [o.destination, (o.county && !String(o.destination || '').toLowerCase().includes(String(o.county).toLowerCase())) ? o.county : ''].filter(Boolean).join(', ');
   $('lfPhone').value   = o.contact || '';
   $('lfOrderno').value = o.order_number;
   $('lfDate').value    = todayLabelDate();
@@ -1786,6 +1862,8 @@ $('codeResend').addEventListener('click', sendCode);
 $('emailCodeOut').addEventListener('click', async ()=>{ await sb.auth.signOut(); location.reload(); });
 $('out').addEventListener('click', async ()=>{ await sb.auth.signOut(); location.reload(); });
 
+$('zones').addEventListener('click', e => { const b = e.target.closest('[data-zone]'); if(b) setZone(b.dataset.zone); });
+$('list').addEventListener('click', e => { const b = e.target.closest('[data-zone]'); if(b) setZone(b.dataset.zone); });
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
   t.classList.add('on'); filter = t.dataset.f; render();
