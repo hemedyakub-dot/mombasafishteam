@@ -276,6 +276,26 @@ input:focus{outline:none;border-color:var(--foam)}
 .cp.cpX{border-color:rgba(255,107,90,.55);background:rgba(255,107,90,.08)}
 .act.cp-go{border-color:var(--foam);color:var(--foam)}
 .cp-banner{border:1px dashed rgba(255,184,77,.55);color:var(--catch);border-radius:4px;padding:10px 12px;font-size:13px;margin-bottom:14px}
+/* new order for a customer (phone / WhatsApp / shop) */
+.new-order{display:block;width:100%;margin:0 0 14px;padding:13px;border:1px solid rgba(255,184,77,.55);border-radius:3px;background:rgba(255,184,77,.08);color:var(--catch);font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+.new-order:hover{border-color:var(--catch);background:rgba(255,184,77,.14)}
+#noSheet select.catpick{margin-bottom:14px}
+.no-lines{margin:0 0 10px}
+.no-line{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--faint);border-radius:4px;margin-bottom:6px;font-size:14px}
+.no-line span{flex:1;min-width:0}
+.no-line b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.no-line button{flex:none;width:30px;height:30px;border:1px solid var(--faint);border-radius:3px;background:transparent;color:var(--coral);cursor:pointer;font-size:14px}
+.no-add{display:flex;gap:8px;align-items:flex-start}
+.no-add input{width:96px;flex:none;margin-bottom:10px}
+.no-add button{flex:none;padding:14px 14px;border:1px solid var(--foam);border-radius:3px;background:transparent;color:var(--foam);font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+.no-warn{font-size:13px;color:var(--catch);margin:-6px 0 14px;line-height:1.45}
+.no-warn button{margin-left:6px}
+.no-check{display:flex;align-items:center;gap:10px;margin:-4px 0 16px;font-size:14px;color:var(--sand);text-transform:none;letter-spacing:0;font-family:var(--body)}
+.no-check input{width:20px;height:20px;margin:0;flex:none}
+.no-code{display:flex;gap:10px;margin:4px 0 12px}
+.no-code div{flex:1;padding:12px;border:1px solid var(--faint);border-radius:4px}
+.no-code span{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
+.no-code b{font-family:var(--mono);font-size:16px;color:var(--sand);letter-spacing:.06em}
 /* orders grouped by area */
 .zones{display:flex;gap:6px;flex-wrap:wrap;margin:-6px 0 14px}
 .zones:empty{display:none}
@@ -320,9 +340,24 @@ select.catpick{width:100%;padding:13px 12px;background:rgba(3,42,46,.78);border:
 .chg-sum .up{color:var(--catch)}.chg-sum .down{color:var(--foam)}
 .btn.danger{background:var(--coral);border-color:var(--coral);color:#fff}
 /* order total, added fish, mark paid amount, where they found us */
-.ototal{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:8px;padding:9px 12px;border:1px solid var(--faint);border-radius:6px}
+.ototal{margin-top:8px;padding:4px 12px;border:1px solid var(--faint);border-radius:6px}
+.otr{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:6px 0}
+.otr + .otr{border-top:1px dashed var(--faint)}
 .ototal span{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
 .ototal div{text-align:right}
+.ot-sum span{color:var(--sand)}
+.ot-sum b{color:var(--foam)}
+.dl-btn{padding:4px 10px;border:1px solid var(--faint);border-radius:3px;background:transparent;color:var(--foam);font-family:var(--mono);font-size:11px;cursor:pointer;margin-left:6px}
+.dl-btn:hover{border-color:var(--foam)}
+.dl-add{width:100%;text-align:left;margin:0;padding:7px 0;border:0;color:var(--catch);font-size:12px}
+.rates{margin-top:4px}
+.rate-c{margin:18px 0 8px;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--sand)}
+.rate{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--faint);border-radius:4px;margin-bottom:6px;font-size:14px}
+.rate span{flex:1;min-width:0}
+.rate small{display:block;color:var(--dim);font-size:12px}
+.rate b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.rate-form{margin-top:18px;padding:14px;border:1px solid var(--faint);border-radius:6px}
+.rate-form h3{font-family:var(--display);font-size:15px;margin-bottom:10px}
 .ototal b{font-family:var(--display);font-size:16px;color:var(--sand);font-variant-numeric:tabular-nums}
 .ototal small{display:block;font-size:11.5px;color:var(--catch);margin-top:2px}
 .fadd{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:2px;background:rgba(255,184,77,.22);color:var(--catch);margin-left:7px;vertical-align:middle;white-space:nowrap}
@@ -405,6 +440,7 @@ select.catpick{width:100%;padding:13px 12px;background:rgba(3,42,46,.78);border:
 
   <!-- ORDERS -->
   <section id="appView" class="hidden">
+    <button type="button" class="new-order" id="newOrderBtn">＋ New order for a customer</button>
     <div class="search-wrap" id="searchWrap">
       <input id="search" type="text" placeholder="Search name, order #, tracking code, SEP, AUG…" autocomplete="off">
       <button class="search-clear" id="searchClear" type="button">✕</button>
@@ -416,6 +452,7 @@ select.catpick{width:100%;padding:13px 12px;background:rgba(3,42,46,.78);border:
       <button class="tab" data-f="mombasa">Mombasa check</button>
       <button class="tab" data-f="road">On the road</button>
       <button class="tab" data-f="done">Arrived</button>
+      <button class="tab" data-f="rates">Delivery prices</button>
       <button class="tab owner-only hidden" data-f="repeats">Repeat customers</button>
     </div>
     <div class="zones" id="zones" role="group" aria-label="Show orders for one area"></div>
@@ -558,6 +595,107 @@ select.catpick{width:100%;padding:13px 12px;background:rgba(3,42,46,.78);border:
       <div class="chg-sum" id="addDoneSum"></div>
       <a class="notify" id="addTell" target="_blank" rel="noopener">💬 Tell the customer on WhatsApp</a>
       <div class="sheet-acts"><button class="ghost" id="addUndo">Undo — remove it</button><button class="btn" id="addClose">Done</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- New order taken by staff (phone / WhatsApp / walk-in) -->
+<div class="sheet" id="noSheet">
+  <div class="sheet-in">
+    <div id="noForm">
+      <h2>New order</h2>
+      <p class="opt" style="margin-top:4px">For a customer ordering by phone, WhatsApp or at the shop. It works like a website order.</p>
+      <label for="noPhone">Customer phone</label>
+      <input id="noPhone" type="tel" inputmode="tel" autocomplete="off" placeholder="07xx xxx xxx">
+      <div class="no-warn" id="noKnown" hidden></div>
+      <label for="noName">Customer name</label>
+      <input id="noName" type="text" autocomplete="off" maxlength="80">
+      <label for="noCounty">County</label>
+      <select class="catpick" id="noCounty"><option value="">Choose…</option><optgroup label="Most orders"><option>Mombasa</option><option>Nairobi</option></optgroup><optgroup label="All counties"><option>Baringo</option><option>Bomet</option><option>Bungoma</option><option>Busia</option><option>Elgeyo-Marakwet</option><option>Embu</option><option>Garissa</option><option>Homa Bay</option><option>Isiolo</option><option>Kajiado</option><option>Kakamega</option><option>Kericho</option><option>Kiambu</option><option>Kilifi</option><option>Kirinyaga</option><option>Kisii</option><option>Kisumu</option><option>Kitui</option><option>Kwale</option><option>Laikipia</option><option>Lamu</option><option>Machakos</option><option>Makueni</option><option>Mandera</option><option>Marsabit</option><option>Meru</option><option>Migori</option><option>Murang'a</option><option>Nakuru</option><option>Nandi</option><option>Narok</option><option>Nyamira</option><option>Nyandarua</option><option>Nyeri</option><option>Samburu</option><option>Siaya</option><option>Taita-Taveta</option><option>Tana River</option><option>Tharaka-Nithi</option><option>Trans Nzoia</option><option>Turkana</option><option>Uasin Gishu</option><option>Vihiga</option><option>Wajir</option><option>West Pokot</option><option>Outside Kenya</option></optgroup></select>
+      <label for="noDest">Area / address</label>
+      <input id="noDest" type="text" autocomplete="off" maxlength="120" placeholder="e.g. Nyali, near City Mall">
+      <label class="no-check"><input type="checkbox" id="noPickup"> Customer collects at the shop (no delivery)</label>
+      <div id="noDlBox">
+        <label for="noCourier">Delivery</label>
+        <select class="catpick" id="noCourier"></select>
+        <input id="noCourierOther" type="text" maxlength="40" autocomplete="off" placeholder="Courier name" hidden>
+        <input id="noDlKes" type="number" inputmode="numeric" min="0" step="1" placeholder="Delivery cost (KES)" hidden>
+        <p class="opt" id="noDlHint" hidden></p>
+      </div>
+      <label for="noPick">Items (mombasafish.com catalogue)</label>
+      <div class="no-lines" id="noLines"></div>
+      <select class="catpick" id="noPick"><option value="">Loading the catalogue…</option></select>
+      <div class="no-add">
+        <input id="noQty" type="number" inputmode="decimal" min="0.25" step="0.25" placeholder="Qty" aria-label="Quantity">
+        <button type="button" id="noAddLine">＋ Add item</button>
+      </div>
+      <div class="chg-sum" id="noSum">No items yet.</div>
+      <label for="noPrep">How should we clean it?</label>
+      <select class="catpick" id="noPrep">
+        <option value="Cleaned &amp; gutted">Cleaned &amp; gutted</option>
+        <option value="Whole, uncleaned">Whole, uncleaned</option>
+        <option value="Filleted">Filleted</option>
+        <option value="Cut into steaks">Cut into steaks</option>
+        <option value="Peeled &amp; deveined (prawns)">Peeled &amp; deveined (prawns)</option>
+        <option value="Mixed — see note">Mixed — see note</option>
+      </select>
+      <label for="noSrc">Where did they find us?</label>
+      <select class="catpick" id="noSrc">
+        <option value="">Choose… (optional)</option>
+        <option value="whatsapp">WhatsApp status / group</option>
+        <option value="repeat">Bought before</option>
+        <option value="referral">Friend told them</option>
+        <option value="walk_in">Walk-in</option>
+        <option value="tiktok">TikTok</option>
+        <option value="meta">Instagram / Facebook</option>
+        <option value="youtube">YouTube</option>
+        <option value="search">Google / search</option>
+        <option value="broadcast">Our WhatsApp broadcast</option>
+        <option value="unknown">Didn't say</option>
+      </select>
+      <label>Payment</label>
+      <div class="seg3" role="group" aria-label="Payment">
+        <button type="button" data-nopay="no" class="on">Not paid yet</button>
+        <button type="button" data-nopay="yes">Already paid</button>
+      </div>
+      <div id="noPaidBox" hidden>
+        <label for="noPaid">Amount received (KES)</label>
+        <input id="noPaid" type="number" inputmode="numeric" min="1" step="1">
+        <p class="opt">Items total does not include transport — enter what the customer actually sent.</p>
+        <label for="noRef">M-Pesa code (optional)</label>
+        <input id="noRef" type="text" maxlength="24" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. QK7A1B2C3D">
+      </div>
+      <label for="noNote">Note (optional)</label>
+      <textarea class="cpnote" id="noNote" maxlength="300" placeholder="e.g. call before delivery, gate code"></textarea>
+      <div class="sheet-acts">
+        <button class="ghost" id="noBack">Cancel</button>
+        <button class="btn" id="noGo">Create order</button>
+      </div>
+    </div>
+    <div id="noDone" hidden>
+      <h2>Order created</h2>
+      <div class="no-code"><div><span>Order number</span><b id="noDoneNo"></b></div><div><span>Tracking code</span><b id="noDoneCode"></b></div></div>
+      <div class="chg-sum" id="noDoneSum"></div>
+      <a class="notify" id="noTell" target="_blank" rel="noopener">💬 Send to the customer on WhatsApp</a>
+      <div class="sheet-acts"><button class="ghost" id="noAnother">Another order</button><button class="btn" id="noClose">Done</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Delivery cost on an order -->
+<div class="sheet" id="dlSheet">
+  <div class="sheet-in">
+    <h2>Delivery cost</h2>
+    <div class="for" id="dlFor"></div>
+    <label for="dlCourier">Courier</label>
+    <select class="catpick" id="dlCourier"></select>
+    <input id="dlOther" type="text" maxlength="40" autocomplete="off" placeholder="Courier name" hidden>
+    <label for="dlKes">Delivery cost charged to the customer (KES)</label>
+    <input id="dlKes" type="number" inputmode="numeric" min="0" step="1">
+    <p class="opt" id="dlHint"></p>
+    <div class="sheet-acts">
+      <button class="ghost" id="dlBack">Back</button>
+      <button class="btn" id="dlGo">Save</button>
     </div>
   </div>
 </div>
@@ -815,7 +953,7 @@ async function boot(){
 }
 let isOwner = false;
 
-let itemsByOrder = {}, srcByOrder = {};
+let itemsByOrder = {}, srcByOrder = {}, delivByOrder = {}, rates = [];
 
 async function load(){
   const { data, error } = await sb.from('mfm_orders')
@@ -826,7 +964,11 @@ async function load(){
 
   // Pull per-item states for all visible orders in one query
   const nums = orders.map(o => o.order_number);
-  itemsByOrder = {}; srcByOrder = {};
+  itemsByOrder = {}; srcByOrder = {}; delivByOrder = {};
+  try{
+    const { data: rr, error: re } = await sb.from('mfm_delivery_rates').select('id, courier, county, charge_kes, note, updated_by, updated_at').eq('active', true).order('courier').order('county', { nullsFirst: false });
+    rates = re ? [] : (rr || []);
+  }catch(e){ rates = []; }
   if(nums.length){
     try{
       const q = cols => sb.from('mfm_order_items').select(cols).in('order_number', nums).order('sort_order', { ascending:true });
@@ -845,6 +987,10 @@ async function load(){
         .in('order_number', nums);
       (src || []).forEach(s => { srcByOrder[s.order_number] = s; });
     }catch(e){ srcByOrder = {}; }
+    try{
+      const { data: dl, error: de } = await sb.from('mfm_order_delivery').select('order_number, courier, charge_kes, recorded_by').in('order_number', nums);
+      if(!de) (dl || []).forEach(d => { delivByOrder[d.order_number] = d; });
+    }catch(e){ delivByOrder = {}; }
   }
   await loadCp();
   render();
@@ -967,6 +1113,7 @@ function render(){
 
   if(filter === 'repeats'){ $('zones').innerHTML = ''; renderRepeats(); return; }
   if(filter === 'mombasa'){ $('zones').innerHTML = ''; renderMombasa(); return; }
+  if(filter === 'rates'){ $('zones').innerHTML = ''; renderRates(); return; }
   const sets = {
     unpaid: o => isUnpaid(o),
     todo:   o => (o.stage===1||o.stage===2) && !isUnpaid(o),
@@ -1123,7 +1270,7 @@ function orderCard(o){
     // Only shown for paid orders (unpaid shouldn't be sourced at all).
     let itemsBlock;
     if(unpaid){
-      itemsBlock = o.items ? `<div class="items">${o.items}</div>` : '';
+      itemsBlock = (o.items ? `<div class="items">${esc(o.items)}</div>` : '') + totalBlock(o, myItems);
     } else if(myItems.length){
       const rows = myItems.map(it => {
         const [txt, cls2] = ITEM_STATE[it.state];
@@ -1152,13 +1299,14 @@ function orderCard(o){
         + totalBlock(o, myItems)
         + (canChange ? `<button class="seed-btn add-fish" data-add="${esc(o.order_number)}">＋ Add fish — customer paid more</button>` : '');
     } else {
-      itemsBlock = `${o.items ? `<div class="items">${o.items}</div>` : ''}
+      itemsBlock = `${o.items ? `<div class="items">${esc(o.items)}</div>` : ''}${totalBlock(o, myItems)}
         <button class="seed-btn" data-seed="${o.order_number}">＋ Track items individually</button>`;
     }
 
     // Unpaid: no notify-dispatch message; instead a clear "send payment link" prompt
     const payUrl = `https://mombasafishteam.netlify.app/?order=${encodeURIComponent(o.order_number)}&code=${encodeURIComponent(o.tracking_code||'')}`;
-    const payMsg = `Habari ${first}, oda yako ${o.order_number} imepokelewa. Tafadhali lipa na M-Pesa Buy Goods Till 9948037 (Hemed Yakub) kukamilisha. Fuatilia hapa: ${payUrl}`;
+    const toPay = payTotal(o);
+    const payMsg = `Habari ${first}, oda yako ${o.order_number} imepokelewa.${toPay ? ` Jumla ya kulipa: ${kes(toPay.total)}${toPay.delivery ? ` (pamoja na usafiri ${kes(toPay.delivery)})` : ''}.` : ''} Tafadhali lipa na M-Pesa Buy Goods Till 9948037 (Hemed Yakub) kukamilisha. Fuatilia hapa: ${payUrl}`;
     const payBlock = unpaid
       ? `<div class="pay-flag">⏳ Awaiting payment — do not pack or source yet</div>
          ${o.contact ? `<a class="notify pay-notify" href="https://wa.me/${wa}?text=${encodeURIComponent(payMsg)}" target="_blank" rel="noopener">💬 Send payment link to ${first||'customer'}</a>` : ''}
@@ -1452,11 +1600,302 @@ function orderTotal(o, items){
   const b = basketOf(o);
   return b == null ? null : { total: b, added: 0 };
 }
-function totalBlock(o, items){
-  const t = orderTotal(o, items);
-  if(!t) return '';
-  return `<div class="ototal"><span>Items total</span><div><b>${kes(t.total)}</b>${t.added ? `<small>incl. ${kes(t.added)} added on dispatch</small>` : ''}</div></div>`;
+const canSetDelivery = o => o.stage >= 1 && o.stage <= 3 && o.status !== 'Cancelled';
+function payTotal(o){
+  const t = orderTotal(o, itemsByOrder[o.order_number]), d = delivByOrder[o.order_number];
+  if(!t) return null;
+  const delivery = d ? Number(d.charge_kes) || 0 : 0;
+  return { items: t.total, delivery, courier: d ? d.courier : null, total: t.total + delivery };
 }
+function totalBlock(o, items){
+  const t = orderTotal(o, items), d = delivByOrder[o.order_number], can = canSetDelivery(o);
+  if(!t && !d && !can) return '';
+  let h = '';
+  if(t) h += `<div class="otr"><span>Items total</span><div><b>${kes(t.total)}</b>${t.added ? `<small>incl. ${kes(t.added)} added on dispatch</small>` : ''}</div></div>`;
+  if(d) h += `<div class="otr"><span>Delivery · ${esc(d.courier)}</span><div><b>${kes(d.charge_kes)}</b>${can ? `<button type="button" class="dl-btn" data-dl="${esc(o.order_number)}">Change</button>` : ''}</div></div>`;
+  else if(can) h += `<div class="otr"><button type="button" class="dl-btn dl-add" data-dl="${esc(o.order_number)}">🚚 Add delivery cost</button></div>`;
+  if(t && d) h += `<div class="otr ot-sum"><span>Total to pay</span><div><b>${kes(t.total + (Number(d.charge_kes) || 0))}</b></div></div>`;
+  return `<div class="ototal">${h}</div>`;
+}
+
+/* ---------- delivery cost: price list + per order ---------- */
+const BASE_COURIERS = ['G4S', 'Mombasa rider', 'Bus parcel'];
+function courierList(){
+  const seen = new Set(); const out = [];
+  rates.map(r => r.courier).concat(BASE_COURIERS).forEach(c => { const k = c.toLowerCase(); if(!seen.has(k)){ seen.add(k); out.push(c); } });
+  return out;
+}
+function rateFor(courier, county){
+  if(!courier) return null;
+  const c = courier.toLowerCase(), k = String(county || '').toLowerCase();
+  return rates.find(r => r.courier.toLowerCase() === c && r.county && r.county.toLowerCase() === k)
+      || rates.find(r => r.courier.toLowerCase() === c && !r.county) || null;
+}
+function courierOptions(sel, current, blank){
+  const list = courierList();
+  const extra = current && !list.some(c => c.toLowerCase() === current.toLowerCase()) ? [current] : [];
+  sel.innerHTML = (blank ? `<option value="">${blank}</option>` : '') + list.concat(extra).map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('') + '<option value="__other">Other courier…</option>';
+  sel.value = current ? (list.concat(extra).find(c => c.toLowerCase() === current.toLowerCase()) || '') : '';
+}
+function rateHint(r, courier, county){
+  if(r) return `Price list: ${esc(r.courier)} → ${r.county ? esc(r.county) : 'all other counties'} ${kes(r.charge_kes)}${r.note ? ' · ' + esc(r.note) : ''}`;
+  return courier ? `No price on the list for ${esc(courier)} → ${esc(county || 'this county')}. Enter what you charge${isOwner ? ', and add it under Delivery prices' : ''}.` : '';
+}
+let dl = null;
+function dlCourier(){ return $('dlCourier').value === '__other' ? $('dlOther').value.trim() : $('dlCourier').value; }
+function dlRefresh(){
+  const c = dlCourier(); $('dlOther').hidden = $('dlCourier').value !== '__other';
+  const r = rateFor(c, dl.o.county);
+  if(!dl.edited) $('dlKes').value = r ? r.charge_kes : '';
+  dl.rate = r;
+  $('dlHint').innerHTML = rateHint(r, c, dl.o.county);
+}
+function openDelivery(order){
+  const o = orders.find(x => x.order_number === order); if(!o) return;
+  const d = delivByOrder[order];
+  dl = { order, o, edited: !!d, rate: null };
+  $('dlFor').textContent = `${o.order_number} · ${o.customer_name || 'Customer'} · ${o.county || o.destination || ''}`;
+  courierOptions($('dlCourier'), d ? d.courier : (rates.find(r => r.county && o.county && r.county.toLowerCase() === o.county.toLowerCase()) || {}).courier || 'G4S');
+  $('dlOther').value = ''; $('dlKes').value = d ? d.charge_kes : '';
+  dlRefresh();
+  $('dlSheet').classList.add('on');
+}
+function closeDelivery(){ $('dlSheet').classList.remove('on'); dl = null; }
+async function submitDelivery(){
+  if(!dl) return;
+  const c = dlCourier(), v = $('dlKes').value.trim(), amt = Number(v);
+  if(c.length < 2){ note('Choose the courier.', 'err'); return; }
+  if(v === '' || !(amt >= 0) || amt !== Math.floor(amt)){ note('Enter the delivery cost in KES (0 if free).', 'err'); return; }
+  const d = dl, btn = $('dlGo'); btn.disabled = true; btn.textContent = 'Saving…';
+  const { error } = await sb.rpc('mfm_set_order_delivery', { p_order: d.order, p_courier: c, p_charge_kes: amt, p_rate_id: d.rate && d.rate.charge_kes === amt ? d.rate.id : null });
+  btn.disabled = false; btn.textContent = 'Save';
+  if(error){ note(error.message, 'err'); return; }
+  closeDelivery();
+  await load();
+  const t = payTotal(d.o);
+  note(`🚚 ${d.order}: delivery ${c} ${kes(amt)}${t ? ` — total to pay ${kes(t.total)}` : ''}.`);
+}
+$('dlGo').addEventListener('click', submitDelivery);
+$('dlBack').addEventListener('click', closeDelivery);
+$('dlCourier').addEventListener('change', () => { if(dl){ dl.edited = false; dlRefresh(); } });
+$('dlOther').addEventListener('input', () => { if(dl) dlRefresh(); });
+$('dlKes').addEventListener('input', () => { if(dl) dl.edited = true; });
+$('dlSheet').addEventListener('click', e => { if(e.target.id === 'dlSheet') closeDelivery(); });
+
+/* price list tab: everyone sees it, only the owner changes it */
+let rateEdit = null, rateRemove = null;
+function renderRates(){
+  const by = {};
+  rates.forEach(r => { (by[r.courier] = by[r.courier] || []).push(r); });
+  const names = Object.keys(by).sort((a, b) => a.localeCompare(b));
+  let h = '<div class="rates">';
+  h += names.length ? names.map(c => `<div class="rate-c">${esc(c)}</div>` + by[c].slice().sort((a, b) => (a.county ? 0 : 1) - (b.county ? 0 : 1) || String(a.county).localeCompare(String(b.county))).map(r =>
+      `<div class="rate"><span>${r.county ? esc(r.county) : 'All other counties'}${r.note ? `<small>${esc(r.note)}</small>` : ''}</span><b>${kes(r.charge_kes)}</b>${isOwner ? `<button type="button" class="dl-btn" data-rate-edit="${r.id}">Change</button><button type="button" class="dl-btn" data-rate-del="${r.id}">${rateRemove === r.id ? 'Tap again' : 'Remove'}</button>` : ''}</div>`).join('')).join('')
+    : '<div class="empty">No delivery prices yet.' + (isOwner ? ' Add the first one below.' : ' Hemed adds them.') + '</div>';
+  if(isOwner){
+    const e = rateEdit ? rates.find(r => r.id === rateEdit) : null;
+    h += `<div class="rate-form"><h3>${e ? 'Change price' : 'Add a delivery price'}</h3>
+      <label for="rfCourier">Courier</label><input id="rfCourier" list="rfCouriers" maxlength="40" autocomplete="off" value="${e ? esc(e.courier) : ''}" placeholder="e.g. G4S">
+      <datalist id="rfCouriers">${courierList().map(c => `<option value="${esc(c)}">`).join('')}</datalist>
+      <label for="rfCounty">County</label><select class="catpick" id="rfCounty"><option value="">All other counties</option><option>Baringo</option><option>Bomet</option><option>Bungoma</option><option>Busia</option><option>Elgeyo-Marakwet</option><option>Embu</option><option>Garissa</option><option>Homa Bay</option><option>Isiolo</option><option>Kajiado</option><option>Kakamega</option><option>Kericho</option><option>Kiambu</option><option>Kilifi</option><option>Kirinyaga</option><option>Kisii</option><option>Kisumu</option><option>Kitui</option><option>Kwale</option><option>Laikipia</option><option>Lamu</option><option>Machakos</option><option>Makueni</option><option>Mandera</option><option>Marsabit</option><option>Meru</option><option>Migori</option><option>Mombasa</option><option>Murang'a</option><option>Nairobi</option><option>Nakuru</option><option>Nandi</option><option>Narok</option><option>Nyamira</option><option>Nyandarua</option><option>Nyeri</option><option>Samburu</option><option>Siaya</option><option>Taita-Taveta</option><option>Tana River</option><option>Tharaka-Nithi</option><option>Trans Nzoia</option><option>Turkana</option><option>Uasin Gishu</option><option>Vihiga</option><option>Wajir</option><option>West Pokot</option><option>Outside Kenya</option></select>
+      <label for="rfKes">Price (KES)</label><input id="rfKes" type="number" inputmode="numeric" min="0" step="1" value="${e ? e.charge_kes : ''}">
+      <label for="rfNote">Note (optional)</label><input id="rfNote" maxlength="200" autocomplete="off" value="${e && e.note ? esc(e.note) : ''}" placeholder="e.g. up to 15 kg cooler">
+      <div class="sheet-acts">${e ? '<button class="ghost" id="rfCancel">Cancel</button>' : ''}<button class="btn" id="rfSave">${e ? 'Save change' : 'Add price'}</button></div></div>`;
+  } else {
+    h += '<p class="opt" style="margin-top:14px">Only Hemed can change these prices.</p>';
+  }
+  $('list').innerHTML = h + '</div>';
+  if(isOwner && rateEdit){ const e = rates.find(r => r.id === rateEdit); if(e) $('rfCounty').value = e.county || ''; }
+}
+async function saveRate(){
+  const c = $('rfCourier').value.trim(), county = $('rfCounty').value, v = $('rfKes').value.trim(), amt = Number(v), nt = $('rfNote').value.trim();
+  if(c.length < 2){ note('Write the courier name.', 'err'); return; }
+  if(v === '' || !(amt >= 0) || amt !== Math.floor(amt)){ note('Enter the price in KES.', 'err'); return; }
+  const btn = $('rfSave'); btn.disabled = true;
+  const { error } = await sb.rpc('mfm_set_delivery_rate', { p_courier: c, p_county: county || null, p_charge_kes: amt, p_note: nt || null, p_replace_id: rateEdit });
+  btn.disabled = false;
+  if(error){ note(error.message, 'err'); return; }
+  rateEdit = null; await load();
+  note(`🚚 ${c} → ${county || 'all other counties'}: ${kes(amt)} saved.`);
+}
+$('list').addEventListener('click', async e => {
+  if(filter !== 'rates') return;
+  const ed = e.target.closest('[data-rate-edit]'); if(ed){ rateEdit = Number(ed.dataset.rateEdit); rateRemove = null; renderRates(); try { $('rfKes').focus(); } catch(_){} return; }
+  const dlb = e.target.closest('[data-rate-del]');
+  if(dlb){
+    const id = Number(dlb.dataset.rateDel);
+    if(rateRemove !== id){ rateRemove = id; renderRates(); return; }
+    rateRemove = null;
+    const { error } = await sb.rpc('mfm_retire_delivery_rate', { p_id: id });
+    if(error){ note(error.message, 'err'); return; }
+    await load(); note('Price removed from the list.'); return;
+  }
+  if(e.target.id === 'rfSave') saveRate();
+  if(e.target.id === 'rfCancel'){ rateEdit = null; renderRates(); }
+});
+
+/* ---------- new order for a customer (phone / WhatsApp / shop) ---------- */
+let no = null;
+const digitsOf = p => String(p || '').replace(/[^0-9]/g, '').replace(/^254/, '0').replace(/^([17])/, '0$1');
+function noPicked(){ return catalogue ? catalogue.find(x => x.name === $('noPick').value) || null : null; }
+function noTotal(){ return no.lines.reduce((s, l) => s + Math.round(l.qty * l.price), 0); }
+function noCourierName(){ return $('noPickup').checked ? '' : ($('noCourier').value === '__other' ? $('noCourierOther').value.trim() : $('noCourier').value); }
+function noDelivery(){ const c = noCourierName(), v = $('noDlKes').value.trim(); return c && v !== '' && Number(v) >= 0 ? { courier: c, kes: Math.round(Number(v)) } : null; }
+function noDlRefresh(){
+  const pick = $('noCourier').value, c = noCourierName();
+  $('noDlBox').hidden = $('noPickup').checked;
+  $('noCourierOther').hidden = pick !== '__other';
+  $('noDlKes').hidden = !pick;
+  const r = rateFor(c, $('noCounty').value);
+  if(pick && !no.dlEdited) $('noDlKes').value = r ? r.charge_kes : '';
+  if(!pick) $('noDlKes').value = '';
+  $('noDlHint').hidden = !c;
+  $('noDlHint').innerHTML = c ? rateHint(r, c, $('noCounty').value) : '';
+  noDraw();
+}
+function noDraw(){
+  $('noLines').innerHTML = no.lines.map((l, i) =>
+    `<div class="no-line"><span>${esc(l.name)} — ${l.qty} ${l.unit}</span><b>${kes(Math.round(l.qty * l.price))}</b><button type="button" data-noline="${i}" aria-label="Remove">✕</button></div>`).join('');
+  const dlv = noDelivery();
+  $('noSum').innerHTML = no.lines.length
+    ? `Items total: <b>${kes(noTotal())}</b> · ${no.lines.length} item${no.lines.length > 1 ? 's' : ''}` +
+      (dlv ? `<br>Delivery (${esc(dlv.courier)}): <b>${kes(dlv.kes)}</b><br>Total to pay: <b>${kes(noTotal() + dlv.kes)}</b>` : ' <span style="color:var(--dim)">(no delivery cost added)</span>')
+    : 'No items yet.';
+  if(no.paid && !no.paidEdited) $('noPaid').value = no.lines.length ? noTotal() + (dlv ? dlv.kes : 0) : '';
+}
+function noPickChanged(){
+  const p = noPicked();
+  $('noQty').step = p && p.unit === 'pc' ? '1' : '0.25';
+  $('noQty').placeholder = p ? (p.unit === 'kg' ? 'kg' : 'pieces') : 'Qty';
+  if(p && !$('noQty').value) $('noQty').value = 1;
+}
+function noAddLine(){
+  const p = noPicked(), q = Number($('noQty').value);
+  if(!p){ note('Choose the item from the catalogue.', 'err'); return; }
+  if(!(q > 0) || q > 500 || (p.unit === 'pc' && q !== Math.floor(q))){ note(p.unit === 'pc' ? 'Enter whole pieces.' : 'Enter the kg.', 'err'); return; }
+  const same = no.lines.find(l => l.name === p.name);
+  if(same) same.qty = Math.round((same.qty + q) * 100) / 100; else no.lines.push({ name: p.name, unit: p.unit, qty: q, price: p.price });
+  $('noPick').value = ''; $('noQty').value = ''; noPickChanged();
+  noDraw();
+}
+function noPhoneChanged(){
+  const d = digitsOf($('noPhone').value), box = $('noKnown');
+  if(d.length < 10){ box.hidden = true; return; }
+  const mine = orders.filter(o => digitsOf(o.contact) === d).sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  if(!mine.length){ box.hidden = true; return; }
+  const last = mine[0], recent = mine.find(o => o.stage !== -1 && (Date.now() - new Date(o.created_at)) < 72 * 3600e3);
+  box.innerHTML = (recent ? `⚠ This number already has an order from the last 3 days: <b>${esc(recent.order_number)}</b> (${esc(recent.status || '')}). Make sure it is not the same order.<br>` : '')
+    + `Ordered before as <b>${esc(last.customer_name || '—')}</b> · ${esc(last.county || last.destination || '')} (${mine.length} order${mine.length > 1 ? 's' : ''})`
+    + `<button type="button" class="src-chg" id="noUseLast">Use these details</button>`;
+  box.hidden = false;
+  no.last = last;
+}
+function noUseLast(){
+  const l = no && no.last; if(!l) return;
+  $('noName').value = l.customer_name || '';
+  if(l.county && [...$('noCounty').options].some(o => o.value === l.county)) $('noCounty').value = l.county;
+  $('noDest').value = l.destination && l.destination !== l.county ? l.destination : '';
+  if(!$('noSrc').value) $('noSrc').value = 'repeat';
+}
+function noSetPay(paid){
+  no.paid = paid;
+  document.querySelectorAll('[data-nopay]').forEach(b => b.classList.toggle('on', (b.dataset.nopay === 'yes') === paid));
+  $('noPaidBox').hidden = !paid;
+  if(paid && !no.paidEdited){ const dlv = noDelivery(); $('noPaid').value = no.lines.length ? noTotal() + (dlv ? dlv.kes : 0) : ''; }
+}
+async function openNewOrder(){
+  no = { lines: [], paid: false, paidEdited: false, dlEdited: false, last: null, done: null };
+  ['noPhone','noName','noDest','noQty','noPaid','noRef','noNote','noCourierOther','noDlKes'].forEach(id => { $(id).value = ''; });
+  $('noCounty').value = ''; $('noPickup').checked = false; $('noPrep').selectedIndex = 0; $('noSrc').value = '';
+  courierOptions($('noCourier'), '', 'No delivery cost yet');
+  $('noKnown').hidden = true; noSetPay(false); noDlRefresh();
+  $('noForm').hidden = false; $('noDone').hidden = true;
+  $('noSheet').classList.add('on');
+  const sel = $('noPick'); sel.disabled = true; sel.innerHTML = '<option value="">Loading the catalogue…</option>';
+  try {
+    const list = await loadCatalogue();
+    const opt = x => `<option value="${esc(x.name)}">${esc(x.name)} — ${kes(x.price)}/${x.unit === 'kg' ? 'kg' : 'pc'}</option>`;
+    sel.innerHTML = '<option value="">Choose an item…</option>' +
+      `<optgroup label="Sold by the kg">${list.filter(x => x.unit === 'kg').map(opt).join('')}</optgroup>` +
+      `<optgroup label="Packs, boxes, coolers and pieces">${list.filter(x => x.unit === 'pc').map(opt).join('')}</optgroup>`;
+    sel.disabled = false;
+  } catch(e) { sel.innerHTML = '<option value="">Catalogue not available</option>'; note(e.message, 'err'); }
+  setTimeout(() => { try { $('noPhone').focus(); } catch(_){} }, 60);
+}
+function closeNewOrder(){ $('noSheet').classList.remove('on'); no = null; }
+async function submitNewOrder(){
+  if(!no || no.done) return;
+  const name = $('noName').value.trim(), phone = $('noPhone').value.replace(/\s+/g, ''), county = $('noCounty').value, dest = $('noDest').value.trim();
+  if(!/^(\+?254|0)[17][0-9]{8}$/.test(phone)){ note('That phone number does not look right. Use 07xx xxx xxx or 01xx xxx xxx.', 'err'); $('noPhone').focus(); return; }
+  if(name.length < 2){ note("Write the customer's name.", 'err'); $('noName').focus(); return; }
+  if(!county){ note('Choose the county.', 'err'); $('noCounty').focus(); return; }
+  if(!no.lines.length){
+    if(noPicked() && Number($('noQty').value) > 0) noAddLine();
+    if(!no.lines.length){ note('Add at least one item.', 'err'); return; }
+  }
+  let paid = null;
+  if(no.paid){
+    paid = Number($('noPaid').value);
+    if(!(paid > 0) || paid !== Math.floor(paid)){ note('Enter the amount received in KES.', 'err'); $('noPaid').focus(); return; }
+  }
+  const ref = $('noRef').value.replace(/\s+/g, '').toUpperCase();
+  if(no.paid && ref && !/^[A-Z0-9]{6,20}$/.test(ref)){ note('The M-Pesa code looks wrong — letters and numbers only.', 'err'); return; }
+  const cName = noCourierName(), dlv = noDelivery();
+  if($('noCourier').value && cName.length < 2){ note('Write the courier name.', 'err'); $('noCourierOther').focus(); return; }
+  if(cName && !dlv){ note('Enter the delivery cost in KES (0 if free).', 'err'); $('noDlKes').focus(); return; }
+  const btn = $('noGo'); btn.disabled = true; btn.textContent = 'Creating…';
+  const { data, error } = await sb.rpc('mfm_staff_place_order', {
+    p_name: name, p_phone: phone, p_county: county, p_destination: dest || null,
+    p_lines: no.lines.map(l => ({ name: l.name, unit: l.unit, qty: l.qty, price: l.price })),
+    p_prep: $('noPrep').value || null, p_delivery_type: $('noPickup').checked ? 'pickup' : null,
+    p_paid_kes: paid, p_mpesa_ref: (no.paid && ref) ? ref : null, p_channel: $('noSrc').value || null, p_note: $('noNote').value.trim() || null,
+    p_courier: dlv ? dlv.courier : null, p_delivery_kes: dlv ? dlv.kes : null });
+  btn.disabled = false; btn.textContent = 'Create order';
+  if(error){ note(error.message, 'err'); return; }
+  no.done = data;
+  const first = name.split(' ')[0];
+  const link = `https://mombasafishteam.netlify.app/?order=${encodeURIComponent(data.order_number)}&code=${encodeURIComponent(data.tracking_code)}`;
+  const list = no.lines.map(l => `${l.name} (${l.qty} ${l.unit})`).join(', ');
+  const toPay = Number(data.items_total) + (dlv ? dlv.kes : 0);
+  const money = dlv ? `Bidhaa ${kes(data.items_total)} + usafiri (${dlv.courier}) ${kes(dlv.kes)} = jumla ${kes(toPay)}.` : `Jumla ya bidhaa ${kes(data.items_total)} (bila usafiri).`;
+  const msg = paid
+    ? `Habari ${first}, asante! Tumepokea malipo yako ${kes(paid)} 🙏 Oda yako ${data.order_number}: ${list}. ${money} Fuatilia hapa: ${link}`
+    : `Habari ${first}, oda yako ${data.order_number} imepokelewa: ${list}. ${money} Tafadhali lipa na M-Pesa Buy Goods Till 9948037 (Hemed Yakub) kukamilisha. Fuatilia hapa: ${link}`;
+  $('noDoneNo').textContent = data.order_number;
+  $('noDoneCode').textContent = data.tracking_code;
+  $('noDoneSum').innerHTML = `${esc(name)} · ${esc(dest ? dest + ', ' : '')}${esc(county)}${data.delivery_type === 'pickup' ? ' · collects at the shop' : ''}<br>Items total <b>${kes(data.items_total)}</b>${dlv ? ` + delivery (${esc(dlv.courier)}) <b>${kes(dlv.kes)}</b> = <b>${kes(toPay)}</b>` : ''} · ` +
+    (paid ? `<span class="down">Paid ${kes(paid)}${ref ? ' · M-Pesa ' + esc(ref) : ''}</span> — it is in To dispatch.` : '<span class="up">Not paid yet</span> — it is in Awaiting payment. Send the payment request below.') +
+    (data.duplicate_of ? `<br><span class="up">Same number as ${esc(data.duplicate_of)} — marked as a possible duplicate.</span>` : '');
+  $('noTell').href = `https://wa.me/${digitsOf(phone).replace(/^0/, '254')}?text=${encodeURIComponent(msg)}`;
+  $('noTell').textContent = paid ? '💬 Send the tracking link on WhatsApp' : '💬 Send the payment request on WhatsApp';
+  $('noForm').hidden = true; $('noDone').hidden = false;
+  const tab = document.querySelector(`.tab[data-f="${paid ? 'todo' : 'unpaid'}"]`);
+  if(tab){ document.querySelectorAll('.tab').forEach(x => x.classList.remove('on')); tab.classList.add('on'); filter = tab.dataset.f; }
+  if(zoneFilter !== 'all'){ zoneFilter = 'all'; try { localStorage.setItem('mf_zone', 'all'); } catch(_) {} }   // so the new order is in view
+  await load();
+  note(`＋ ${data.order_number} created for ${name}.`);
+}
+$('newOrderBtn').addEventListener('click', openNewOrder);
+$('noBack').addEventListener('click', closeNewOrder);
+$('noClose').addEventListener('click', closeNewOrder);
+$('noAnother').addEventListener('click', openNewOrder);
+$('noGo').addEventListener('click', submitNewOrder);
+$('noAddLine').addEventListener('click', noAddLine);
+$('noPick').addEventListener('change', noPickChanged);
+$('noQty').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); noAddLine(); } });
+$('noPhone').addEventListener('input', noPhoneChanged);
+$('noPaid').addEventListener('input', () => { if(no) no.paidEdited = true; });
+$('noCourier').addEventListener('change', () => { if(no){ no.dlEdited = false; noDlRefresh(); } });
+$('noCourierOther').addEventListener('input', () => { if(no) noDlRefresh(); });
+$('noDlKes').addEventListener('input', () => { if(no){ no.dlEdited = true; noDraw(); } });
+$('noCounty').addEventListener('change', () => { if(no) noDlRefresh(); });
+$('noPickup').addEventListener('change', () => { if(no){ if($('noPickup').checked){ $('noCourier').value = ''; } noDlRefresh(); } });
+$('noSheet').addEventListener('click', e => {
+  if(e.target.id === 'noSheet' && !(no && no.lines.length && !no.done)) closeNewOrder();
+  const rm = e.target.closest('[data-noline]'); if(rm && no){ no.lines.splice(Number(rm.dataset.noline), 1); noDraw(); }
+  const pay = e.target.closest('[data-nopay]'); if(pay && no) noSetPay(pay.dataset.nopay === 'yes');
+  if(e.target.id === 'noUseLast') noUseLast();
+});
 
 /* ---------- add extra fish when the customer pays more ---------- */
 let add = null;
@@ -1719,11 +2158,12 @@ let payOrder = null;
 function markPaid(orderNo){
   const o = orders.find(x => x.order_number === orderNo); if(!o) return;
   payOrder = orderNo;
-  const b = basketOf(o);
+  const b = basketOf(o), d = delivByOrder[orderNo], dk = d ? Number(d.charge_kes) || 0 : 0;
   $('payFor').textContent = `${o.order_number} · ${o.customer_name || 'Customer'}`;
-  $('payAmt').value = b != null ? b : '';
+  $('payAmt').value = b != null ? b + dk : '';
   $('payHint').textContent = b != null
-    ? `Website basket: ${kes(b)} (fish + cooler, no transport). Change it if the customer paid a different amount.`
+    ? (d ? `Items ${kes(b)} + delivery (${d.courier}) ${kes(dk)} = ${kes(b + dk)}. Change it if the customer paid a different amount.`
+         : `Website basket: ${kes(b)} (fish + cooler, no transport). Change it if the customer paid a different amount.`)
     : 'Enter what the customer actually sent.';
   $('paySheet').classList.add('on');
   setTimeout(() => { try { $('payAmt').focus(); $('payAmt').select(); } catch(_){} }, 50);
@@ -1894,6 +2334,8 @@ $('list').addEventListener('click', e=>{
   if(ad){ e.stopPropagation(); openAdd(ad.dataset.add); return; }
   const so = e.target.closest('[data-src-open]');
   if(so){ e.stopPropagation(); openSrc(so.dataset.srcOpen); return; }
+  const dlo = e.target.closest('[data-dl]');
+  if(dlo){ e.stopPropagation(); openDelivery(dlo.dataset.dl); return; }
   // Cancel an awaiting-payment order
   const cancel = e.target.closest('[data-cancel]');
   if(cancel){
