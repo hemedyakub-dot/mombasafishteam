@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Growth · Mombasafish</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --abyss:#032A2E; --deep:#07474C; --deep2:#06383D; --foam:#7FD4C1; --catch:#FFB84D;
+  --coral:#FF6B5A; --sand:#F2EDE3; --dim:#9db0ad; --faint:rgba(242,237,227,.15); --green:#4ade80;
+  --mono:'IBM Plex Mono',ui-monospace,monospace; --display:'Archivo Black',Impact,sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--abyss);color:var(--sand)}
+body{font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding-bottom:60px;font-size:15px;line-height:1.45}
+button,input,select,textarea{font:inherit}
+.hidden{display:none!important}
+a{color:var(--foam)}
+
+/* sign-in */
+.login{max-width:380px;margin:56px auto;padding:0 18px}
+.brand{font-family:var(--display);font-size:24px;text-align:center;letter-spacing:.5px}
+.brand b{color:var(--foam);font-weight:400}
+.tagline{font-family:var(--mono);font-size:11px;color:var(--catch);letter-spacing:.15em;text-transform:uppercase;text-align:center;margin:6px 0 24px}
+label,.lbl{display:block;font-size:11.5px;color:var(--dim);margin:12px 0 5px;font-family:var(--mono);letter-spacing:.05em;text-transform:uppercase}
+input,select,textarea{width:100%;padding:11px 12px;border-radius:8px;border:1px solid var(--faint);background:#062f33;color:var(--sand);font-size:16px}
+textarea{min-height:76px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--foam);outline-offset:1px}
+.btn{display:inline-block;padding:12px 16px;border:none;border-radius:8px;background:var(--foam);color:var(--abyss);font-weight:700;font-size:13px;font-family:var(--mono);letter-spacing:.05em;text-transform:uppercase;cursor:pointer}
+.btn.full{width:100%;margin-top:16px}
+.btn.ghost{background:transparent;border:1px solid var(--faint);color:var(--sand)}
+.btn.bad{background:transparent;border:1px solid rgba(255,107,90,.55);color:var(--coral)}
+.btn.good{background:var(--foam);color:var(--abyss)}
+.btn.sm{padding:7px 11px;font-size:11.5px}
+.btn:disabled{opacity:.5;cursor:default}
+.msg{font-size:13px;color:var(--dim);margin-top:10px;text-align:center}
+
+/* frame */
+header{position:sticky;top:0;z-index:20;background:rgba(3,42,46,.96);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(--faint)}
+.hbar{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;max-width:980px;margin:0 auto}
+.htitle{font-family:var(--display);font-size:15px;letter-spacing:.3px}
+.htitle b{color:var(--foam);font-weight:400}
+.hright{display:flex;gap:8px;align-items:center}
+.who{font-family:var(--mono);font-size:11px;color:var(--dim)}
+nav{display:flex;gap:6px;overflow-x:auto;padding:0 16px 10px;max-width:980px;margin:0 auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+nav button{flex:0 0 auto;padding:8px 12px;border-radius:7px;border:1px solid var(--faint);background:transparent;color:var(--dim);font-family:var(--mono);font-size:12px;cursor:pointer;white-space:nowrap}
+nav button.on{border-color:var(--foam);background:rgba(127,212,193,.14);color:var(--foam);font-weight:600}
+nav button .dot{display:inline-block;min-width:17px;padding:0 5px;margin-left:5px;border-radius:9px;background:var(--catch);color:var(--abyss);font-size:10.5px;font-weight:700;text-align:center}
+.wrap{max-width:980px;margin:0 auto;padding:14px 16px}
+h2{font-size:12.5px;color:var(--foam);font-family:var(--mono);text-transform:uppercase;letter-spacing:.1em;margin:26px 0 10px}
+h2:first-child{margin-top:6px}
+h2 small{color:var(--dim);text-transform:none;letter-spacing:0;font-weight:400}
+.muted{color:var(--dim)} .small{font-size:12.5px} .mono{font-family:var(--mono)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+
+/* KPI tiles */
+.kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px}
+.kpi{background:var(--deep);border:1px solid var(--faint);border-radius:11px;padding:13px 14px}
+.kpi b{display:block;font-size:22px;font-family:var(--mono);color:var(--foam);line-height:1.2}
+.kpi span{display:block;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.04em;margin-top:3px}
+.kpi small{display:block;color:var(--dim);font-size:11px;margin-top:4px;font-family:var(--mono)}
+.kpi small.up{color:var(--green)} .kpi small.down{color:var(--coral)}
+.kpi.warn b{color:var(--catch)}
+
+.card{background:var(--deep);border:1px solid var(--faint);border-radius:11px;padding:14px;margin-bottom:9px}
+.card h3{margin:0 0 4px;font-size:15px}
+.card .meta{font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+.card p{margin:8px 0}
+.note{background:rgba(255,184,77,.10);border:1px solid rgba(255,184,77,.32);border-radius:8px;padding:10px 12px;font-size:12.5px;color:var(--catch);margin-top:10px}
+.note.info{background:rgba(127,212,193,.08);border-color:rgba(127,212,193,.3);color:var(--foam)}
+.empty{text-align:center;color:var(--dim);padding:26px 10px;border:1px dashed var(--faint);border-radius:11px;font-size:13.5px}
+
+.pill{display:inline-block;padding:2px 8px;border-radius:10px;font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;border:1px solid var(--faint);color:var(--dim)}
+.pill.good{border-color:rgba(74,222,128,.5);color:var(--green)}
+.pill.warn{border-color:rgba(255,184,77,.5);color:var(--catch)}
+.pill.bad{border-color:rgba(255,107,90,.5);color:var(--coral)}
+.pill.info{border-color:rgba(127,212,193,.5);color:var(--foam)}
+
+/* tables */
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-family:var(--mono);font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;font-weight:400;padding:7px 8px;border-bottom:1px solid var(--faint);white-space:nowrap}
+.tbl td{padding:8px;border-bottom:1px solid rgba(242,237,227,.07);vertical-align:top}
+.tbl td.n,.tbl th.n{text-align:right;font-family:var(--mono);white-space:nowrap}
+.tbl tr:last-child td{border-bottom:none}
+.tscroll{overflow-x:auto;background:var(--deep);border:1px solid var(--faint);border-radius:11px;padding:4px 6px}
+
+/* bars */
+.bars{background:var(--deep);border:1px solid var(--faint);border-radius:11px;padding:12px 14px}
+.bar{display:grid;grid-template-columns:minmax(80px,140px) 1fr auto;gap:10px;align-items:center;margin:6px 0;font-size:13px}
+.bar .lab{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .track{display:block;height:10px;background:rgba(242,237,227,.06);border-radius:5px;overflow:hidden}
+.bar .fill{display:block;height:100%;background:var(--foam);border-radius:5px}
+.bar .fill.alt{background:var(--catch)}
+.bar .val{font-family:var(--mono);font-size:12px;color:var(--dim);white-space:nowrap}
+
+.month{display:flex;gap:8px;align-items:center}
+.month select{width:auto;padding:7px 10px;font-size:14px}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.grid2 .full{grid-column:1/-1}
+@media (max-width:560px){.grid2{grid-template-columns:1fr}}
+details.more{background:var(--deep);border:1px solid var(--faint);border-radius:11px;padding:12px 14px;margin-bottom:9px}
+details.more summary{cursor:pointer;font-family:var(--mono);font-size:12px;color:var(--foam);text-transform:uppercase;letter-spacing:.06em}
+.acts{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.linkout{font-family:var(--mono);font-size:12px;word-break:break-all;background:#062f33;border:1px solid var(--faint);border-radius:7px;padding:8px 10px;margin-top:6px}
+
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);max-width:92vw;background:#0b5a60;color:var(--sand);border:1px solid var(--foam);padding:11px 16px;border-radius:9px;font-size:14px;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+#toast.err{background:#5a1a14;border-color:var(--coral)}
+.links{text-align:center;padding:22px 0 0;font-family:var(--mono);font-size:12px}
+.links a{margin:0 8px;text-decoration:none}
+</style>
+</head>
+<body>
+
+<section class="login hidden" id="loginView">
+  <div class="brand">MOMBASA<b>FISH</b></div>
+  <div class="tagline">Growth department · owner only</div>
+  <label for="em">Email</label>
+  <input id="em" type="email" autocomplete="username">
+  <label for="pw">Password</label>
+  <input id="pw" type="password" autocomplete="current-password">
+  <button class="btn full" id="signinBtn">Sign in</button>
+</section>
+
+<section class="login hidden" id="codeView">
+  <div class="brand">MOMBASA<b>FISH</b></div>
+  <div class="tagline">Enter the code from your email</div>
+  <p class="msg" id="codeSentTo">Sending a 6-digit code to your email…</p>
+  <label for="codeIn">6-digit code</label>
+  <input id="codeIn" inputmode="numeric" maxlength="6" autocomplete="one-time-code">
+  <button class="btn full" id="codeGo">Verify and continue</button>
+  <button class="btn ghost full" id="codeResend" disabled>Send a new code</button>
+</section>
+
+<section class="login hidden" id="deniedView">
+  <div class="brand">MOMBASA<b>FISH</b></div>
+  <p class="msg" style="color:var(--coral)">The growth page is for the owner only. This account does not have owner access.</p>
+  <button class="btn ghost full" data-act="signout">Sign out</button>
+</section>
+
+<div id="appView" class="hidden">
+  <header>
+    <div class="hbar">
+      <div class="htitle">MOMBASA<b>FISH</b> GROWTH</div>
+      <div class="hright"><span class="who" id="who"></span><button class="btn ghost sm" data-act="signout">Exit</button></div>
+    </div>
+    <nav id="tabs">
+      <button data-tab="overview" class="on">Overview</button>
+      <button data-tab="decide">To decide<span class="dot hidden" id="decideDot"></span></button>
+      <button data-tab="campaigns">Campaigns</button>
+      <button data-tab="channels">Channels</button>
+      <button data-tab="content">Content</button>
+      <button data-tab="customers">Customers</button>
+      <button data-tab="products">Products</button>
+      <button data-tab="places">Places</button>
+      <button data-tab="wholesale">Wholesale</button>
+      <button data-tab="agents">Agents</button>
+    </nav>
+  </header>
+  <main class="wrap" id="main"></main>
+  <div class="links wrap"><a href="./dashboard.html">Dashboard</a>·<a href="./staff.html">Dispatch</a>·<a href="./wholesale.html">Wholesale</a>·<a href="./radar.html">Radar</a></div>
+</div>
+
+<div id="toast" class="hidden" role="status" aria-live="polite"></div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+const SUPABASE_URL = 'https://tcpqbrchpxpshmqprbkv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_7YLqP3JMq8AFZQl4XF--bw_itOMj1gA';
+const SITE = 'https://mombasafish.com';
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = v => v == null || v === '' ? null : Number(v);
+const n0 = v => v == null ? '–' : Number(v).toLocaleString('en-KE', {maximumFractionDigits: 0});
+const n1 = v => v == null ? '–' : Number(v).toLocaleString('en-KE', {maximumFractionDigits: 1});
+const kes = v => v == null ? '–' : 'KES ' + n0(v);
+const kg = v => v == null ? '–' : n1(v) + ' kg';
+const TZ = 'Africa/Nairobi';
+const day = t => t ? new Date(t).toLocaleDateString('en-GB', {timeZone: TZ, day: 'numeric', month: 'short', year: 'numeric'}) : '–';
+const stamp = t => t ? new Date(t).toLocaleString('en-GB', {timeZone: TZ, day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'}) : '';
+const monthName = m => new Date(m + (m.length === 10 ? 'T00:00:00' : '')).toLocaleDateString('en-GB', {month: 'long', year: 'numeric'});
+const todayISO = () => new Date().toLocaleDateString('en-CA', {timeZone: TZ});
+const monthStart = d => d.slice(0, 7) + '-01';
+function pct(a, b){ if(a == null || b == null || !Number(b)) return null; return Math.round((a - b) / b * 100); }
+
+async function rpc(fn, args){
+  const { data, error } = await sb.rpc(fn, args || {});
+  if(error) throw new Error(error.message);
+  return data;
+}
+let toastT;
+function toast(text, kind){
+  const t = $('toast'); t.textContent = text; t.className = kind === 'err' ? 'err' : '';
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.add('hidden'), kind === 'err' ? 6000 : 3500);
+}
+async function act(btn, fn, okMsg){
+  if(btn) btn.disabled = true;
+  try{ await fn(); if(okMsg) toast(okMsg); await refresh(); }
+  catch(e){ toast(e.message, 'err'); }
+  finally{ if(btn) btn.disabled = false; }
+}
+
+const CHANNEL = {tiktok:'TikTok', meta:'Instagram / Facebook', whatsapp:'WhatsApp', youtube:'YouTube', search:'Google search',
+  ai_assistant:'AI assistant', direct:'Website, no tag', other:'Other', repeat:'Bought before', referral:'Friend told them',
+  walk_in:'Walk-in', broadcast:'Our broadcast', unknown:'Not recorded'};
+const AGENT = {director:'Growth Director', content:'Content', acquisition:'Acquisition', retention:'Retention', wholesale:'Wholesale',
+  product:'Product', distribution:'Distribution', revenue:'Revenue'};
+const ACTION = {analyse_sales:'Analyse sales', recommend_campaign:'Recommend a campaign', draft_social_content:'Draft social content',
+  prepare_wholesale_prospects:'Prepare wholesale prospects', draft_customer_message:'Draft customer messages',
+  publish_social_content:'Publish social content', send_marketing_message:'Send marketing messages', change_product_price:'Change a product price',
+  issue_discount:'Give a discount', launch_paid_ads:'Launch paid ads', commit_supplier_stock:'Commit supplier stock', confirm_delivery_promise:'Promise a delivery date'};
+const CSTAT = {Draft:'', Review:'warn', Approved:'info', Scheduled:'info', Active:'good', Completed:'', Analysed:'good', Rejected:'bad'};
+const NEXT = {Draft:['Review','Rejected'], Review:['Approved','Draft','Rejected'], Approved:['Scheduled','Active','Draft'], Scheduled:['Active','Draft'],
+  Active:['Completed'], Completed:['Analysed'], Rejected:['Draft'], Analysed:[]};
+const NEXT_LABEL = {Review:'Send to review', Approved:'Approve', Scheduled:'Mark scheduled', Active:'Mark live', Completed:'Mark finished',
+  Analysed:'Mark analysed', Draft:'Back to draft', Rejected:'Reject'};
+
+/* ---------- state ---------- */
+const S = { tab: 'overview', month: monthStart(todayISO()), cache: {}, editCampaign: null, importRows: null };
+try{ const t = localStorage.getItem('growth_tab'); if(t) S.tab = t; }catch(_){}
+
+async function load(key, fn){ if(!(key in S.cache)) S.cache[key] = await fn(); return S.cache[key]; }
+const view = (name, from, to, limit) => rpc('growth_view', {p_view: name, p_from: from || null, p_to: to || null, p_limit: limit || 500});
+const list = (kind, limit) => rpc('growth_list', {p_kind: kind, p_limit: limit || 200});
+
+/* ---------- auth ---------- */
+function show(id){ ['loginView','codeView','deniedView','appView'].forEach(x => $(x).classList.toggle('hidden', x !== id)); }
+async function sendCode(){
+  const msg = $('codeSentTo'), btn = $('codeResend');
+  btn.disabled = true; msg.textContent = 'Sending a 6-digit code to your email…';
+  try{ const r = await rpc('mfm_staff_send_login_code'); msg.textContent = `We emailed a 6-digit code to ${r.sent_to}. It works for 10 minutes and can take a minute to arrive. Check spam if you don't see it.`; }
+  catch(e){ msg.textContent = /just sent/i.test(e.message) ? 'We emailed you a code a moment ago. Check your inbox (and spam).' : e.message; }
+  setTimeout(() => btn.disabled = false, 45000);
+}
+async function boot(){
+  const { data: { session } } = await sb.auth.getSession();
+  if(!session) return show('loginView');
+  const codeOk = await rpc('mfm_staff_code_ok').catch(() => false);
+  if(!codeOk){
+    show('codeView'); $('codeIn').value = ''; setTimeout(() => $('codeIn').focus(), 50);
+    const key = session.access_token.slice(-16);
+    if(boot._sentFor !== key){ boot._sentFor = key; sendCode(); }
+    return;
+  }
+  const owner = await rpc('growth_owner_ok').catch(() => false);
+  if(!owner) return show('deniedView');
+  $('who').textContent = session.user.email;
+  show('appView');
+  setTab(S.tab);
+}
+$('signinBtn').addEventListener('click', async e => {
+  const b = e.currentTarget; b.disabled = true;
+  const { error } = await sb.auth.signInWithPassword({email: $('em').value.trim(), password: $('pw').value});
+  b.disabled = false;
+  if(error) return toast(error.message, 'err');
+  boot();
+});
+$('pw').addEventListener('keydown', e => { if(e.key === 'Enter') $('signinBtn').click(); });
+$('codeGo').addEventListener('click', async e => {
+  const code = $('codeIn').value.replace(/\D/g, '');
+  if(code.length !== 6) return toast('Enter the 6-digit code from the email.', 'err');
+  const b = e.currentTarget; b.disabled = true;
+  try{
+    const ok = await rpc('mfm_w_verify_login_code', {p_code: code});
+    if(!ok){ $('codeIn').value = ''; return toast('That code is not right. Use the newest email and try again.', 'err'); }
+    boot();
+  }catch(err){ toast(err.message, 'err'); }
+  finally{ b.disabled = false; }
+});
+$('codeIn').addEventListener('input', e => { if(e.target.value.replace(/\D/g, '').length === 6) $('codeGo').click(); });
+$('codeResend').addEventListener('click', sendCode);
+sb.auth.onAuthStateChange(ev => { if(ev === 'SIGNED_OUT') show('loginView'); });
+
+/* ---------- tabs ---------- */
+function setTab(t){
+  S.tab = t;
+  try{ localStorage.setItem('growth_tab', t); }catch(_){}
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  render();
+}
+$('tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if(b) setTab(b.dataset.tab); });
+async function refresh(){ S.cache = {}; await render(); }
+
+async function render(){
+  const main = $('main');
+  if(!main.innerHTML) main.innerHTML = '<div class="empty">Loading…</div>';
+  try{
+    const ov = await load('ov:' + S.month, () => rpc('growth_overview', {p_month: S.month}));
+    const pend = ov.pending_decisions || {};
+    const nPend = (pend.opportunities || 0) + (pend.actions || 0) + (pend.drafts || 0);
+    $('decideDot').textContent = nPend; $('decideDot').classList.toggle('hidden', !nPend);
+    main.innerHTML = await (VIEWS[S.tab] || VIEWS.overview)(ov);
+  }catch(e){
+    main.innerHTML = `<div class="empty">Could not load this page: ${esc(e.message)}</div>`;
+  }
+}
+
+function monthPicker(){
+  const opts = []; const d = new Date(todayISO() + 'T00:00:00');
+  for(let i = 0; i < 12; i++){
+    const m = new Date(d.getFullYear(), d.getMonth() - i, 1);
+    const v = m.getFullYear() + '-' + String(m.getMonth() + 1).padStart(2, '0') + '-01';
+    if(v < '2026-07-01') break;
+    opts.push(`<option value="${v}"${v === S.month ? ' selected' : ''}>${monthName(v)}</option>`);
+  }
+  return `<div class="month"><select data-change="month" aria-label="Month">${opts.join('')}</select></div>`;
+}
+function bars(rows, labelFn, valFn, fmt, alt){
+  if(!rows.length) return '<div class="empty">Nothing recorded for this period.</div>';
+  const max = Math.max(...rows.map(r => Number(valFn(r) || 0)), 1);
+  return '<div class="bars">' + rows.map(r => `<div class="bar"><span class="lab" title="${esc(labelFn(r))}">${esc(labelFn(r))}</span>
+    <span class="track"><span class="fill${alt ? ' alt' : ''}" style="width:${Math.max(2, Number(valFn(r) || 0) / max * 100)}%"></span></span>
+    <span class="val">${fmt(r)}</span></div>`).join('') + '</div>';
+}
+function kpi(label, value, sub, cls){ return `<div class="kpi${cls ? ' ' + cls : ''}"><b>${value}</b><span>${esc(label)}</span>${sub || ''}</div>`; }
+function delta(cur, prev, unit){
+  if(S.month === monthStart(todayISO())) return prev == null ? '' : `<small>last month: ${n0(prev)}${unit ? ' ' + unit : ''}</small>`;
+  const p = pct(cur, prev);
+  if(p == null) return '<small>no earlier month to compare</small>';
+  return `<small class="${p >= 0 ? 'up' : 'down'}">${p >= 0 ? '▲' : '▼'} ${Math.abs(p)}% vs last month${unit ? ' ' + unit : ''}</small>`;
+}
+
+/* ---------- views ---------- */
+const VIEWS = {
+  async overview(ov){
+    const m = ov.month_row || {}, p = ov.prev_month_row || {};
+    const isNow = S.month === monthStart(todayISO());
+    const [monthly, channels, products] = await Promise.all([
+      load('monthly', () => view('monthly_sales_performance', '2026-07-01', null)),
+      load('ch:' + S.month, () => view('campaign_conversion_summary', S.month, S.month)),
+      load('pr:' + S.month, () => view('product_sales_performance', S.month, S.month)),
+    ]);
+    const months = [...monthly].sort((a, b) => a.order_month < b.order_month ? -1 : 1);
+    const chAgg = {}; channels.forEach(c => { chAgg[c.channel] = (chAgg[c.channel] || 0) + Number(c.orders_through || 0); });
+    const chRows = Object.entries(chAgg).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).map(([channel, n]) => ({channel, n}));
+    const prAgg = {}; products.filter(r => !r.is_packaging).forEach(r => { const k = r.product; prAgg[k] = prAgg[k] || {product: k, orders: 0, kg: 0}; prAgg[k].orders += Number(r.orders || 0); prAgg[k].kg += Number(r.kg || 0); });
+    const prRows = Object.values(prAgg).sort((a, b) => b.orders - a.orders).slice(0, 8);
+    const basketOnly = Number(m.orders_basket_only || 0);
+    const wm = ov.wholesale_month || {};
+    return `
+      <div class="row"><h2 style="margin:6px 0">${esc(monthName(S.month))}${isNow ? ' <small>· so far</small>' : ''}</h2><span class="spacer"></span>${monthPicker()}</div>
+      <div class="kpis">
+        ${isNow ? kpi('Orders today', n0(ov.orders_today || 0), '<small>paid, not cancelled</small>') : ''}
+        ${kpi('Orders through', n0(m.orders_through || 0), delta(m.orders_through, p.orders_through))}
+        ${kpi('New customers', n0(m.new_customers || 0), delta(m.new_customers, p.new_customers))}
+        ${kpi('Returning customers', n0(m.returning_customers || 0), `<small>${m.customers ? Math.round((m.returning_customers || 0) / m.customers * 100) : 0}% of buyers</small>`)}
+        ${kpi('Value', kes(m.value_kes), `<small>${basketOnly ? basketOnly + ' orders at website basket' : 'amounts received'}</small>`)}
+        ${kpi('Average order', kes(m.avg_order_value_kes), S.month === monthStart(todayISO()) ? (p.avg_order_value_kes != null ? `<small>last month: ${kes(p.avg_order_value_kes)}</small>` : '') : delta(m.avg_order_value_kes, p.avg_order_value_kes))}
+        ${kpi('Kilograms', kg(m.kg_sold), '<small>lines priced by weight</small>')}
+        ${kpi('Cancelled', (m.cancel_rate_pct ?? '–') + '%', `<small>${n0(m.orders_cancelled || 0)} of ${n0(m.orders_placed || 0)} placed</small>`, Number(m.cancel_rate_pct) >= 25 ? 'warn' : '')}
+        ${kpi('Counties', n0(ov.active_destinations || 0), '<small>retail + wholesale</small>')}
+        ${kpi('From a known channel', n0(ov.campaign_attributed_orders || 0), `<small>of ${n0(m.orders_through || 0)} orders</small>`)}
+        ${kpi('Wholesale', n0(wm.orders || 0) + ' orders', `<small>${kes(wm.value_kes)} · ${n0(ov.wholesale_accounts || 0)} accounts</small>`)}
+        ${kpi('Marketing spend', kes(ov.marketing_spend_kes), '<small>entered on the Campaigns tab</small>')}
+      </div>
+
+      <h2>Orders by month <small>· paid, not cancelled</small></h2>
+      ${bars(months, r => monthName(r.order_month).replace(/ \d{4}$/, ''), r => r.orders_through, r => `${n0(r.orders_through)} · ${kes(r.value_kes)}`)}
+
+      <h2>Where this month's orders came from</h2>
+      ${bars(chRows, r => CHANNEL[r.channel] || r.channel, r => r.n, r => n0(r.n) + ' orders', true)}
+      ${chAgg.unknown || chAgg.direct ? `<div class="note">${n0((chAgg.unknown || 0) + (chAgg.direct || 0))} orders have no channel. Tagged links in your bios and "Where did they find us?" on Dispatch fill this in.</div>` : ''}
+
+      <h2>Top products this month <small>· by orders</small></h2>
+      ${bars(prRows, r => r.product, r => r.orders, r => `${n0(r.orders)} order${r.orders === 1 ? '' : 's'}${r.kg ? ' · ' + kg(r.kg) : ''}`)}
+
+      <div class="note info">${(ov.notes || []).map(esc).join('<br>')}</div>`;
+  },
+
+  async decide(){
+    const [opps, actions, drafts] = await Promise.all([load('opps', () => list('opportunities')), load('actions', () => list('actions')), load('drafts', () => list('drafts'))]);
+    const pOpp = opps.filter(o => o.decision === 'pending'), pAct = actions.filter(a => a.status === 'pending_approval'), pDr = drafts.filter(d => d.status === 'draft');
+    const blocked = actions.filter(a => a.status === 'blocked');
+    const done = [...opps.filter(o => o.decision !== 'pending').map(o => ({t: o.decided_at, txt: `Opportunity “${o.title}” ${o.decision}`, by: o.decided_by})),
+                  ...actions.filter(a => ['approved','rejected'].includes(a.status)).map(a => ({t: a.decided_at, txt: `${ACTION[a.action_type] || a.action_type} ${a.status}`, by: a.decided_by})),
+                  ...drafts.filter(d => d.status !== 'draft').map(d => ({t: d.approved_at, txt: `Message to ${d.segment} ${d.status}`, by: d.approved_by}))]
+                  .sort((a, b) => (b.t || '') > (a.t || '') ? 1 : -1).slice(0, 15);
+    return `
+      <h2>Opportunities <small>· ${pOpp.length} waiting</small></h2>
+      ${pOpp.length ? pOpp.map(o => `<div class="card">
+        <div class="row"><h3>${esc(o.title)}</h3><span class="spacer"></span><span class="pill ${o.priority === 'high' ? 'bad' : o.priority === 'medium' ? 'warn' : ''}">${esc(o.priority)}</span></div>
+        <div class="meta">${o.agent ? esc(AGENT[o.agent] || o.agent) + ' agent' : 'Added by hand'} · ${stamp(o.created_at)}</div>
+        <p><b>Evidence:</b> ${esc(o.evidence)}</p><p><b>Do:</b> ${esc(o.recommended_action)}</p>
+        ${o.estimated_impact ? `<p><b>Impact:</b> ${esc(o.estimated_impact)} ${o.impact_is_hypothesis ? '<span class="pill warn">estimate, not proven</span>' : ''}</p>` : ''}
+        <div class="acts"><button class="btn sm" data-act="decide" data-kind="opportunity" data-id="${o.id}" data-d="approved">Approve</button>
+          <button class="btn ghost sm" data-act="decide" data-kind="opportunity" data-id="${o.id}" data-d="deferred">Later</button>
+          <button class="btn bad sm" data-act="decide" data-kind="opportunity" data-id="${o.id}" data-d="rejected">Reject</button></div></div>`).join('')
+        : '<div class="empty">No opportunities waiting. The agents add them once they run; you can add your own below.</div>'}
+      <details class="more"><summary>Add an opportunity yourself</summary>
+        <form data-form="opp"><label>What</label><input name="title" maxlength="160" required placeholder="e.g. Katashingo buyers in Voi">
+          <label>Evidence (what the records show)</label><textarea name="evidence" required></textarea>
+          <label>What to do</label><textarea name="action" required></textarea>
+          <div class="grid2"><div><label>Expected impact</label><input name="impact" placeholder="optional"></div>
+          <div><label>Priority</label><select name="priority"><option>high</option><option selected>medium</option><option>low</option></select></div></div>
+          <div class="acts"><button class="btn">Add</button></div></form></details>
+
+      <h2>Actions needing your OK <small>· ${pAct.length} waiting</small></h2>
+      ${pAct.length ? pAct.map(a => `<div class="card"><div class="row"><h3>${esc(ACTION[a.action_type] || a.action_type)}</h3><span class="spacer"></span><span class="pill warn">needs approval</span></div>
+        <div class="meta">${esc(AGENT[a.agent] || a.agent || '')} · ${stamp(a.requested_at)}</div>
+        <div class="linkout">${esc(JSON.stringify(a.payload || {}, null, 1))}</div>
+        <p class="small muted">Approving records your decision. It does not change prices, send messages or spend money by itself.</p>
+        <div class="acts"><button class="btn sm" data-act="decide" data-kind="action" data-id="${a.id}" data-d="approved">Approve</button>
+          <button class="btn bad sm" data-act="decide" data-kind="action" data-id="${a.id}" data-d="rejected">Reject</button></div></div>`).join('')
+        : '<div class="empty">Nothing waiting. Discounts, price changes, ads, messages and delivery promises from agents land here first.</div>'}
+
+      <h2>Customer message drafts <small>· ${pDr.length} waiting</small></h2>
+      ${pDr.length ? pDr.map(d => `<div class="card"><div class="row"><h3>${esc(d.segment)}</h3><span class="spacer"></span><span class="pill">${esc(d.channel)}</span></div>
+        <div class="meta">${esc(AGENT[d.agent] || d.agent || '')} · ${stamp(d.created_at)}${d.recipient_count != null ? ' · ' + n0(d.recipient_count) + ' people' : ''}</div>
+        <p style="white-space:pre-wrap">${esc(d.body)}</p>
+        <p class="small muted">Only customers who agreed to messages can receive it. Nothing is sent from this page.</p>
+        <div class="acts"><button class="btn sm" data-act="decide" data-kind="draft" data-id="${d.id}" data-d="approved">Approve</button>
+          <button class="btn bad sm" data-act="decide" data-kind="draft" data-id="${d.id}" data-d="rejected">Reject</button></div></div>`).join('')
+        : '<div class="empty">No drafts waiting.</div>'}
+
+      ${blocked.length ? `<h2>Blocked attempts <small>· logged</small></h2><div class="tscroll"><table class="tbl"><tr><th>When</th><th>Agent</th><th>Tried to</th><th>Why blocked</th></tr>
+        ${blocked.slice(0, 20).map(a => `<tr><td class="mono small">${stamp(a.requested_at)}</td><td>${esc(AGENT[a.agent] || a.agent || '–')}</td><td>${esc(ACTION[a.action_type] || a.action_type)}</td><td class="small">${esc(a.reason || '')}</td></tr>`).join('')}</table></div>` : ''}
+
+      ${done.length ? `<h2>Recent decisions</h2><div class="tscroll"><table class="tbl">${done.map(x => `<tr><td class="mono small">${stamp(x.t)}</td><td>${esc(x.txt)}</td><td class="small muted">${esc(x.by || '')}</td></tr>`).join('')}</table></div>` : ''}`;
+  },
+
+  async campaigns(){
+    const [camps, spend] = await Promise.all([load('camps', () => list('campaigns')), load('spend', () => list('spend'))]);
+    const ch = await load('chAll', () => view('campaign_conversion_summary', null, null, 2000));
+    const byTag = {}; ch.forEach(r => { if(r.campaign){ byTag[r.campaign] = byTag[r.campaign] || {o: 0, v: 0, n: 0}; byTag[r.campaign].o += Number(r.orders_through || 0); byTag[r.campaign].v += Number(r.value_kes || 0); byTag[r.campaign].n += Number(r.new_customers || 0); } });
+    const spendBy = {}; spend.filter(s => !s.voided_at && s.campaign_id).forEach(s => { spendBy[s.campaign_id] = (spendBy[s.campaign_id] || 0) + Number(s.amount_kes); });
+    const e = S.editCampaign != null ? (camps.find(c => c.id === S.editCampaign) || {}) : null;
+    const form = (c) => `<form data-form="campaign" data-id="${c.id || ''}" class="card">
+        <h3>${c.id ? 'Edit ' + esc(c.code) : 'New campaign'}</h3>
+        <div class="grid2">
+          <div class="full"><label>Name</label><input name="name" required maxlength="120" value="${esc(c.name)}" placeholder="e.g. Prawn week Nairobi"></div>
+          <div class="full"><label>Objective</label><input name="objective" value="${esc(c.objective)}" placeholder="e.g. 15 new Nairobi customers"></div>
+          <div><label>Audience</label><input name="audience" value="${esc(c.audience)}" placeholder="e.g. Nairobi families"></div>
+          <div><label>Product</label><input name="product" value="${esc(c.product)}" placeholder="e.g. Prawns"></div>
+          <div><label>Offer</label><input name="offer" value="${esc(c.offer)}" placeholder="none, or what (discounts need your OK)"></div>
+          <div><label>Channel</label><select name="channel">${['','tiktok','instagram','facebook','youtube','whatsapp','google','radio','other'].map(x => `<option${(c.channel || '') === x ? ' selected' : ''}>${x}</option>`).join('')}</select></div>
+          <div class="full"><label>Creative idea</label><textarea name="creative">${esc(c.creative)}</textarea></div>
+          <div><label>Landing page</label><input name="landing_url" value="${esc(c.landing_url || SITE + '/catalogue.html')}"></div>
+          <div><label>Link tag (utm_campaign)</label><input name="utm_campaign" value="${esc(c.utm_campaign)}" maxlength="40" autocapitalize="off" spellcheck="false" placeholder="prawn_week"></div>
+          <div class="full"><label>Call to action</label><input name="call_to_action" value="${esc(c.call_to_action)}" placeholder="e.g. Order on mombasafish.com — delivered in 24 h"></div>
+          <div><label>Start</label><input type="date" name="start_date" value="${esc(c.start_date)}"></div>
+          <div><label>End</label><input type="date" name="end_date" value="${esc(c.end_date)}"></div>
+          <div><label>Budget (KES)</label><input type="number" min="0" name="budget_kes" value="${esc(c.budget_kes)}" placeholder="0 if organic"></div>
+          <div><label>How we measure it</label><input name="measurement" value="${esc(c.measurement || 'Orders with this link tag')}"></div>
+        </div>
+        <div class="acts"><button class="btn">Save</button><button type="button" class="btn ghost" data-act="cancel-edit">Close</button></div></form>`;
+    return `
+      <div class="row"><h2 style="margin:6px 0">Campaigns</h2><span class="spacer"></span>${e ? '' : '<button class="btn sm" data-act="new-campaign">＋ New campaign</button>'}</div>
+      ${e ? form(e) : ''}
+      ${camps.length ? camps.map(c => {
+        const r = c.utm_campaign ? byTag[c.utm_campaign] : null;
+        const link = c.landing_url && c.utm_campaign && c.channel ? tagged(c) : '';
+        return `<div class="card">
+          <div class="row"><h3>${esc(c.name)}</h3><span class="spacer"></span><span class="pill ${CSTAT[c.status] || ''}">${esc(c.status)}</span></div>
+          <div class="meta">${esc(c.code)} · ${esc(c.channel || 'no channel')} · ${c.start_date ? day(c.start_date) : 'no dates'}${c.end_date ? ' → ' + day(c.end_date) : ''}${c.budget_kes ? ' · budget ' + kes(c.budget_kes) : ''}${c.approved_by ? ' · approved by ' + esc(c.approved_by) : ''}</div>
+          ${c.objective ? `<p>${esc(c.objective)}</p>` : ''}
+          ${link ? `<div class="lbl">Link to use</div><div class="linkout">${esc(link)}</div>` : '<p class="small muted">Add a landing page, channel and link tag to get the tracked link.</p>'}
+          <p class="small">${c.utm_campaign ? `<b>Results so far:</b> ${n0(r ? r.o : 0)} orders · ${n0(r ? r.n : 0)} new customers · ${kes(r ? r.v : 0)}${spendBy[c.id] ? ` · spent ${kes(spendBy[c.id])}` : ''}${spendBy[c.id] && r && r.n ? ` · ${kes(spendBy[c.id] / r.n)} per new customer` : ''}` : ''}</p>
+          ${c.results && c.results.note ? `<p class="small"><b>Notes:</b> ${esc(c.results.note)}</p>` : ''}
+          <div class="acts">
+            ${link ? `<button class="btn ghost sm" data-act="copy" data-text="${esc(link)}">Copy link</button>` : ''}
+            ${['Draft','Review'].includes(c.status) ? `<button class="btn ghost sm" data-act="edit-campaign" data-id="${c.id}">Edit</button>` : ''}
+            ${(NEXT[c.status] || []).map(s => `<button class="btn ${s === 'Rejected' ? 'bad' : s === 'Draft' ? 'ghost' : ''} sm" data-act="camp-status" data-id="${c.id}" data-s="${s}">${NEXT_LABEL[s]}</button>`).join('')}
+            ${['Active','Completed','Analysed'].includes(c.status) ? `<button class="btn ghost sm" data-act="camp-note" data-id="${c.id}">Add result notes</button>` : ''}
+          </div></div>`; }).join('')
+        : (e ? '' : '<div class="empty">No campaigns yet. Every campaign gets its own tagged link, so orders from it are counted here.</div>')}
+
+      <h2>Marketing spend</h2>
+      <form data-form="spend" class="card"><div class="grid2">
+        <div><label>Where</label><select name="platform">${['tiktok','meta','google','whatsapp','youtube','influencer','print','radio','other'].map(x => `<option>${x}</option>`).join('')}</select></div>
+        <div><label>Day</label><input type="date" name="date" value="${todayISO()}" max="${todayISO()}" required></div>
+        <div><label>Amount (KES)</label><input type="number" min="1" name="amount" required></div>
+        <div><label>Campaign</label><select name="campaign"><option value="">—</option>${camps.map(c => `<option value="${c.id}">${esc(c.code)} · ${esc(c.name)}</option>`).join('')}</select></div>
+        <div class="full"><label>Note</label><input name="note" maxlength="200" placeholder="e.g. TikTok boost on the prawn video"></div>
+      </div><div class="acts"><button class="btn">Add spend</button></div></form>
+      ${spend.length ? `<div class="tscroll"><table class="tbl"><tr><th>Day</th><th>Where</th><th class="n">KES</th><th>Campaign</th><th>Note</th><th></th></tr>
+        ${spend.map(s => `<tr style="${s.voided_at ? 'opacity:.45;text-decoration:line-through' : ''}"><td class="mono small">${day(s.spend_date)}</td><td>${esc(s.platform)}</td><td class="n">${n0(s.amount_kes)}</td><td class="small">${esc(s.campaign_code || '')}</td><td class="small">${esc(s.note || '')}${s.voided_at ? '<br><span class="muted">voided: ' + esc(s.void_reason) + '</span>' : ''}</td>
+          <td>${s.voided_at ? '' : `<button class="btn ghost sm" data-act="void-spend" data-id="${s.id}">Void</button>`}</td></tr>`).join('')}</table></div>` : ''}`;
+  },
+
+  async channels(){
+    const ch = await load('chAll', () => view('campaign_conversion_summary', null, null, 2000));
+    const months = [...new Set(ch.map(r => r.order_month))].sort().reverse();
+    const chans = [...new Set(ch.map(r => r.channel))];
+    const cell = (m, c) => ch.filter(r => r.order_month === m && r.channel === c).reduce((s, r) => s + Number(r.orders_through || 0), 0);
+    const tot = c => months.reduce((s, m) => s + cell(m, c), 0);
+    chans.sort((a, b) => tot(b) - tot(a));
+    const tags = ch.filter(r => r.campaign);
+    return `
+      <h2>Orders by channel and month <small>· paid, not cancelled</small></h2>
+      <div class="tscroll"><table class="tbl"><tr><th>Channel</th>${months.map(m => `<th class="n">${esc(monthName(m).replace(/ 20\d\d/, ''))}</th>`).join('')}<th class="n">All</th></tr>
+        ${chans.map(c => `<tr><td>${esc(CHANNEL[c] || c)}</td>${months.map(m => `<td class="n">${cell(m, c) || ''}</td>`).join('')}<td class="n"><b>${tot(c)}</b></td></tr>`).join('')}</table></div>
+      <div class="note">“Not recorded” are orders from before 24 Aug, when the website started tagging visits. “Website, no tag” came to the site without a tagged link — share the links below to change that.</div>
+      ${tags.length ? `<h2>By link tag</h2><div class="tscroll"><table class="tbl"><tr><th>Month</th><th>Tag</th><th>Channel</th><th class="n">Orders</th><th class="n">New</th><th class="n">Value</th></tr>
+        ${tags.map(r => `<tr><td class="small">${esc(monthName(r.order_month))}</td><td class="mono">${esc(r.campaign)}</td><td>${esc(CHANNEL[r.channel] || r.channel)}</td><td class="n">${n0(r.orders_through)}</td><td class="n">${n0(r.new_customers)}</td><td class="n">${n0(r.value_kes)}</td></tr>`).join('')}</table></div>` : ''}
+      <h2>Tagged links for your profiles</h2>
+      ${[['TikTok bio','tiktok','bio'],['Instagram bio','instagram','bio'],['Facebook page','facebook','page'],['YouTube descriptions','youtube','description'],['WhatsApp broadcast','whatsapp','broadcast']].map(([n, s, md]) => {
+        const u = `${SITE}/?utm_source=${s}&utm_medium=${md}`;
+        return `<div class="card"><div class="row"><b>${n}</b><span class="spacer"></span><button class="btn ghost sm" data-act="copy" data-text="${esc(u)}">Copy</button></div><div class="linkout">${esc(u)}</div></div>`; }).join('')}`;
+  },
+
+  async content(){
+    const social = await load('social', () => list('social', 500));
+    const preview = S.importRows;
+    const byPillar = {}; social.forEach(r => { const k = r.pillar || 'no pillar'; byPillar[k] = byPillar[k] || {k, views: 0, clicks: 0, n: 0}; byPillar[k].views += Number(r.views || 0); byPillar[k].clicks += Number(r.link_clicks || 0); byPillar[k].n++; });
+    const pillars = Object.values(byPillar).sort((a, b) => b.views - a.views);
+    return `
+      <h2>Import post numbers</h2>
+      <div class="card">
+        <p class="small">Copy the numbers for each post from TikTok, Instagram, Facebook or YouTube analytics into a sheet with these column names, then paste it here (straight from Excel or Google Sheets works). The same post and dates pasted again replaces the old numbers.</p>
+        <div class="linkout">${esc(SOCIAL_COLS.join(', '))}</div>
+        <p class="small muted">Needed: platform, post_ref (the post id or link), period_start and period_end (like ${todayISO()}). Everything else is optional. Pillar is your content theme, e.g. cutting, cooking, landing site, ocean.</p>
+        <div class="acts"><button class="btn ghost sm" data-act="template">Download a blank sheet</button></div>
+        <label for="csvIn">Paste here</label>
+        <textarea id="csvIn" style="min-height:120px;font-family:var(--mono);font-size:13px" placeholder="platform,post_ref,title,period_start,period_end,views,…"></textarea>
+        <div class="acts"><button class="btn ghost" data-act="csv-check">Check</button>${preview ? `<button class="btn" data-act="csv-import">Import ${preview.length} rows</button>` : ''}</div>
+        ${preview ? `<div class="tscroll" style="margin-top:10px"><table class="tbl"><tr><th>Platform</th><th>Post</th><th>Period</th><th class="n">Views</th><th class="n">Clicks</th></tr>
+          ${preview.slice(0, 12).map(r => `<tr><td>${esc(r.platform)}</td><td class="small">${esc(r.title || r.post_ref)}</td><td class="small mono">${esc(r.period_start)} → ${esc(r.period_end)}</td><td class="n">${n0(num(r.views))}</td><td class="n">${n0(num(r.link_clicks))}</td></tr>`).join('')}
+          ${preview.length > 12 ? `<tr><td colspan="5" class="muted small">…and ${preview.length - 12} more</td></tr>` : ''}</table></div>` : ''}
+      </div>
+      <h2>Views by content theme</h2>
+      ${bars(pillars, r => r.k, r => r.views, r => `${n0(r.views)} views · ${n0(r.clicks)} clicks · ${r.n} posts`)}
+      <h2>Posts <small>· ${social.length} rows</small></h2>
+      ${social.length ? `<div class="tscroll"><table class="tbl"><tr><th>Platform</th><th>Post</th><th>Theme</th><th>Period</th><th class="n">Views</th><th class="n">Reach</th><th class="n">Clicks</th><th class="n">Shares</th><th class="n">Followers</th></tr>
+        ${social.map(r => `<tr><td>${esc(r.platform)}</td><td class="small">${r.post_url ? `<a href="${esc(r.post_url)}" target="_blank" rel="noopener">${esc(r.title || r.post_ref)}</a>` : esc(r.title || r.post_ref)}</td><td class="small">${esc(r.pillar || '')}</td>
+          <td class="small mono">${esc(r.period_start)} → ${esc(r.period_end)}</td><td class="n">${n0(r.views)}</td><td class="n">${n0(r.reach)}</td><td class="n">${n0(r.link_clicks)}</td><td class="n">${n0(r.shares)}</td><td class="n">${n0(r.followers_gained)}</td></tr>`).join('')}</table></div>`
+        : '<div class="empty">No post numbers yet. The Content agent needs these to say which videos bring orders.</div>'}`;
+  },
+
+  async customers(){
+    const [cust, consent] = await Promise.all([load('cust', () => view('customer_purchase_summary', null, null, 2000)), load('consent', () => list('consent'))]);
+    const cnt = f => cust.filter(f).length;
+    const repeat = cust.filter(c => c.orders_through >= 2).sort((a, b) => b.orders_through - a.orders_through || (b.last_order_date > a.last_order_date ? 1 : -1));
+    const cooling = cust.filter(c => c.orders_through >= 2 && c.activity_segment !== 'active');
+    const firstCh = {}; cust.forEach(c => { const k = c.first_channel || 'unknown'; firstCh[k] = firstCh[k] || {k, n: 0, rep: 0}; firstCh[k].n++; if(c.orders_through >= 2) firstCh[k].rep++; });
+    return `
+      <h2>Customers <small>· by phone number, paid orders only</small></h2>
+      <div class="kpis">
+        ${kpi('Customers', n0(cust.length))}
+        ${kpi('Bought more than once', n0(repeat.length), `<small>${cust.length ? Math.round(repeat.length / cust.length * 100) : 0}% repeat rate</small>`)}
+        ${kpi('3 or more orders', n0(cnt(c => c.orders_through >= 3)))}
+        ${kpi('Active', n0(cnt(c => c.activity_segment === 'active')), '<small>ordered in the last 30 days</small>')}
+        ${kpi('Cooling', n0(cnt(c => c.activity_segment === 'cooling')), '<small>31–60 days</small>')}
+        ${kpi('Inactive', n0(cnt(c => c.activity_segment === 'inactive')), '<small>over 60 days</small>', 'warn')}
+        ${kpi('Agreed to messages', n0((consent.whatsapp || 0)), `<small>WhatsApp · ${n0(consent.opted_out || 0)} opted out</small>`, consent.whatsapp ? '' : 'warn')}
+      </div>
+      ${consent.total ? '' : '<div class="note">No customer has agreed to marketing messages yet, so the Retention agent can draft reorder messages but none can go out. Asking at checkout ("Send me fresh-catch alerts on WhatsApp") is the next step for this.</div>'}
+      <h2>Repeat customers</h2>
+      ${repeat.length ? `<div class="tscroll"><table class="tbl"><tr><th>Name</th><th>County</th><th class="n">Orders</th><th>First</th><th>Last</th><th class="n">Days since</th><th class="n">Value</th></tr>
+        ${repeat.map(c => `<tr><td>${esc(c.latest_name || '–')}</td><td class="small">${esc(c.latest_county || '')}</td><td class="n">${c.orders_through}</td><td class="small mono">${day(c.first_order_date)}</td><td class="small mono">${day(c.last_order_date)}</td><td class="n">${c.days_since_last}</td><td class="n">${n0(c.value_kes)}</td></tr>`).join('')}</table></div>` : '<div class="empty">No repeat customers yet.</div>'}
+      ${cooling.length ? `<div class="note">${cooling.length} repeat customer${cooling.length > 1 ? 's have' : ' has'} not ordered for over 30 days.</div>` : ''}
+      <h2>Which first channel brings customers back</h2>
+      <div class="tscroll"><table class="tbl"><tr><th>Found us through</th><th class="n">Customers</th><th class="n">Came back</th><th class="n">Rate</th></tr>
+        ${Object.values(firstCh).sort((a, b) => b.n - a.n).map(r => `<tr><td>${esc(CHANNEL[r.k] || r.k)}</td><td class="n">${r.n}</td><td class="n">${r.rep}</td><td class="n">${Math.round(r.rep / r.n * 100)}%</td></tr>`).join('')}</table></div>`;
+  },
+
+  async products(){
+    const rows = await load('prAll', () => view('product_sales_performance', '2026-07-01', null, 2000));
+    const recent = rows.filter(r => r.order_month >= addMonths(S.month, -2) && r.order_month <= S.month && !r.is_packaging);
+    const agg = {}; recent.forEach(r => { const k = r.product; agg[k] = agg[k] || {product: k, orders: 0, customers: 0, kg: 0, kes: 0, pc: 0}; agg[k].orders += Number(r.orders || 0); agg[k].customers += Number(r.customers || 0); agg[k].kg += Number(r.kg || 0); agg[k].pc += Number(r.pieces || 0); agg[k].kes += Number(r.basket_kes || 0); });
+    const all = Object.values(agg).sort((a, b) => b.orders - a.orders);
+    const unpriced = rows.reduce((s, r) => s + Number(r.lines_unpriced || 0), 0);
+    return `
+      <div class="row"><h2 style="margin:6px 0">Products · 3 months to ${esc(monthName(S.month))}</h2><span class="spacer"></span>${monthPicker()}</div>
+      ${bars(all.slice(0, 15), r => r.product, r => r.orders, r => `${n0(r.orders)} orders · ${r.kg ? kg(r.kg) : n0(r.pc) + ' pc'}`)}
+      <div class="tscroll" style="margin-top:10px"><table class="tbl"><tr><th>Product</th><th class="n">Orders</th><th class="n">Kg</th><th class="n">Pieces</th><th class="n">Basket KES</th></tr>
+        ${all.map(r => `<tr><td>${esc(r.product)}</td><td class="n">${n0(r.orders)}</td><td class="n">${r.kg ? n1(r.kg) : ''}</td><td class="n">${r.pc ? n0(r.pc) : ''}</td><td class="n">${n0(r.kes)}</td></tr>`).join('')}</table></div>
+      ${unpriced ? `<div class="note">${n0(unpriced)} order lines (mostly July–August, from Notion) have no weight or price and are counted as orders only.</div>` : ''}`;
+  },
+
+  async places(){
+    const rows = await load('geoAll', () => view('geographical_order_summary', '2026-07-01', null, 2000));
+    const agg = {}; rows.forEach(r => { const k = r.county; agg[k] = agg[k] || {county: k, ro: 0, rc: 0, rv: 0, wo: 0, wv: 0, cur: 0, months: new Set()}; const a = agg[k];
+      a.ro += Number(r.retail_orders || 0); a.rc += Number(r.retail_customers || 0); a.rv += Number(r.retail_value_kes || 0); a.wo += Number(r.wholesale_orders || 0); a.wv += Number(r.wholesale_value_kes || 0);
+      if(r.month === S.month) a.cur += Number(r.retail_orders || 0) + Number(r.wholesale_orders || 0); if(Number(r.retail_orders || 0) + Number(r.wholesale_orders || 0) > 0) a.months.add(r.month); });
+    const all = Object.values(agg).sort((a, b) => (b.ro + b.wo) - (a.ro + a.wo));
+    const one = all.filter(a => a.ro + a.wo === 1).length;
+    return `
+      <div class="row"><h2 style="margin:6px 0">Counties · since July</h2><span class="spacer"></span>${monthPicker()}</div>
+      ${bars(all.slice(0, 15), r => r.county, r => r.ro + r.wo, r => `${n0(r.ro)} retail${r.wo ? ' · ' + n0(r.wo) + ' wholesale' : ''}`)}
+      <div class="tscroll" style="margin-top:10px"><table class="tbl"><tr><th>County</th><th class="n">Retail orders</th><th class="n">Customers</th><th class="n">Retail KES</th><th class="n">Wholesale</th><th class="n">Months active</th><th class="n">${esc(monthName(S.month).replace(/ 20\d\d/, ''))}</th></tr>
+        ${all.map(a => `<tr><td>${esc(a.county)}</td><td class="n">${n0(a.ro)}</td><td class="n">${n0(a.rc)}</td><td class="n">${n0(a.rv)}</td><td class="n">${a.wo ? n0(a.wo) + ' · ' + n0(a.wv) : ''}</td><td class="n">${a.months.size}</td><td class="n">${a.cur || ''}</td></tr>`).join('')}</table></div>
+      ${one ? `<div class="note info">${one} count${one > 1 ? 'ies have' : 'y has'} exactly one order — places where one customer already found you. The Distribution agent watches these for a second order.</div>` : ''}
+      <p class="small muted">The full map is on the <a href="./radar.html">Distribution Radar</a>.</p>`;
+  },
+
+  async wholesale(){
+    const rows = await load('ws', () => view('wholesale_pipeline_summary', null, null, 500));
+    const t = k => rows.reduce((s, r) => s + Number(r[k] || 0), 0);
+    return `
+      <h2>Wholesale pipeline <small>· test orders left out</small></h2>
+      <div class="kpis">
+        ${kpi('Orders', n0(rows.length))}
+        ${kpi('Transaction value', kes(t('transaction_value_kes')))}
+        ${kpi('Cash collected', kes(t('cash_collected_kes')))}
+        ${kpi('Still owed', kes(t('outstanding_kes')), '', t('outstanding_kes') ? 'warn' : '')}
+        ${kpi('Agency commission', kes(t('agency_commission_kes')), '<small>your income on agency orders</small>')}
+        ${kpi('Net contribution', kes(t('net_contribution_kes')), '<small>commission minus costs</small>')}
+        ${kpi('Kg confirmed', kg(t('confirmed_kg')), `<small>${kg(t('delivered_kg'))} delivered</small>`)}
+      </div>
+      ${rows.length ? rows.map(r => `<div class="card"><div class="row"><h3>${esc(r.business_name || 'Buyer')}</h3><span class="spacer"></span><span class="pill">${esc(r.status)}</span></div>
+        <div class="meta">${esc(r.ref)} · ${esc(r.dest_town || '')}${r.dest_county ? ', ' + esc(r.dest_county) : ''} · ${esc(r.buyer_type || '')} · ${day(r.created_at)}</div>
+        <p class="small">Goods ${kes(r.transaction_value_kes)} + transport ${kes(r.transport_kes)} · collected ${kes(r.cash_collected_kes)} · owed ${kes(r.outstanding_kes)}<br>
+        Confirmed ${kg(r.confirmed_kg)} · delivered ${kg(r.delivered_kg)}${r.agency_commission_kes != null ? ` · commission ${kes(r.agency_commission_kes)} (${esc(r.commission_status)})` : ' · commission set on delivery'}</p></div>`).join('')
+        : '<div class="empty">No wholesale orders yet.</div>'}
+      <p class="small muted">Orders, quotes and payments are handled on the <a href="./wholesale.html">Wholesale page</a>.</p>`;
+  },
+
+  async agents(){
+    const agents = await load('agents', () => list('agents'));
+    const reports = await load('reports', () => list('reports', 20));
+    return `
+      <h2>The agents</h2>
+      <div class="note">The agents are set up but not running yet: they need you to choose how they run (an AI key on the server, or scheduled tasks). Until then this page shows your real numbers, and you can run campaigns and decisions by hand.</div>
+      ${agents.map(a => `<div class="card"><div class="row"><h3>${esc(a.name)}</h3><span class="spacer"></span>${a.first_release ? '<span class="pill info">first release</span>' : ''}<span class="pill ${a.enabled ? 'good' : ''}">${a.enabled ? 'on' : 'off'}</span></div>
+        <p class="small">${esc(a.mission)}</p>
+        <div class="meta">Delivers: ${esc(a.deliverable || '')} · ${esc(a.cadence || '')}</div>
+        <div class="meta">Last run: ${a.last_run_at ? stamp(a.last_run_at) + ' · ' + esc(a.last_run_status) : 'never'}${a.last_run_error ? ' · <span style="color:var(--coral)">' + esc(a.last_run_error) + '</span>' : ''}</div></div>`).join('')}
+      <h2>Reports</h2>
+      ${reports.length ? reports.map(r => `<details class="more"><summary>${esc(r.title)} · ${day(r.created_at)}</summary><div style="white-space:pre-wrap;margin-top:10px;font-size:14px">${esc(r.body_md)}</div></details>`).join('') : '<div class="empty">No reports yet.</div>'}
+      <h2>What agents may do on their own</h2>
+      <div class="tscroll"><table class="tbl"><tr><th>Action</th><th>Permission</th></tr>
+        ${Object.entries(ACTION).map(([k, v]) => `<tr><td>${esc(v)}</td><td>${['analyse_sales','recommend_campaign','draft_social_content','prepare_wholesale_prospects','draft_customer_message'].includes(k) ? '<span class="pill good">automatic</span>' : '<span class="pill warn">needs your OK</span>'}</td></tr>`).join('')}</table></div>`;
+  },
+};
+
+function addMonths(iso, n){ const d = new Date(iso + 'T00:00:00'); d.setMonth(d.getMonth() + n); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-01'; }
+function tagged(c){
+  const src = {instagram: 'instagram', facebook: 'facebook', tiktok: 'tiktok', youtube: 'youtube', whatsapp: 'whatsapp', google: 'google'}[c.channel] || c.channel;
+  try{ const u = new URL(c.landing_url); u.searchParams.set('utm_source', src); u.searchParams.set('utm_medium', c.budget_kes > 0 ? 'paid' : 'organic'); u.searchParams.set('utm_campaign', c.utm_campaign); return u.toString(); }
+  catch(_){ return ''; }
+}
+
+/* ---------- social CSV ---------- */
+const SOCIAL_COLS = ['platform','post_ref','title','pillar','posted_at','period_start','period_end','views','reach','likes','comments','shares','saves','link_clicks','followers_gained','post_url'];
+const ALIAS = {post_id:'post_ref', video_id:'post_ref', post:'post_ref', link:'post_url', url:'post_url', from:'period_start', start:'period_start', to:'period_end', end:'period_end',
+  plays:'views', video_views:'views', impressions:'reach', clicks:'link_clicks', website_clicks:'link_clicks', followers:'followers_gained', new_followers:'followers_gained', theme:'pillar', date:'posted_at'};
+function parseTable(text){
+  const delim = text.split('\n')[0].includes('\t') ? '\t' : ',';
+  const rows = []; let row = [], f = '', q = false;
+  for(let i = 0; i < text.length; i++){
+    const c = text[i];
+    if(q){ if(c === '"'){ if(text[i + 1] === '"'){ f += '"'; i++; } else q = false; } else f += c; }
+    else if(c === '"') q = true;
+    else if(c === delim){ row.push(f); f = ''; }
+    else if(c === '\n' || c === '\r'){ if(c === '\r' && text[i + 1] === '\n') i++; row.push(f); rows.push(row); row = []; f = ''; }
+    else f += c;
+  }
+  if(f !== '' || row.length){ row.push(f); rows.push(row); }
+  return rows.filter(r => r.some(x => String(x).trim() !== ''));
+}
+function normDate(s){
+  s = String(s || '').trim(); if(!s) return '';
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);   // day/month/year as used in Kenya
+  if(m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+  return s;
+}
+function checkCsv(){
+  const rows = parseTable($('csvIn').value || '');
+  if(rows.length < 2) throw new Error('Paste the header row and at least one post.');
+  const head = rows[0].map(h => { const k = h.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''); return ALIAS[k] || k; });
+  const unknown = head.filter(h => h && !SOCIAL_COLS.includes(h));
+  if(!head.includes('platform') || !head.includes('post_ref')) throw new Error('The header row needs at least platform and post_ref.');
+  const out = rows.slice(1).map((r, i) => {
+    const o = {}; head.forEach((h, j) => { if(SOCIAL_COLS.includes(h)) o[h] = String(r[j] ?? '').trim(); });
+    ['views','reach','likes','comments','shares','saves','link_clicks','followers_gained'].forEach(k => { if(o[k] != null) o[k] = o[k].replace(/[,\s]/g, '').replace(/^(\d+(?:\.\d+)?)k$/i, (_, n) => String(Math.round(n * 1000))); });
+    ['period_start','period_end','posted_at'].forEach(k => { if(o[k] != null) o[k] = normDate(o[k]); });
+    o.platform = (o.platform || '').toLowerCase();
+    if(!o.period_start || !o.period_end) throw new Error(`Row ${i + 1}: period_start and period_end are needed.`);
+    return o;
+  });
+  return {rows: out, unknown};
+}
+
+/* ---------- clicks and forms ---------- */
+$('main').addEventListener('change', e => {
+  if(e.target.dataset.change === 'month'){ S.month = e.target.value; render(); }
+});
+document.addEventListener('click', async e => {
+  const b = e.target.closest('[data-act]'); if(!b) return;
+  const a = b.dataset.act;
+  if(a === 'signout'){ await sb.auth.signOut(); location.reload(); return; }
+  if(a === 'decide'){
+    const note = b.dataset.d === 'rejected' ? prompt('Why? (optional — saved with the decision)') : null;
+    if(note === null && b.dataset.d === 'rejected') return;
+    return act(b, () => rpc('growth_decide', {p_kind: b.dataset.kind, p_id: Number(b.dataset.id), p_decision: b.dataset.d, p_note: note || null}),
+      {approved: 'Approved', rejected: 'Rejected', deferred: 'Moved to later'}[b.dataset.d]);
+  }
+  if(a === 'new-campaign'){ S.editCampaign = 0; render(); return; }
+  if(a === 'edit-campaign'){ S.editCampaign = Number(b.dataset.id); render(); window.scrollTo({top: 0, behavior: 'smooth'}); return; }
+  if(a === 'cancel-edit'){ S.editCampaign = null; render(); return; }
+  if(a === 'camp-status'){
+    const s = b.dataset.s;
+    if(s === 'Rejected' && !confirm('Reject this campaign?')) return;
+    return act(b, () => rpc('growth_set_campaign_status', {p_id: Number(b.dataset.id), p_status: s, p_note: null}), 'Campaign: ' + s);
+  }
+  if(a === 'camp-note'){
+    const n = prompt('What happened? (reach, orders seen, what to repeat)'); if(!n) return;
+    const c = (S.cache.camps || []).find(x => x.id === Number(b.dataset.id)) || {};
+    return act(b, () => rpc('growth_save_campaign', {p: {id: c.id, name: c.name, results_note: n}}), 'Notes saved');
+  }
+  if(a === 'void-spend'){
+    const r = prompt('Why void this spend? (e.g. entered twice)'); if(!r) return;
+    return act(b, () => rpc('growth_void_spend', {p_id: Number(b.dataset.id), p_reason: r}), 'Spend voided');
+  }
+  if(a === 'copy'){
+    const t = b.dataset.text;
+    try{ await navigator.clipboard.writeText(t); toast('Link copied'); }catch(_){ prompt('Copy this link:', t); }
+    return;
+  }
+  if(a === 'template'){
+    const blob = new Blob([SOCIAL_COLS.join(',') + '\n' + `tiktok,7431234567,Cleaning kingfish,cutting,${todayISO()},${todayISO()},${todayISO()},0,0,0,0,0,0,0,0,\n`], {type: 'text/csv'});
+    const u = URL.createObjectURL(blob); const l = document.createElement('a'); l.href = u; l.download = 'mombasafish-post-numbers.csv'; l.click(); setTimeout(() => URL.revokeObjectURL(u), 1000);
+    return;
+  }
+  if(a === 'csv-check'){
+    try{ const r = checkCsv(); S.importRows = r.rows; S.csvText = $('csvIn').value; await render(); $('csvIn').value = S.csvText;
+      toast(`${r.rows.length} rows ready${r.unknown.length ? ' · ignored columns: ' + r.unknown.join(', ') : ''}`); }
+    catch(err){ S.importRows = null; toast(err.message, 'err'); }
+    return;
+  }
+  if(a === 'csv-import'){
+    if(!S.importRows) return;
+    b.disabled = true;
+    try{ const r = await rpc('growth_import_social', {p_rows: S.importRows}); S.importRows = null; S.csvText = ''; toast(`Imported: ${r.added} new, ${r.updated} updated`); await refresh(); }
+    catch(err){ toast(err.message, 'err'); b.disabled = false; }
+    return;
+  }
+});
+document.addEventListener('submit', async e => {
+  const f = e.target.closest('form[data-form]'); if(!f) return;
+  e.preventDefault();
+  const d = Object.fromEntries(new FormData(f).entries());
+  const btn = f.querySelector('button:not([type=button])');
+  const kind = f.dataset.form;
+  if(kind === 'campaign'){
+    const p = {}; Object.entries(d).forEach(([k, v]) => { p[k] = String(v).trim() === '' ? null : String(v).trim(); });
+    return act(btn, async () => { await rpc('growth_save_campaign', {p: {...p, id: f.dataset.id || null}}); S.editCampaign = null; }, 'Campaign saved');
+  }
+  if(kind === 'spend'){
+    return act(btn, () => rpc('growth_add_spend', {p_platform: d.platform, p_date: d.date, p_amount: num(d.amount), p_campaign: num(d.campaign), p_note: d.note || null}), 'Spend added');
+  }
+  if(kind === 'opp'){
+    return act(btn, () => rpc('growth_add_opportunity', {p_title: d.title, p_evidence: d.evidence, p_action: d.action, p_impact: d.impact || null, p_priority: d.priority, p_hypothesis: true}), 'Opportunity added');
+  }
+});
+
+boot();
+</script>
+</body>
+</html>
