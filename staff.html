@@ -165,6 +165,14 @@ input:focus{outline:none;border-color:var(--foam)}
 .fish.is2 .fname{color:var(--foam)}
 .fish.open{border-color:var(--foam);border-bottom-left-radius:0;border-bottom-right-radius:0}
 .fishwrap{margin-bottom:2px}
+.bx{margin:2px 0 8px 34px;padding:8px 12px;border-left:2px solid rgba(255,184,77,.55);background:rgba(255,184,77,.05);border-radius:0 4px 4px 0;font-size:13px}
+.bx-h{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--catch);margin-bottom:4px}
+.bx-i{display:flex;justify-content:space-between;gap:10px;padding:2px 0;color:var(--sand)}
+.bx-i b{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bx-t{margin-top:4px;color:var(--dim);font-size:12px}
+.items + .bx, .bx + .bx{margin-left:0}
+.items ~ .bx{margin-left:0}
+.no-line small{display:block;color:var(--dim);font-size:12px;margin-top:2px}
 .fpick{display:flex;flex-direction:column;gap:0;border:1px solid var(--foam);border-top:none;
   border-radius:0 0 6px 6px;overflow:hidden;margin-bottom:6px}
 .fopt{text-align:left;padding:11px 14px;background:rgba(3,42,46,.9);color:var(--sand);
@@ -965,6 +973,7 @@ async function load(){
   // Pull per-item states for all visible orders in one query
   const nums = orders.map(o => o.order_number);
   itemsByOrder = {}; srcByOrder = {}; delivByOrder = {};
+  await loadBoxes();
   try{
     const { data: rr, error: re } = await sb.from('mfm_delivery_rates').select('id, courier, county, charge_kes, note, updated_by, updated_at').eq('active', true).order('courier').order('county', { nullsFirst: false });
     rates = re ? [] : (rr || []);
@@ -1270,7 +1279,7 @@ function orderCard(o){
     // Only shown for paid orders (unpaid shouldn't be sourced at all).
     let itemsBlock;
     if(unpaid){
-      itemsBlock = (o.items ? `<div class="items">${esc(o.items)}</div>` : '') + totalBlock(o, myItems);
+      itemsBlock = (o.items ? `<div class="items">${esc(o.items)}</div>${boxesInText(o.items)}` : '') + totalBlock(o, myItems);
     } else if(myItems.length){
       const rows = myItems.map(it => {
         const [txt, cls2] = ITEM_STATE[it.state];
@@ -1286,9 +1295,9 @@ function orderCard(o){
         return `<div class="fishwrap">
           <button class="fish ${cls2} ${isOpen?'open':''}" data-fish="${it.id}">
             <span class="fdot">${dot}</span>
-            <span class="fname">${it.item_name}${it.added_at ? '<span class="fadd">＋ added</span>' : ''}</span>
+            <span class="fname">${esc(it.item_name)}${it.added_at ? '<span class="fadd">＋ added</span>' : ''}</span>
             <span class="fstate">${txt}</span>
-          </button>${picker}
+          </button>${boxHtml(it.item_name, lineCount(it.item_name) || Number(it.qty) || 1)}${picker}
         </div>`;
       }).join('');
       const allPacked = myItems.every(x => x.state===2);
@@ -1299,7 +1308,7 @@ function orderCard(o){
         + totalBlock(o, myItems)
         + (canChange ? `<button class="seed-btn add-fish" data-add="${esc(o.order_number)}">＋ Add fish — customer paid more</button>` : '');
     } else {
-      itemsBlock = `${o.items ? `<div class="items">${esc(o.items)}</div>` : ''}${totalBlock(o, myItems)}
+      itemsBlock = `${o.items ? `<div class="items">${esc(o.items)}</div>${boxesInText(o.items)}` : ''}${totalBlock(o, myItems)}
         <button class="seed-btn" data-seed="${o.order_number}">＋ Track items individually</button>`;
     }
 
@@ -1496,15 +1505,70 @@ async function loadCatalogue(){
   } catch(_) { throw new Error('Could not load the mombasafish.com catalogue. Check the internet and try again.'); }
   const doc = new DOMParser().parseFromString(html, 'text/html'), seen = new Set(), list = [];
   doc.querySelectorAll('.card[data-name][data-price]').forEach(c => {
-    if(c.dataset.box) return;                       // cooler boxes are packaging, not fish
     const name = (c.dataset.name || '').trim(), price = Math.round(Number(c.dataset.price));
     if(!name || !(price > 0) || seen.has(name) || /[;|]/.test(name)) return;
     seen.add(name);
-    list.push({ name, price, unit: c.dataset.unit === 'kg' ? 'kg' : 'pc' });
+    list.push({ name, price, unit: c.dataset.unit === 'kg' ? 'kg' : 'pc',
+                cooler: !!c.dataset.box,                       // EPS cooler: packaging, not fish
+                weight: Number(c.dataset.weight) || null });   // kg in one pack / box
   });
   if(!list.length) throw new Error('The mombasafish.com catalogue came back empty. Try again in a minute.');
   return (catalogue = list);
 }
+// picker options: by the kg, ready-made boxes (with what is inside), packs and pieces, and coolers when wanted
+function catOptions(list, withCoolers){
+  const opt = x => `<option value="${esc(x.name)}">${esc(x.name)} — ${kes(x.price)}/${x.unit === 'kg' ? 'kg' : 'pc'}</option>`;
+  const fish = list.filter(x => !x.cooler);
+  const boxed = fish.filter(x => x.unit === 'pc' && boxFor(x.name));
+  const pieces = fish.filter(x => x.unit === 'pc' && !boxFor(x.name));
+  return `<optgroup label="Sold by the kg">${fish.filter(x => x.unit === 'kg').map(opt).join('')}</optgroup>` +
+    (boxed.length ? `<optgroup label="Ready-made boxes">${boxed.map(opt).join('')}</optgroup>` : '') +
+    `<optgroup label="Packs and pieces">${pieces.map(opt).join('')}</optgroup>` +
+    (withCoolers ? `<optgroup label="Cooler boxes">${list.filter(x => x.cooler).map(opt).join('')}</optgroup>` : '');
+}
+
+/* ---------- ready-made boxes: show what is inside (from mfm_box_recipes, same as the website) ---------- */
+let boxes = [];
+async function loadBoxes(){
+  if(boxes.length) return;
+  try {
+    const { data, error } = await sb.from('mfm_box_recipes').select('box_name, aliases, item_name, sw_name, qty, unit, sort_order').eq('active', true).order('sort_order');
+    if(error || !data) return;
+    const by = {};
+    data.forEach(r => {
+      const b = by[r.box_name] || (by[r.box_name] = { name: r.box_name, keys: [String(r.box_name).toLowerCase()].concat((r.aliases || []).map(a => String(a).toLowerCase())), parts: [], kg: 0 });
+      const q = Number(r.qty) || 0, u = String(r.unit || 'kg').toLowerCase();
+      b.parts.push({ name: r.item_name + (r.sw_name ? ` (${r.sw_name})` : ''), qty: q, unit: u });
+      if(u === 'kg') b.kg += q; else if(u === 'g') b.kg += q / 1000;
+    });
+    boxes = Object.values(by);
+  } catch(_) {}
+}
+function boxKey(line){
+  return String(line || '').split(' — ')[0].replace(/\([^)]*\)/g, ' ').toLowerCase()
+    .replace(/^\s*the\s+/, '').replace(/\s+\d.*$/, '').replace(/\s+/g, ' ').trim();
+}
+function boxFor(line){ const k = boxKey(line); return k ? boxes.find(b => b.keys.includes(k)) || null : null; }
+function lineCount(line){ const m = String(line || '').match(/—\s*([0-9]+(?:\.[0-9]+)?)\s*(?:pcs?|pieces?|box(?:es)?)\s*—/i); return m ? Number(m[1]) : null; }
+const fmtQ = n => String(Math.round(n * 100) / 100);
+function boxHtml(line, count){
+  const b = boxFor(line); if(!b) return '';
+  const n = count > 0 ? count : (lineCount(line) || 1);
+  return `<div class="bx"><div class="bx-h">📦 ${esc(b.name)}${n > 1 ? ` × ${fmtQ(n)}` : ''} — inside</div>` +
+    b.parts.map(p => `<div class="bx-i"><span>${esc(p.name)}</span><b>${fmtQ(p.qty * n)} ${esc(p.unit)}</b></div>`).join('') +
+    (b.kg ? `<div class="bx-t">${fmtQ(b.kg * n)} kg of seafood${n > 1 ? ` (${fmtQ(b.kg)} kg per box)` : ''}</div>` : '') + '</div>';
+}
+function boxInline(name, count){
+  const b = boxFor(name); if(!b) return '';
+  const n = count > 0 ? count : 1;
+  return 'Inside: ' + b.parts.map(p => `${esc(p.name)} ${fmtQ(p.qty * n)} ${esc(p.unit)}`).join(' · ');
+}
+// orders shown as text (awaiting payment, not yet split into lines): list the boxes found in the text
+function boxesInText(text){
+  const body = String(text || '').split(' | ')[0];
+  return body.split(/;\s*/).map(l => boxHtml(l.trim(), lineCount(l))).join('');
+}
+
 function parseLine(name){
   const m = String(name || '').match(/^(.*?) — ([0-9.]+) (kg|pc) — KES ([0-9,]+)$/);
   return m ? { name: m[1], qty: Number(m[2]), unit: m[3], kes: Number(m[4].replace(/,/g, '')) } : { name: String(name || ''), qty: null, unit: null, kes: null };
@@ -1541,10 +1605,7 @@ async function openChange(itemId, order){
   $('chgSheet').classList.add('on');
   try {
     const list = await loadCatalogue();
-    const opt = x => `<option value="${esc(x.name)}">${esc(x.name)} — ${kes(x.price)}/${x.unit === 'kg' ? 'kg' : 'pc'}</option>`;
-    sel.innerHTML = '<option value="">Choose the new item…</option>' +
-      `<optgroup label="Sold by the kg">${list.filter(x => x.unit === 'kg').map(opt).join('')}</optgroup>` +
-      `<optgroup label="Packs, boxes and pieces">${list.filter(x => x.unit === 'pc').map(opt).join('')}</optgroup>`;
+    sel.innerHTML = '<option value="">Choose the new item…</option>' + catOptions(list, false);
     sel.disabled = false;
     $('chgSum').textContent = 'Choose the new item.';
   } catch(e) { sel.innerHTML = '<option value="">Catalogue not available</option>'; $('chgSum').textContent = e.message; }
@@ -1755,7 +1816,7 @@ function noDlRefresh(){
 }
 function noDraw(){
   $('noLines').innerHTML = no.lines.map((l, i) =>
-    `<div class="no-line"><span>${esc(l.name)} — ${l.qty} ${l.unit}</span><b>${kes(Math.round(l.qty * l.price))}</b><button type="button" data-noline="${i}" aria-label="Remove">✕</button></div>`).join('');
+    `<div class="no-line"><span>${esc(l.name)} — ${l.qty} ${l.unit}${boxFor(l.name) ? `<small>${boxInline(l.name, l.qty)}</small>` : ''}</span><b>${kes(Math.round(l.qty * l.price))}</b><button type="button" data-noline="${i}" aria-label="Remove">✕</button></div>`).join('');
   const dlv = noDelivery();
   $('noSum').innerHTML = no.lines.length
     ? `Items total: <b>${kes(noTotal())}</b> · ${no.lines.length} item${no.lines.length > 1 ? 's' : ''}` +
@@ -1814,10 +1875,7 @@ async function openNewOrder(){
   const sel = $('noPick'); sel.disabled = true; sel.innerHTML = '<option value="">Loading the catalogue…</option>';
   try {
     const list = await loadCatalogue();
-    const opt = x => `<option value="${esc(x.name)}">${esc(x.name)} — ${kes(x.price)}/${x.unit === 'kg' ? 'kg' : 'pc'}</option>`;
-    sel.innerHTML = '<option value="">Choose an item…</option>' +
-      `<optgroup label="Sold by the kg">${list.filter(x => x.unit === 'kg').map(opt).join('')}</optgroup>` +
-      `<optgroup label="Packs, boxes, coolers and pieces">${list.filter(x => x.unit === 'pc').map(opt).join('')}</optgroup>`;
+    sel.innerHTML = '<option value="">Choose an item…</option>' + catOptions(list, true);
     sel.disabled = false;
   } catch(e) { sel.innerHTML = '<option value="">Catalogue not available</option>'; note(e.message, 'err'); }
   setTimeout(() => { try { $('noPhone').focus(); } catch(_){} }, 60);
@@ -1916,7 +1974,7 @@ function addUpdate(){
     money = d < 0 ? `<br><span class="up">Customer still owes ${kes(-d)} for this fish</span>` : d > 0 ? `<br><span class="down">${kes(d)} more than this fish costs</span>` : '<br>Paid in full for this fish';
   }
   const tot = add.total != null ? `<br>Items total: ${kes(add.total)} → <b>${kes(add.total + line)}</b>` : '';
-  sum.innerHTML = `New line: <b>${esc(p.name)} — ${q} ${p.unit} — ${kes(line)}</b><br>${kes(p.price)} per ${p.unit === 'kg' ? 'kg' : 'piece'}${tot}${money}`;
+  sum.innerHTML = `New line: <b>${esc(p.name)} — ${q} ${p.unit} — ${kes(line)}</b><br>${kes(p.price)} per ${p.unit === 'kg' ? 'kg' : 'piece'}${boxFor(p.name) ? `<br>${boxInline(p.name, q)}` : ''}${tot}${money}`;
 }
 async function openAdd(order){
   const o = orders.find(x => x.order_number === order); if(!o) return;
@@ -1931,10 +1989,7 @@ async function openAdd(order){
   $('addSheet').classList.add('on');
   try {
     const list = await loadCatalogue();
-    const opt = x => `<option value="${esc(x.name)}">${esc(x.name)} — ${kes(x.price)}/${x.unit === 'kg' ? 'kg' : 'pc'}</option>`;
-    sel.innerHTML = '<option value="">Choose the item…</option>' +
-      `<optgroup label="Sold by the kg">${list.filter(x => x.unit === 'kg').map(opt).join('')}</optgroup>` +
-      `<optgroup label="Packs, boxes and pieces">${list.filter(x => x.unit === 'pc').map(opt).join('')}</optgroup>`;
+    sel.innerHTML = '<option value="">Choose the item…</option>' + catOptions(list, true);
     sel.disabled = false;
     $('addSum').textContent = 'Choose the item.';
   } catch(e) { sel.innerHTML = '<option value="">Catalogue not available</option>'; $('addSum').textContent = e.message; }
@@ -2097,12 +2152,30 @@ async function renderRepeats(){
 /* ---------- delivery label ---------- */
 // Security: the label must never show species or value — just total weight,
 // so a package in transit doesn't advertise what's inside or what it's worth.
+// kg of seafood on one checklist line: "— 2 kg —", "— 500 g —", boxes by their recipe, packs by catalogue weight, coolers 0
+function rowKg(r){
+  const name = String(r.item_name || '');
+  if(/cooler/i.test(name)) return 0;
+  const m = name.match(/—\s*([0-9]+(?:[.,][0-9]+)?)\s*(kgs?|g|pcs?|pieces?)\s*—/i);
+  const b = boxFor(name);
+  if(m){
+    const q = Number(m[1].replace(',', '.')), u = m[2].toLowerCase();
+    if(u.startsWith('kg')) return q;
+    if(u === 'g') return q / 1000;
+    if(b) return b.kg * q;
+    const c = catalogue && catalogue.find(x => name.startsWith(x.name + ' —'));
+    return c && c.weight ? c.weight * q : null;              // pieces with no known weight are left out
+  }
+  if(b) return b.kg * (parseFloat(r.qty) || 1);
+  const n = parseFloat(r.qty);                                 // older lines: qty was kg
+  return isNaN(n) ? null : n;
+}
 function totalWeightFor(orderNo, itemsText){
   const rows = itemsByOrder[orderNo] || [];
   let sum = 0, any = false;
   rows.forEach(r => {
-    const n = parseFloat(r.qty);
-    if(!isNaN(n)){ sum += n; any = true; }
+    const n = rowKg(r);
+    if(n != null && !isNaN(n)){ sum += n; any = true; }
   });
   if(!any && itemsText){
     // Order not yet split into tracked lines — fall back to parsing "Xkg" mentions in the raw text.
