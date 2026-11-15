@@ -258,6 +258,9 @@ input:focus{outline:none;border-color:var(--foam)}
 .lf-date{left:30.6%;top:57%;width:25%;height:4%;font-size:10.5px;text-align:center}
 .lf-pkg{left:37.5%;top:61.8%;width:16%;height:4%;font-size:10.5px;text-align:center}
 .lf-items{left:3.7%;top:70%;width:54%;height:7%;font-size:11px;line-height:1.7;font-weight:700}
+.label-stage img.lf-trace{position:absolute;inset:auto;left:40.5%;top:65.2%;width:17%;height:auto;background:#fff;object-fit:contain}
+.lf-tracecap{position:absolute;left:40.5%;top:76.3%;width:17%;white-space:nowrap;font-family:'Arial',sans-serif;font-weight:700;font-size:6px;line-height:1.2;color:#0a2540;text-align:center}
+.label-stage.has-trace .lf-items{width:35%;height:7.5%;font-size:10px;line-height:1.6}
 .label-acts{display:flex;gap:9px;margin-top:14px}
 .label-acts .btn{flex:1}
 @media print{
@@ -765,8 +768,13 @@ select.catpick{width:100%;padding:13px 12px;background:rgba(3,42,46,.78);border:
       <textarea class="lf lf-date" id="lfDate" maxlength="14"></textarea>
       <textarea class="lf lf-pkg" id="lfPkg" maxlength="10"></textarea>
       <textarea class="lf lf-items" id="lfItems" maxlength="200"></textarea>
+      <img class="lf-trace" id="lfTraceQr" alt="" style="display:none">
+      <div class="lf-tracecap" id="lfTraceCap" style="display:none">SCAN TO TRACE</div>
     </div>
     <p class="opt">Tap any field to fix a typo before saving or printing.</p>
+    <label for="lfTrace" style="margin-top:12px">CatchTrace code on the label (optional)</label>
+    <select class="catpick" id="lfTrace"><option value="">None</option></select>
+    <p class="opt" id="lfTraceHint">Only fish in the shop that came with a CatchTrace code are listed. Pick the one in this package, or leave None.</p>
     <div class="label-acts">
       <button class="ghost" id="labelClose">Close</button>
       <button class="btn" id="labelPrint">🖨️ Print</button>
@@ -776,6 +784,7 @@ select.catpick{width:100%;padding:13px 12px;background:rgba(3,42,46,.78);border:
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="./catchtrace-qrcode.js"></script>
 
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -2205,9 +2214,42 @@ function openLabel(orderNo){
     const w = totalWeightFor(orderNo, o.items);
     return w ? `Fresh seafood — sealed\nTotal weight: ${w} kg` : 'Fresh seafood — sealed package';
   })();
+  setLabelTrace('');
+  loadLabelTraces();
   $('labelSheet').classList.add('on');
 }
 function closeLabel(){ $('labelSheet').classList.remove('on'); }
+
+/* CatchTrace code on a delivery label: staff pick which traced shop stock is in
+   the package (never chosen automatically). The QR opens the public trace page.
+   Data comes from the shop database (shop_traced_now: public trace data only). */
+const CT_PAGES = { staging: 'https://mombasafishcatchtrace.netlify.app/trace/?t=' };
+let labelTraces = [];
+async function loadLabelTraces(){
+  const sel = $('lfTrace');
+  sel.replaceChildren(new Option('None', ''));
+  try{
+    const [t, p] = await Promise.all([sb.rpc('shop_traced_now'), sb.from('mfm_shop_products').select('id,name,sw_name')]);
+    if(t.error) throw t.error;
+    const names = {}; ((p && p.data) || []).forEach(x => { names[x.id] = x.name + (x.sw_name ? ' (' + x.sw_name + ')' : ''); });
+    labelTraces = t.data || [];
+    labelTraces.forEach((r, i) => {
+      const test = r.trace_env !== 'production' || r.demonstration_data;
+      sel.add(new Option((names[r.product_id] || 'Product ' + r.product_id) + ' · ' + ((r.landing_sites || [])[0] || '') + ' · ' + (r.batch_ref || '') + (test ? ' · TEST' : ''), String(i)));
+    });
+    $('lfTraceHint').textContent = labelTraces.length ? 'Only fish in the shop that came with a CatchTrace code are listed. Pick the one in this package, or leave None.'
+                                                     : 'No fish in the shop has a CatchTrace code right now.';
+  }catch(e){ $('lfTraceHint').textContent = 'CatchTrace codes could not be loaded. The label works without one.'; }
+}
+function setLabelTrace(v){
+  const img = $('lfTraceQr'), cap = $('lfTraceCap'), stage = $('labelStage');
+  const r = v === '' ? null : labelTraces[Number(v)];
+  if(!r || typeof qrcode !== 'function'){ img.style.display = 'none'; cap.style.display = 'none'; img.removeAttribute('src'); stage.classList.remove('has-trace'); $('lfTrace').value = ''; return; }
+  // low error correction keeps the squares as big as possible on a small label
+  const q = qrcode(0, 'L'); q.addData((CT_PAGES[r.trace_env] || CT_PAGES.staging) + r.trace_token); q.make();
+  img.src = q.createDataURL(8, 2); img.alt = 'CatchTrace QR code';
+  img.style.display = ''; cap.style.display = ''; stage.classList.add('has-trace');
+}
 
 async function saveLabelAsJpg(){
   if(typeof html2canvas === 'undefined'){ note('Could not load the image tool — check your connection and try again.','err'); return; }
@@ -2458,6 +2500,7 @@ $('labelClose').addEventListener('click', closeLabel);
 $('labelSheet').addEventListener('click', e => { if(e.target.id === 'labelSheet') closeLabel(); });
 $('labelPrint').addEventListener('click', ()=>{ document.querySelectorAll('.lf').forEach(f => f.blur()); window.print(); });
 $('labelSave').addEventListener('click', saveLabelAsJpg);
+$('lfTrace').addEventListener('change', e => setLabelTrace(e.target.value));
 
 boot();
 

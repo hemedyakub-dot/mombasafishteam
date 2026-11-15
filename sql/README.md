@@ -10,6 +10,7 @@ Applied by hand to the shop database (Supabase project tcpqbrchpxpshmqprbkv).
 Tests (local only, never against the live database):
 - `sql/test_catchtrace_link.sh`: 27 tests of the functions, on a local copy of the live definitions
 - `tests/shop-admin-catchtrace.test.js`: 16 browser tests of Shop Admin, offline
+- `tests/staff-label-catchtrace.test.js`: 6 browser tests of the CatchTrace QR on the delivery label (Dispatch), offline
 - `tests/counter-catchtrace.test.js`: 7 browser tests of the Counter (the QR code is decoded and checked), offline
 
 To undo the CatchTrace link (only with the owner's say-so; it deletes the link records, not the stock):
