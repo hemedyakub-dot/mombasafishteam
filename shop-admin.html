@@ -481,13 +481,13 @@ async function quickAddStock(id){
    scanning) with CatchTrace's public key, and stores a short summary here.
    Switch CT to the production CatchTrace when it exists. */
 const CT = {
-  env: 'staging',
+  env: 'production',   // CatchTrace went live on 15 Nov 2026 (the former staging project is now the live system)
   url: 'https://ekahacxukzxalbgwtixm.supabase.co',
   key: 'sb_publishable_HLBpNQL7M33F9sSsQJlVpw_E0TAYb7I',
   page: 'https://mombasafishcatchtrace.netlify.app/trace/?t='
 };
 // Where each system's public trace page is, so old links keep opening the right one.
-const CT_PAGES = { staging: 'https://mombasafishcatchtrace.netlify.app/trace/?t=' };
+const CT_PAGES = { staging: 'https://mombasafishcatchtrace.netlify.app/trace/?t=', production: 'https://mombasafishcatchtrace.netlify.app/trace/?t=' };
 let tChecked = null;   // { token, trace, summary, used } once a code has been checked
 const el = (tag, text, style) => { const e = document.createElement(tag); if(text != null) e.textContent = text; if(style) e.style.cssText = style; return e; };
 function traceToken(v){

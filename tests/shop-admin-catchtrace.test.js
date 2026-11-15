@@ -83,13 +83,13 @@ const PRODUCTS = [{ id: 1, name: 'Rabbitfish', sw_name: 'Tafi', price: 900, sale
     'T5 the pasted link is read, and only the public trace function is asked - the shop sign-in is never sent to CatchTrace', ctCalls[0] && { url: ctCalls[0].url, auth: ctCalls[0].headers.authorization });
   ok(res.includes('BAT-261115-0001') && res.includes('Rabbitfish (Tafi)') && res.includes('Landed at TEST Shimoni, Kwale') && res.includes('Caught 2026-11-14 to 2026-11-15')
      && res.includes('Verified: 1 by the community (BMU) — of 2 catch records'), 'T6 the check shows the batch, fish, landing site, catch dates and how much is verified', res);
-  ok(res.includes('TEST system'), 'T7 while linked to the staging CatchTrace, the page says the code counts as test');
+  ok(!res.includes('TEST system'), 'T7 linked to the live CatchTrace, a real code is not marked as test');
 
   await pg.fill('#tQty', '4.5');
   await pg.click('#tSave');
   await pg.waitForFunction(() => !document.querySelector('#tmodal').classList.contains('show'));
   const save = calls.filter((c) => c.path === '/rest/v1/rpc/add_shop_stock_traced').pop();
-  ok(save && save.body.p_product === 1 && save.body.p_qty === 4.5 && save.body.p_trace_token === TOKEN && save.body.p_trace_env === 'staging' && save.body.p_batch_ref === 'BAT-261115-0001'
+  ok(save && save.body.p_product === 1 && save.body.p_qty === 4.5 && save.body.p_trace_token === TOKEN && save.body.p_trace_env === 'production' && save.body.p_batch_ref === 'BAT-261115-0001'
      && save.body.p_demo === false && save.body.p_summary.landing_sites[0] === 'TEST Shimoni, Kwale' && save.body.p_summary.verified.community === 1,
     'T8 saving sends product, amount, code, system, batch and the summary in one call', save && save.body);
   ok((await pg.textContent('#toast')).includes('traced'), 'T9 the owner is told it was added as traced stock');

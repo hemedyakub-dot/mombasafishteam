@@ -2223,7 +2223,7 @@ function closeLabel(){ $('labelSheet').classList.remove('on'); }
 /* CatchTrace code on a delivery label: staff pick which traced shop stock is in
    the package (never chosen automatically). The QR opens the public trace page.
    Data comes from the shop database (shop_traced_now: public trace data only). */
-const CT_PAGES = { staging: 'https://mombasafishcatchtrace.netlify.app/trace/?t=' };
+const CT_PAGES = { staging: 'https://mombasafishcatchtrace.netlify.app/trace/?t=', production: 'https://mombasafishcatchtrace.netlify.app/trace/?t=' };
 let labelTraces = [];
 async function loadLabelTraces(){
   const sel = $('lfTrace');
