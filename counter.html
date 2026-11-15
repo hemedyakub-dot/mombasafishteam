@@ -50,6 +50,8 @@
     color:var(--dim);text-transform:uppercase}
   .prod.out{opacity:.4;pointer-events:none}
   .prod.low .pstock{color:var(--catch)}
+  .prod .ptrace{position:absolute;top:8px;left:9px;font-size:9px;font-family:var(--mono);color:var(--green);letter-spacing:.04em}
+  .prod.traced .pn{margin-top:10px}
   /* ---------- cart drawer ---------- */
   #cart{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#04211f;
     border-top:2px solid var(--foam);border-radius:16px 16px 0 0;max-height:62vh;display:flex;flex-direction:column}
@@ -130,6 +132,7 @@
       <div class="stat"><button class="qbtn" id="addExpense" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">EXPENSE</button></div>
       <div class="stat"><button class="qbtn" id="addWanted" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono);position:relative">WANTED<span id="wantedBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--coral);color:#fff;border-radius:9px;font-size:9px;padding:1px 5px">0</span></button></div>
       <div class="stat"><button class="qbtn" id="addSpoilage" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">SPOILAGE</button></div>
+      <div class="stat"><button class="qbtn" id="viewTrace" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">TRACE QR</button></div>
       <div class="stat"><button class="qbtn" id="stockCount" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">STOCK COUNT</button></div>
       <div class="stat"><button class="qbtn" id="cashUp" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">CASH-UP</button></div>
       <div class="stat"><button class="qbtn" id="signout" style="width:100%;height:auto;padding:6px;font-size:11px;font-family:var(--mono)">EXIT</button></div>
@@ -164,6 +167,16 @@
   </div>
 
 <!-- ============ DISCOUNT SHEET ============ -->
+<!-- traceable stock: QR codes customers can scan -->
+<div class="modal" id="trmodal">
+  <div class="sheet" style="max-height:88vh;overflow:auto">
+    <h3 style="margin:0 0 6px">Traceable fish on sale</h3>
+    <div style="color:var(--dim);font-family:var(--mono);font-size:12px;margin-bottom:10px">Show the customer the code. Scanning it with a phone camera shows where and when the fish was caught.</div>
+    <div id="trList"></div>
+    <button class="qbtn" id="trClose" style="width:100%;margin-top:12px;padding:12px;font-family:var(--mono)">CLOSE</button>
+  </div>
+</div>
+
 <div class="modal" id="dmodal">
   <div class="sheet">
     <h3>Add a discount</h3>
@@ -361,6 +374,7 @@
 
 <div id="toast"></div>
 
+<script src="./catchtrace-qrcode.js"></script>
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const SUPABASE_URL = 'https://tcpqbrchpxpshmqprbkv.supabase.co';
@@ -399,13 +413,53 @@ async function loadProducts(){
   if(error){ toast(error.message, true); return; }
   products = data || [];
   renderGrid();
+  loadTraced();
+}
+/* ---------- CatchTrace: which stock on sale is traceable ----------
+   Read from the shop database only (shop_traced_now). Shows a TRACED mark on
+   the product and, under TRACE QR, a code the customer can scan to open the
+   public CatchTrace page for that fish. */
+const CT_PAGES = { staging: 'https://mombasafishcatchtrace.netlify.app/trace/?t=' };
+let traced = {};
+async function loadTraced(){
+  try{
+    const { data, error } = await sb.rpc('shop_traced_now');
+    if(error) throw error;
+    traced = {}; (data || []).forEach(r => { traced[r.product_id] = r; });
+    renderGrid();
+  }catch(e){ /* the counter works without it */ }
+}
+function openTrace(){
+  const list = $('trList'); list.replaceChildren();
+  const rows = products.filter(p => traced[p.id]);
+  const el = (tag, text, style) => { const e = document.createElement(tag); if(text != null) e.textContent = text; if(style) e.style.cssText = style; return e; };
+  if(!rows.length) list.append(el('div', 'No fish on sale right now came with a CatchTrace code.', 'color:var(--dim);font-family:var(--mono);font-size:13px'));
+  rows.forEach(p => {
+    const t = traced[p.id], url = (CT_PAGES[t.trace_env] || CT_PAGES.staging) + t.trace_token;
+    const card = el('div', null, 'border:1px solid var(--faint);border-radius:11px;padding:12px;margin-bottom:10px;text-align:center');
+    card.dataset.trace = p.id;
+    card.append(el('div', p.name + (p.sw_name ? ' · ' + p.sw_name : ''), 'font-weight:700;font-size:16px'));
+    card.append(el('div', [(t.landing_sites || []).join('; '), (t.species || []).join(', ')].filter(Boolean).join(' · '), 'color:var(--foam);font-size:12px;margin:4px 0 8px'));
+    if(typeof qrcode === 'function'){
+      const q = qrcode(0, 'M'); q.addData(url); q.make();
+      const img = el('img', null, 'width:220px;height:220px;background:#fff;padding:8px;border-radius:8px;image-rendering:pixelated');
+      img.src = q.createDataURL(8, 2); img.alt = 'CatchTrace QR code for ' + p.name;
+      card.append(img);
+    }
+    card.append(el('div', (t.batch_ref || '') + ' · received ' + new Date(t.received_at).toLocaleDateString('en-KE')
+      + (t.trace_env !== 'production' || t.demonstration_data ? ' · TEST code' : ''), 'color:var(--dim);font-family:var(--mono);font-size:11px;margin-top:6px'));
+    list.append(card);
+  });
+  $('trmodal').classList.add('show');
 }
 function renderGrid(){
   $('grid').innerHTML = products.map(function(p){
     const out = (!p.in_stock || p.stock_qty <= 0);
     const low = (!out && p.stock_qty <= 2);
     const stockTxt = out ? 'OUT' : (p.stock_qty + (p.sale_unit==='kg'?'kg':''));
-    return `<button class="prod ${out?'out':''} ${low?'low':''}" data-id="${p.id}">
+    const tr = traced[p.id];
+    return `<button class="prod ${out?'out':''} ${low?'low':''} ${tr?'traced':''}" data-id="${p.id}">
+      ${tr ? `<span class="ptrace">✓ TRACED${tr.trace_env !== 'production' || tr.demonstration_data ? ' · TEST' : ''}</span>` : ''}
       <span class="pstock">${stockTxt}</span>
       <div>
         <div class="pn">${p.name}</div>
@@ -986,6 +1040,8 @@ document.querySelectorAll('#dType .tbtn').forEach(b => b.addEventListener('click
 
 // today's sales + void
 $('viewSales').addEventListener('click', openSales);
+$('viewTrace').addEventListener('click', openTrace);
+$('trClose').addEventListener('click', ()=> $('trmodal').classList.remove('show'));
 $('sclose').addEventListener('click', ()=> $('smodal').classList.remove('show'));
 $('slist').addEventListener('click', e => {
   const v = e.target.closest('[data-void]');

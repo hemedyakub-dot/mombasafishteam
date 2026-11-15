@@ -45,6 +45,8 @@ insert into public.mfm_shop_products (name, sw_name, price, sale_unit, catch_wei
 insert into public.mfm_shop_intake (product_id, qty_added, staff_name, change_type) values (1, 10, 'owner', 'intake'), (1, -1, 'owner', 'correction');
 SQL
 psql -X -q -v ON_ERROR_STOP=1 -d $DB -f 2026-11-15_catchtrace_link.sql >/dev/null || { echo "not ok - migration failed"; exit 1; }
+psql -X -q -v ON_ERROR_STOP=1 -d $DB -c "CREATE OR REPLACE FUNCTION public.mfm_is_staff() RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public' AS \$f\$ select exists (select 1 from public.app_actor where user_id = auth.uid() and active and roles && array['staff','dispatch','inventory','finance','owner','super_admin']::text[]) \$f\$" >/dev/null
+psql -X -q -v ON_ERROR_STOP=1 -d $DB -f 2026-11-15b_counter_traced.sql >/dev/null || { echo "not ok - counter migration failed"; exit 1; }
 
 pass=0; fail=0
 t() { if [ "$2" = "$3" ]; then pass=$((pass+1)); echo "ok - $1"; else fail=$((fail+1)); echo "not ok - $1 (got '$2', expected '$3')"; fi; }
@@ -84,5 +86,17 @@ t "coverage: received counts intakes only (not corrections); staging links count
 t "staff cannot read the traced list" "$(as $STF "select count(*) from public.shop_trace_links_recent(30)" | grep -c 'owner only')" 1
 t "staff cannot read the link table directly" "$(as $STF "select count(*) from public.mfm_shop_trace_links" | grep -c 'permission denied')" 1
 t "signed-out callers cannot read the link table" "$(as anon "select count(*) from public.mfm_shop_trace_links" | grep -c 'permission denied')" 1
+# ---- counter: traced right now
+t "the counter sees product 1 as traced now (latest intake has a code)" "$(as $STF "select string_agg(product_id || ':' || batch_ref, ',') from public.shop_traced_now()")" "1:BAT-1"
+t "... it returns the fish and landing site, nothing about quantities or prices" "$(as $STF "select (species->>0) || '|' || (landing_sites->>0) from public.shop_traced_now()")" "Rabbitfish|Shimoni"
+as $OWN "select public.add_shop_stock(1, 1, 'owner')" >/dev/null
+t "after an untraced delivery, the product is no longer shown as traced" "$(as $STF "select count(*) from public.shop_traced_now()")" 0
+call $OWN 1 $TOK >/dev/null
+psql -X -q -d $DB -c "update public.mfm_shop_products set stock_qty = 0 where id = 1" >/dev/null
+t "a sold-out product is not shown as traced" "$(as $STF "select count(*) from public.shop_traced_now()")" 0
+psql -X -q -d $DB -c "update public.mfm_shop_products set stock_qty = 5 where id = 1; update public.mfm_shop_trace_links set created_at = now() - interval '30 days'" >/dev/null
+t "a code received more than 21 days ago no longer counts" "$(as $STF "select count(*) from public.shop_traced_now()")" 0
+t "customers (no staff role) cannot read it" "$(psql -X -q -A -t -d $DB -c "insert into auth.users values ('00000000-0000-0000-0000-00000000000c'); insert into public.app_actor (user_id, roles) values ('00000000-0000-0000-0000-00000000000c', '{customer}')" >/dev/null; as 00000000-0000-0000-0000-00000000000c "select count(*) from public.shop_traced_now()" | grep -c 'not staff')" 1
+t "signed-out callers cannot read it" "$(as anon "select count(*) from public.shop_traced_now()" | grep -c 'permission denied')" 1
 psql -X -q -d postgres -c "drop database if exists $DB" >/dev/null
 echo "# $pass passed, $fail failed"; [ $fail = 0 ]
