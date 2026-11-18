@@ -33,6 +33,7 @@ textarea{min-height:76px;resize:vertical}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--foam);outline-offset:1px}
 .btn{display:inline-block;padding:12px 16px;border:none;border-radius:8px;background:var(--foam);color:var(--abyss);font-weight:700;font-size:13px;font-family:var(--mono);letter-spacing:.05em;text-transform:uppercase;cursor:pointer}
 .btn.full{width:100%;margin-top:16px}
+a.btn{text-decoration:none}
 .btn.ghost{background:transparent;border:1px solid var(--faint);color:var(--sand)}
 .btn.bad{background:transparent;border:1px solid rgba(255,107,90,.55);color:var(--coral)}
 .btn.good{background:var(--foam);color:var(--abyss)}
@@ -154,6 +155,7 @@ details.more summary{cursor:pointer;font-family:var(--mono);font-size:12px;color
     <nav id="tabs">
       <button data-tab="overview" class="on">Overview</button>
       <button data-tab="decide">To decide<span class="dot hidden" id="decideDot"></span></button>
+      <button data-tab="followups">Follow-ups<span class="dot hidden" id="fuDot"></span></button>
       <button data-tab="campaigns">Campaigns</button>
       <button data-tab="channels">Channels</button>
       <button data-tab="content">Content</button>
@@ -213,7 +215,7 @@ async function act(btn, fn, okMsg){
 const CHANNEL = {tiktok:'TikTok', meta:'Instagram / Facebook', whatsapp:'WhatsApp', youtube:'YouTube', search:'Google search',
   ai_assistant:'AI assistant', direct:'Website, no tag', other:'Other', repeat:'Bought before', referral:'Friend told them',
   walk_in:'Walk-in', broadcast:'Our broadcast', unknown:'Not recorded'};
-const AGENT = {director:'Growth Director', content:'Content', acquisition:'Acquisition', retention:'Retention', wholesale:'Wholesale',
+const AGENT = {followup:'Follow-up', director:'Growth Director', content:'Content', acquisition:'Acquisition', retention:'Retention', wholesale:'Wholesale',
   product:'Product', distribution:'Distribution', revenue:'Revenue'};
 const ACTION = {analyse_sales:'Analyse sales', recommend_campaign:'Recommend a campaign', draft_social_content:'Draft social content',
   prepare_wholesale_prospects:'Prepare wholesale prospects', draft_customer_message:'Draft customer messages',
@@ -298,6 +300,9 @@ async function render(){
     const ov = await load('ov:' + S.month, () => rpc('growth_overview', {p_month: S.month}));
     const pend = ov.pending_decisions || {};
     const nPend = (pend.opportunities || 0) + (pend.actions || 0) + (pend.drafts || 0);
+    load('fu', () => rpc('growth_followups_list', {p_include_done: false})).then(fu => {
+      const n = fu.filter(f => f.status === 'new').length; $('fuDot').textContent = n; $('fuDot').classList.toggle('hidden', !n);
+    }).catch(() => {});
     $('decideDot').textContent = nPend; $('decideDot').classList.toggle('hidden', !nPend);
     main.innerHTML = await (VIEWS[S.tab] || VIEWS.overview)(ov);
   }catch(e){
@@ -375,6 +380,37 @@ const VIEWS = {
       ${bars(prRows, r => r.product, r => r.orders, r => `${n0(r.orders)} order${r.orders === 1 ? '' : 's'}${r.kg ? ' · ' + kg(r.kg) : ''}`)}
 
       <div class="note info">${(ov.notes || []).map(esc).join('<br>')}</div>`;
+  },
+
+  async followups(){
+    const fu = await load('fu', () => rpc('growth_followups_list', {p_include_done: false}));
+    const KIND = {payment_reminder:'Payment reminder', paid_not_packed:'Paid, not packed', packed_not_sent:'Packed, not sent', on_road_long:'Long on the road',
+      refund_due:'Refund owed', delivered_thanks:'Thank you after delivery', reorder:'Reorder invite'};
+    const fill = f => String(f.message || '').replace(/\{name\}/g, f.first_name || '').replace(/\{tracking\}/g, f.tracking_code || '').replace(/\{order\}/g, f.order_number);
+    const open = fu.filter(f => f.status === 'new'), done = fu.filter(f => f.status !== 'new');
+    const card = f => {
+      const msg = fill(f);
+      const wa = f.wa_number && f.audience === 'customer' ? `https://wa.me/${encodeURIComponent(f.wa_number)}?text=${encodeURIComponent(msg)}` : '';
+      return `<div class="card"${f.status !== 'new' ? ' style="opacity:.55"' : ''}>
+        <div class="row"><h3>${esc(KIND[f.kind] || f.kind)} · ${esc(f.order_number)}</h3><span class="spacer"></span>
+          <span class="pill ${f.priority === 'high' ? 'bad' : f.priority === 'medium' ? 'warn' : ''}">${esc(f.priority)}</span>
+          ${f.audience === 'staff' ? '<span class="pill info">for the team</span>' : ''}${f.status !== 'new' ? `<span class="pill good">${esc(f.status)}</span>` : ''}</div>
+        <div class="meta">${esc(f.customer_name || '')}${f.destination ? ' · ' + esc(f.destination) : ''} · order now: ${esc(f.order_status || '')} · listed ${stamp(f.created_at)}</div>
+        <p class="small">${esc(f.reason)}</p>
+        ${!f.still_relevant && f.status === 'new' ? '<div class="note">The order has moved on since this was listed — probably not needed any more.</div>' : ''}
+        ${msg ? `<div class="linkout" style="white-space:pre-wrap;font-family:inherit;font-size:14px">${esc(msg)}</div>` : ''}
+        ${f.status === 'new' ? `<div class="acts">
+          ${wa ? `<a class="btn sm" href="${esc(wa)}" target="_blank" rel="noopener" data-act="fu-open" data-id="${f.id}">Open WhatsApp</a>` : ''}
+          ${msg ? `<button class="btn ghost sm" data-act="copy" data-text="${esc(msg)}">Copy</button>` : ''}
+          <button class="btn ${wa ? 'ghost' : ''} sm" data-act="fu" data-id="${f.id}" data-s="${f.audience === 'staff' ? 'done' : 'sent'}">${f.audience === 'staff' ? 'Done' : 'Mark sent'}</button>
+          <button class="btn bad sm" data-act="fu" data-id="${f.id}" data-s="skipped">Skip</button></div>`
+          : `<div class="meta">${esc(f.status)} by ${esc(f.done_by || '')} ${stamp(f.done_at)}${f.note ? ' · ' + esc(f.note) : ''}</div>`}
+      </div>`; };
+    return `
+      <h2>Follow-ups <small>· ${open.length} to do · written by the Follow-up agent, sent by you</small></h2>
+      <p class="small muted">Open WhatsApp starts a chat with the message ready; nothing is sent until you press send in WhatsApp. Then mark it sent. Messages about the customer's own order are fine to send to anyone; reorder invites only appear for customers who ticked "fresh-catch alerts".</p>
+      ${open.length ? open.map(card).join('') : '<div class="empty">Nothing waiting. The Follow-up agent checks every morning and midday.</div>'}
+      ${done.length ? `<h2>Done in the last 3 days</h2>${done.map(card).join('')}` : ''}`;
   },
 
   async decide(){
@@ -739,6 +775,13 @@ document.addEventListener('click', async e => {
     }catch(err){ info.textContent = err.message; }
     return;
   }
+  if(a === 'fu'){
+    const s = b.dataset.s;
+    const note = s === 'skipped' ? prompt('Why skip? (optional)') : null;
+    if(s === 'skipped' && note === null) return;
+    return act(b, () => rpc('growth_followup_status', {p_id: Number(b.dataset.id), p_status: s, p_note: note || null}), s === 'skipped' ? 'Skipped' : 'Marked ' + s);
+  }
+  if(a === 'fu-open'){ return; }   // the link opens WhatsApp; marking sent stays a separate tap
   if(a === 'prospect'){
     const s = b.dataset.s;
     const note = ['rejected','not_interested','contacted','quoted','won'].includes(s) ? prompt('Note (optional) — e.g. who you spoke to, why not') : null;
