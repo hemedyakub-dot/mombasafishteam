@@ -537,7 +537,8 @@ const VIEWS = {
   },
 
   async customers(){
-    const [cust, consent] = await Promise.all([load('cust', () => view('customer_purchase_summary', null, null, 2000)), load('consent', () => list('consent'))]);
+    const [cust, consent, cRecent] = await Promise.all([load('cust', () => view('customer_purchase_summary', null, null, 2000)), load('consent', () => list('consent')), load('consentRecent', () => rpc('growth_consent_recent', {p_limit: 30}))]);
+    const CCH = {whatsapp_opt_in: ['Agreed to WhatsApp', 'good'], opt_out: ['Said STOP', 'bad']};
     const cnt = f => cust.filter(f).length;
     const repeat = cust.filter(c => c.orders_through >= 2).sort((a, b) => b.orders_through - a.orders_through || (b.last_order_date > a.last_order_date ? 1 : -1));
     const cooling = cust.filter(c => c.orders_through >= 2 && c.activity_segment !== 'active');
@@ -560,7 +561,22 @@ const VIEWS = {
       ${cooling.length ? `<div class="note">${cooling.length} repeat customer${cooling.length > 1 ? 's have' : ' has'} not ordered for over 30 days.</div>` : ''}
       <h2>Which first channel brings customers back</h2>
       <div class="tscroll"><table class="tbl"><tr><th>Found us through</th><th class="n">Customers</th><th class="n">Came back</th><th class="n">Rate</th></tr>
-        ${Object.values(firstCh).sort((a, b) => b.n - a.n).map(r => `<tr><td>${esc(CHANNEL[r.k] || r.k)}</td><td class="n">${r.n}</td><td class="n">${r.rep}</td><td class="n">${Math.round(r.rep / r.n * 100)}%</td></tr>`).join('')}</table></div>`;
+        ${Object.values(firstCh).sort((a, b) => b.n - a.n).map(r => `<tr><td>${esc(CHANNEL[r.k] || r.k)}</td><td class="n">${r.n}</td><td class="n">${r.rep}</td><td class="n">${Math.round(r.rep / r.n * 100)}%</td></tr>`).join('')}</table></div>
+
+      <h2>Messages: who agreed, who said STOP</h2>
+      <form data-form="consent" class="card">
+        <p class="small">Most customers agree by ticking the box at checkout; that is recorded automatically. Use this when someone replies <b>STOP</b>, or agrees on WhatsApp or in person.</p>
+        <div class="grid2">
+          <div><label for="cphone">Customer phone</label><input id="cphone" name="phone" type="tel" inputmode="tel" placeholder="07xx xxx xxx" required></div>
+          <div><label>What happened</label><select name="what"><option value="stop">Said STOP — no more messages</option><option value="agree">Agreed to fresh-catch alerts</option></select></div>
+          <div class="full"><label>Note</label><input name="note" maxlength="200" placeholder="e.g. replied STOP on WhatsApp 18 Nov / asked for alerts at the shop"></div>
+        </div>
+        <div class="acts"><button type="button" class="btn ghost sm" data-act="consent-check">Check this number</button><button class="btn">Save</button></div>
+        <p class="small muted" id="consentInfo"></p>
+      </form>
+      ${cRecent.length ? `<div class="tscroll"><table class="tbl"><tr><th>When</th><th>Phone</th><th>What</th><th>By</th><th>Note / order</th></tr>
+        ${cRecent.map(e => `<tr><td class="mono small">${stamp(e.occurred_at)}</td><td class="mono small">${esc(e.phone_hint)}</td><td><span class="pill ${(CCH[e.change] || ['',''])[1]}">${esc((CCH[e.change] || [e.change])[0])}</span></td><td class="small">${esc(e.actor || '')}</td><td class="small">${esc(e.note || e.order_number || '')}</td></tr>`).join('')}</table></div>`
+        : '<div class="empty">No one has agreed or opted out yet.</div>'}`;
   },
 
   async products(){
@@ -713,6 +729,16 @@ document.addEventListener('click', async e => {
     return act(b, () => rpc('growth_decide', {p_kind: b.dataset.kind, p_id: Number(b.dataset.id), p_decision: b.dataset.d, p_note: note || null}),
       {approved: 'Approved', rejected: 'Rejected', deferred: 'Moved to later'}[b.dataset.d]);
   }
+  if(a === 'consent-check'){
+    const ph = (document.getElementById('cphone') || {}).value || '';
+    const info = document.getElementById('consentInfo');
+    try{
+      const r = await rpc('growth_consent_lookup', {p_phone: ph});
+      info.textContent = (r.found ? (r.opted_out_at ? `Said STOP on ${day(r.opted_out_at)}${r.reason ? ' (' + r.reason + ')' : ''}.` : (r.whatsapp ? `Agreed to WhatsApp alerts on ${day(r.since)} (${r.how}).` : 'Recorded, but not agreed to WhatsApp.')) : 'No consent recorded for this number.')
+        + ` ${r.orders} paid order${r.orders === 1 ? '' : 's'}.`;
+    }catch(err){ info.textContent = err.message; }
+    return;
+  }
   if(a === 'prospect'){
     const s = b.dataset.s;
     const note = ['rejected','not_interested','contacted','quoted','won'].includes(s) ? prompt('Note (optional) — e.g. who you spoke to, why not') : null;
@@ -772,6 +798,12 @@ document.addEventListener('submit', async e => {
   }
   if(kind === 'spend'){
     return act(btn, () => rpc('growth_add_spend', {p_platform: d.platform, p_date: d.date, p_amount: num(d.amount), p_campaign: num(d.campaign), p_note: d.note || null}), 'Spend added');
+  }
+  if(kind === 'consent'){
+    const agree = d.what === 'agree';
+    if(agree && (d.note || '').trim().length < 3) return toast('Say how they agreed (e.g. asked on WhatsApp 18 Nov).', 'err');
+    return act(btn, async () => { await rpc('growth_set_consent', {p_phone: d.phone, p_whatsapp: agree, p_note: d.note || null}); f.reset(); },
+      agree ? 'Saved: agreed to alerts' : 'Saved: no more messages to this number');
   }
   if(kind === 'opp'){
     return act(btn, () => rpc('growth_add_opportunity', {p_title: d.title, p_evidence: d.evidence, p_action: d.action, p_impact: d.impact || null, p_priority: d.priority, p_hypothesis: true}), 'Opportunity added');
