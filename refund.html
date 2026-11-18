@@ -77,6 +77,13 @@
   .hero{max-width:640px;margin:0 auto;padding:18px 20px 0}
   .hero img{width:100%;height:auto;display:block;border-radius:14px;
     box-shadow:0 12px 34px rgba(0,0,0,.45);border:1px solid var(--line)}
+  .btn:disabled{opacity:.6;cursor:wait}
+  .err{color:var(--coral);font-size:14px;margin:12px 0 0;min-height:1em}
+  .done{border-left:3px solid var(--foam)}
+  .done h2{margin-top:4px;font-size:18px}
+  .done .ref{font-family:'IBM Plex Mono',monospace;color:var(--catch);font-size:18px;letter-spacing:.05em}
+  a.btn{display:block;text-align:center;text-decoration:none}
+  .btn.wa{background:#25D366;color:#032A2E}
 </style>
 </head>
 <body>
@@ -140,17 +147,17 @@
   <p>Because we source your fish fresh only after payment, an order not yet dispatched can be cancelled for a full refund at any time. Once the fish is bought and packed for you, the terms above apply.</p>
 
   <h1 id="form" style="margin-top:38px">Apply for a Refund or Replacement</h1>
-  <p>Fill this in and we'll get back to you fast. You can also send the same details to us on WhatsApp.</p>
+  <p>Fill this in and our team gets your claim by email straight away. Then add a photo of the fish on WhatsApp.</p>
 
-  <div class="card">
+  <div class="card" id="claimForm">
     <label>Your name <span class="req">*</span></label>
-    <input id="name" placeholder="e.g. Aisha Mohamed">
+    <input id="name" placeholder="e.g. Aisha Mohamed" maxlength="80" autocomplete="name">
 
     <label>Phone number (M-Pesa) <span class="req">*</span></label>
-    <input id="phone" placeholder="07XX XXX XXX" inputmode="tel">
+    <input id="phone" placeholder="07XX XXX XXX" inputmode="tel" maxlength="16" autocomplete="tel">
 
     <label>Order number <span class="req">*</span></label>
-    <input id="order" placeholder="e.g. NRB-AUG 024">
+    <input id="order" placeholder="e.g. NRB-AUG 024" maxlength="30">
 
     <label>What went wrong? <span class="req">*</span></label>
     <select id="issue">
@@ -172,11 +179,20 @@
     </select>
 
     <label>Tell us what happened</label>
-    <textarea id="detail" placeholder="A short description helps us resolve it faster."></textarea>
-    <p class="hint">Please also attach a photo of the fish when you send this on WhatsApp — we can't accept photos through this form directly.</p>
+    <textarea id="detail" placeholder="A short description helps us resolve it faster." maxlength="1000"></textarea>
+    <p class="hint">Photos can't be added here. After you send this, you can add your photo on WhatsApp.</p>
 
-    <button class="btn" onclick="sendClaim()">Send my claim on WhatsApp</button>
-    <p class="note">Tapping sends your details to our team on WhatsApp, where you can add your photo.</p>
+    <button class="btn" id="sendBtn" onclick="sendClaim()">Send my claim</button>
+    <p class="err" id="claimErr" role="alert"></p>
+    <p class="note">Your claim goes straight to our team by email. Then you can add your photo on WhatsApp.</p>
+  </div>
+
+  <div class="card done" id="claimDone" hidden>
+    <span class="pill" id="doneTag">Claim received</span>
+    <h2 id="doneTitle">Thank you — we have your claim</h2>
+    <p id="doneText">Your reference is <span class="ref" id="doneRef"></span>. Our team has it by email and will reply on WhatsApp. Refunds are paid within 2 weeks of an approved claim.</p>
+    <p><b>Now send a photo of the fish</b> so we can check it quickly:</p>
+    <a class="btn wa" id="waBtn" href="#" target="_blank" rel="noopener">Add my photo on WhatsApp</a>
   </div>
 </div>
 
@@ -186,29 +202,76 @@
 </footer>
 
 <script>
-  // Set your WhatsApp business number here (international format, no + or spaces)
+  // WhatsApp business number (international format, no + or spaces)
   var WA_NUMBER = "254787668888";
+  // Claims are saved and emailed to the team by the database (mfm_submit_refund_claim). Publishable key only.
+  var SB_URL = "https://tcpqbrchpxpshmqprbkv.supabase.co";
+  var SB_KEY = "sb_publishable_7YLqP3JMq8AFZQl4XF--bw_itOMj1gA";
 
-  function sendClaim(){
-    var name = val('name'), phone = val('phone'), order = val('order');
-    var issue = val('issue'), remedy = val('remedy'), detail = val('detail');
-    if(!name || !phone || !order || !issue || !remedy){
-      alert("Please fill in your name, phone, order number, the issue, and what you'd prefer.");
+  function waLink(c, ref){
+    var msg =
+      "*MOMBASAFISH — REFUND / REPLACEMENT CLAIM*" + (ref ? " " + ref : "") + "\n\n" +
+      "Name: " + c.name + "\n" +
+      "Phone (M-Pesa): " + c.phone + "\n" +
+      "Order: " + c.order + "\n" +
+      "Issue: " + c.issue + "\n" +
+      "Preferred: " + c.remedy + "\n" +
+      (c.detail ? "Details: " + c.detail + "\n" : "") +
+      "\n(I am attaching a photo of the fish here.)";
+    return "https://wa.me/" + WA_NUMBER + "?text=" + encodeURIComponent(msg);
+  }
+
+  async function sendClaim(){
+    var c = { name: val('name'), phone: val('phone'), order: val('order'),
+              issue: val('issue'), remedy: val('remedy'), detail: val('detail') };
+    var err = document.getElementById('claimErr'), btn = document.getElementById('sendBtn');
+    err.textContent = '';
+    if(!c.name || !c.phone || !c.order || !c.issue || !c.remedy){
+      err.textContent = "Please fill in your name, phone, order number, the issue, and what you'd prefer.";
       return;
     }
-    var msg =
-      "*MOMBASAFISH — REFUND / REPLACEMENT CLAIM*%0A%0A" +
-      "Name: " + enc(name) + "%0A" +
-      "Phone (M-Pesa): " + enc(phone) + "%0A" +
-      "Order: " + enc(order) + "%0A" +
-      "Issue: " + enc(issue) + "%0A" +
-      "Preferred: " + enc(remedy) + "%0A" +
-      (detail ? "Details: " + enc(detail) + "%0A" : "") +
-      "%0A(I will attach a photo of the fish here.)";
-    window.open("https://wa.me/" + WA_NUMBER + "?text=" + msg, "_blank");
+    btn.disabled = true; btn.textContent = 'Sending…';
+    var ctrl = new AbortController(), timer = setTimeout(function(){ ctrl.abort(); }, 12000);
+    try{
+      var res = await fetch(SB_URL + '/rest/v1/rpc/mfm_submit_refund_claim', {
+        method: 'POST', signal: ctrl.signal,
+        headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ p_name: c.name, p_phone: c.phone, p_order: c.order,
+                               p_issue: c.issue, p_remedy: c.remedy, p_detail: c.detail || null })
+      });
+      var data = await res.json().catch(function(){ return {}; });
+      clearTimeout(timer);
+      if(res.ok && data && data.ok){ showDone(c, data.ref); return; }
+      if(res.status === 400 && data && data.message){   // something to fix in the form
+        err.textContent = data.message;
+        btn.disabled = false; btn.textContent = 'Send my claim';
+        return;
+      }
+      showFallback(c);
+    }catch(e){
+      clearTimeout(timer);
+      showFallback(c);
+    }
+  }
+  function showDone(c, ref){
+    document.getElementById('doneRef').textContent = ref;
+    document.getElementById('waBtn').href = waLink(c, ref);
+    swap();
+  }
+  function showFallback(c){   // could not reach us from the page: WhatsApp still works
+    document.getElementById('doneTag').textContent = 'Almost there';
+    document.getElementById('doneTitle').textContent = 'Please send your claim on WhatsApp';
+    document.getElementById('doneText').textContent = "We couldn't send it from this page. Tap below: your details are already written in the message.";
+    document.getElementById('waBtn').href = waLink(c, '');
+    document.getElementById('waBtn').textContent = 'Send my claim on WhatsApp';
+    swap();
+  }
+  function swap(){
+    document.getElementById('claimForm').hidden = true;
+    var d = document.getElementById('claimDone'); d.hidden = false;
+    d.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
   function val(id){ return document.getElementById(id).value.trim(); }
-  function enc(s){ return encodeURIComponent(s); }
 </script>
 </body>
 </html>
