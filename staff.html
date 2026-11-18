@@ -537,9 +537,9 @@ select.catpick{width:100%;padding:13px 12px;background:rgba(3,42,46,.78);border:
     <label for="xcNote" id="xcNoteLbl">Note (optional)</label>
     <textarea class="cpnote" id="xcNote" maxlength="300" placeholder="e.g. customer called, travelling this week"></textarea>
     <div id="xcRefundRow">
-      <label for="xcRefund">Refund owed to the customer (KES)</label>
-      <input id="xcRefund" type="number" inputmode="numeric" min="0" step="1" placeholder="Leave blank if not sure">
-      <p class="opt">This order is paid, so the refund is listed for Hemed to settle. Nothing is sent to the customer automatically.</p>
+      <label for="xcRefund">Money returned to the customer (KES)</label>
+      <input id="xcRefund" type="number" inputmode="numeric" min="0" step="1" placeholder="Blank = the amount they paid">
+      <p class="opt">Cancelling a paid order records the money as returned to the customer. Leave blank to use the amount paid on record. Nothing is sent to the customer automatically.</p>
     </div>
     <div class="sheet-acts">
       <button class="ghost" id="xcBack">Keep order</button>
@@ -974,7 +974,7 @@ let itemsByOrder = {}, srcByOrder = {}, delivByOrder = {}, rates = [];
 
 async function load(){
   const { data, error } = await sb.from('mfm_orders')
-    .select('order_number, tracking_code, customer_name, contact, county, destination, items, stage, status, created_at, stage_changed_at, dispatched_at, delivery_type, rider_name, rider_phone, eta_note')
+    .select('order_number, tracking_code, customer_name, contact, county, destination, items, stage, status, payment_status, created_at, stage_changed_at, dispatched_at, delivery_type, rider_name, rider_phone, eta_note')
     .order('date_ordered', { ascending:true });
   if(error){ note(error.message,'err'); return; }
   orders = data || [];
@@ -1486,14 +1486,16 @@ async function submitCancel(){
   const order = xcOrder, nt = $('xcNote').value.trim(), rv = $('xcRefund').value.trim();
   const refund = rv === '' ? null : Math.round(Number(rv));
   if(xcReason === 'Other' && nt.length < 3){ note('Write what happened for "Other".', 'err'); return; }
-  if(refund !== null && !(refund >= 0)){ note('The refund amount looks wrong.', 'err'); return; }
+  if(refund !== null && !(refund >= 0)){ note('The amount returned looks wrong.', 'err'); return; }
+  const xo = orders.find(x => x.order_number === order) || {};
+  const wasPaid = refund > 0 || xo.status === 'Prepaid' || xo.payment_status === 'paid';
   const btn = $('xcGo'); btn.disabled = true; btn.textContent = 'Cancelling…';
   const { error } = await sb.rpc('mfm_cancel_dispatch_order', { p_order: order, p_reason: xcReason, p_note: nt || null, p_refund_kes: refund });
   btn.disabled = false; btn.textContent = 'Cancel order';
   if(error){ note(error.message, 'err'); return; }
   closeCancel();
   await load();
-  noteUndo(`✕ ${order} cancelled${refund ? ` — refund of KES ${refund.toLocaleString('en-KE')} listed for Hemed` : ''}.`, async () => {
+  noteUndo(`✕ ${order} cancelled${refund ? ` — KES ${refund.toLocaleString('en-KE')} recorded as returned to the customer` : wasPaid ? ' — money recorded as returned to the customer' : ''}.`, async () => {
     const { error } = await sb.rpc('undo_cancel', { p_order: order, p_staff: window.__staffName || 'staff' });
     if(error){ note(error.message, 'err'); return; }
     await load();
@@ -1504,6 +1506,10 @@ async function submitCancel(){
 /* ---------- change a fish for another catalogue item ---------- */
 const CAT_URL = 'https://mombasafish.com/catalogue.html';
 let catalogue = null;
+/* prawns (data-batch on the website catalogue) are sold in 2 kg batches */
+const batchOk = (p, q) => !p.batch || Math.abs(q / p.batch - Math.round(q / p.batch)) < 1e-9;
+const batchMsg = p => `${p.name} is sold in ${p.batch} kg batches — ${p.batch}, ${p.batch * 2}, ${p.batch * 3} kg…`;
+const qtyStep = p => p.batch ? String(p.batch) : (p.unit === 'kg' ? '0.25' : '1');
 async function loadCatalogue(){
   if(catalogue) return catalogue;
   let html;
@@ -1519,7 +1525,8 @@ async function loadCatalogue(){
     seen.add(name);
     list.push({ name, price, unit: c.dataset.unit === 'kg' ? 'kg' : 'pc',
                 cooler: !!c.dataset.box,                       // EPS cooler: packaging, not fish
-                weight: Number(c.dataset.weight) || null });   // kg in one pack / box
+                weight: Number(c.dataset.weight) || null,      // kg in one pack / box
+                batch: Number(c.dataset.batch) || 0 });        // sold only in whole batches (prawns: 2 kg)
   });
   if(!list.length) throw new Error('The mombasafish.com catalogue came back empty. Try again in a minute.');
   return (catalogue = list);
@@ -1590,9 +1597,10 @@ function chgUpdate(){
   const p = chgPicked(), sum = $('chgSum');
   if(!p){ sum.textContent = 'Choose the new item.'; return; }
   $('chgQtyLbl').textContent = p.unit === 'kg' ? 'Quantity (kg)' : 'Quantity (pieces)';
-  $('chgQty').step = p.unit === 'kg' ? '0.25' : '1'; $('chgQty').min = p.unit === 'kg' ? '0.25' : '1';
+  $('chgQty').step = qtyStep(p); $('chgQty').min = qtyStep(p);
   const q = Number($('chgQty').value);
   if(!(q > 0)){ sum.textContent = 'Enter the quantity.'; return; }
+  if(!batchOk(p, q)){ sum.textContent = batchMsg(p); return; }
   const total = Math.round(q * p.price), old = chg.old.kes;
   let diff = '';
   if(old != null){
@@ -1626,6 +1634,7 @@ async function submitChange(){
   if(!p){ note('Choose the new item from the catalogue.', 'err'); return; }
   const q = Number($('chgQty').value);
   if(!(q > 0) || q > 500 || (p.unit === 'pc' && q !== Math.floor(q))){ note(p.unit === 'pc' ? 'Enter whole pieces.' : 'Enter the kg.', 'err'); return; }
+  if(!batchOk(p, q)){ note(batchMsg(p), 'err'); return; }
   const c = chg, btn = $('chgGo'); btn.disabled = true; btn.textContent = 'Saving…';
   const { data, error } = await sb.rpc('mfm_change_order_item', { p_item: c.item, p_name: p.name, p_unit: p.unit, p_qty: q, p_unit_price: p.price, p_reason: chgReason });
   btn.disabled = false; btn.textContent = 'Change fish';
@@ -1835,14 +1844,15 @@ function noDraw(){
 }
 function noPickChanged(){
   const p = noPicked();
-  $('noQty').step = p && p.unit === 'pc' ? '1' : '0.25';
-  $('noQty').placeholder = p ? (p.unit === 'kg' ? 'kg' : 'pieces') : 'Qty';
-  if(p && !$('noQty').value) $('noQty').value = 1;
+  $('noQty').step = p ? qtyStep(p) : '0.25';
+  $('noQty').placeholder = p ? (p.batch ? `kg (${p.batch} kg batches)` : p.unit === 'kg' ? 'kg' : 'pieces') : 'Qty';
+  if(p && (!$('noQty').value || !batchOk(p, Number($('noQty').value)))) $('noQty').value = p.batch || 1;
 }
 function noAddLine(){
   const p = noPicked(), q = Number($('noQty').value);
   if(!p){ note('Choose the item from the catalogue.', 'err'); return; }
   if(!(q > 0) || q > 500 || (p.unit === 'pc' && q !== Math.floor(q))){ note(p.unit === 'pc' ? 'Enter whole pieces.' : 'Enter the kg.', 'err'); return; }
+  if(!batchOk(p, q)){ note(batchMsg(p), 'err'); return; }
   const same = no.lines.find(l => l.name === p.name);
   if(same) same.qty = Math.round((same.qty + q) * 100) / 100; else no.lines.push({ name: p.name, unit: p.unit, qty: q, price: p.price });
   $('noPick').value = ''; $('noQty').value = ''; noPickChanged();
@@ -1971,9 +1981,10 @@ function addUpdate(){
   const p = addPicked(), sum = $('addSum');
   if(!p){ sum.textContent = 'Choose the item.'; return; }
   $('addQtyLbl').textContent = p.unit === 'kg' ? 'Quantity (kg)' : 'Quantity (pieces)';
-  $('addQty').step = p.unit === 'kg' ? '0.25' : '1'; $('addQty').min = p.unit === 'kg' ? '0.25' : '1';
+  $('addQty').step = qtyStep(p); $('addQty').min = qtyStep(p);
   const q = Number($('addQty').value);
   if(!(q > 0)){ sum.textContent = 'Enter the quantity.'; return; }
+  if(!batchOk(p, q)){ sum.textContent = batchMsg(p); return; }
   const line = Math.round(q * p.price);
   if(!add.paidEdited) $('addPaid').value = line;
   const pv = $('addPaid').value.trim(), paid = pv === '' ? null : Number(pv);
@@ -2010,6 +2021,7 @@ async function submitAdd(){
   if(!p){ note('Choose the item from the catalogue.', 'err'); return; }
   const q = Number($('addQty').value);
   if(!(q > 0) || q > 500 || (p.unit === 'pc' && q !== Math.floor(q))){ note(p.unit === 'pc' ? 'Enter whole pieces.' : 'Enter the kg.', 'err'); return; }
+  if(!batchOk(p, q)){ note(batchMsg(p), 'err'); return; }
   const pv = $('addPaid').value.trim(), paid = pv === '' ? null : Number(pv);
   if(paid !== null && !(paid >= 0 && paid === Math.floor(paid))){ note('Enter the extra money received in whole shillings.', 'err'); return; }
   const ref = $('addRef').value.replace(/\s+/g, '').toUpperCase();
@@ -2049,7 +2061,7 @@ $('addGo').addEventListener('click', submitAdd);
 $('addBack').addEventListener('click', closeAdd);
 $('addClose').addEventListener('click', closeAdd);
 $('addUndo').addEventListener('click', undoAdd);
-$('addPick').addEventListener('change', () => { if(addPicked() && !$('addQty').value) $('addQty').value = 1; addUpdate(); });
+$('addPick').addEventListener('change', () => { const p = addPicked(); if(p && (!$('addQty').value || !batchOk(p, Number($('addQty').value)))) $('addQty').value = p.batch || 1; addUpdate(); });
 $('addQty').addEventListener('input', addUpdate);
 $('addPaid').addEventListener('input', () => { if(add) add.paidEdited = true; addUpdate(); });
 $('addSheet').addEventListener('click', e => { if(e.target.id === 'addSheet') closeAdd(); });
@@ -2114,7 +2126,8 @@ $('chgClose').addEventListener('click', closeChange);
 $('chgUndo').addEventListener('click', undoChange);
 $('chgPick').addEventListener('change', () => {
   const p = chgPicked();
-  if(p) $('chgQty').value = (chg.old.unit === p.unit && chg.old.qty) ? chg.old.qty : 1;
+  if(p) $('chgQty').value = p.batch ? Math.max(p.batch, Math.ceil(((chg.old.unit === p.unit && chg.old.qty) || 0) / p.batch) * p.batch)
+                                    : ((chg.old.unit === p.unit && chg.old.qty) ? chg.old.qty : 1);
   chgUpdate();
 });
 $('chgQty').addEventListener('input', chgUpdate);
