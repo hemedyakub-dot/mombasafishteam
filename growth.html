@@ -160,6 +160,7 @@ details.more summary{cursor:pointer;font-family:var(--mono);font-size:12px;color
       <button data-tab="channels">Channels</button>
       <button data-tab="content">Content</button>
       <button data-tab="customers">Customers</button>
+      <button data-tab="sourcing">Sourcing</button>
       <button data-tab="products">Products</button>
       <button data-tab="places">Places</button>
       <button data-tab="wholesale">Wholesale</button>
@@ -215,7 +216,7 @@ async function act(btn, fn, okMsg){
 const CHANNEL = {tiktok:'TikTok', meta:'Instagram / Facebook', whatsapp:'WhatsApp', youtube:'YouTube', search:'Google search',
   ai_assistant:'AI assistant', direct:'Website, no tag', other:'Other', repeat:'Bought before', referral:'Friend told them',
   walk_in:'Walk-in', broadcast:'Our broadcast', unknown:'Not recorded'};
-const AGENT = {followup:'Follow-up', director:'Growth Director', content:'Content', acquisition:'Acquisition', retention:'Retention', wholesale:'Wholesale',
+const AGENT = {sourcing:'Sourcing', followup:'Follow-up', director:'Growth Director', content:'Content', acquisition:'Acquisition', retention:'Retention', wholesale:'Wholesale',
   product:'Product', distribution:'Distribution', revenue:'Revenue'};
 const ACTION = {analyse_sales:'Analyse sales', recommend_campaign:'Recommend a campaign', draft_social_content:'Draft social content',
   prepare_wholesale_prospects:'Prepare wholesale prospects', draft_customer_message:'Draft customer messages',
@@ -613,6 +614,37 @@ const VIEWS = {
       ${cRecent.length ? `<div class="tscroll"><table class="tbl"><tr><th>When</th><th>Phone</th><th>What</th><th>By</th><th>Note / order</th></tr>
         ${cRecent.map(e => `<tr><td class="mono small">${stamp(e.occurred_at)}</td><td class="mono small">${esc(e.phone_hint)}</td><td><span class="pill ${(CCH[e.change] || ['',''])[1]}">${esc((CCH[e.change] || [e.change])[0])}</span></td><td class="small">${esc(e.actor || '')}</td><td class="small">${esc(e.note || e.order_number || '')}</td></tr>`).join('')}</table></div>`
         : '<div class="empty">No one has agreed or opted out yet.</div>'}`;
+  },
+
+  async sourcing(){
+    const d = await load('sourcing', () => rpc('growth_sourcing_latest'));
+    const STATE = {at_sea: ['Not yet caught', 'bad'], caught: ['Caught, to clean', 'warn'], unknown: ['?', '']};
+    const isToday = d.plan_date === todayISO();
+    const q = (k, pc) => k != null && Number(k) > 0 ? kg(k) : (pc != null && Number(pc) > 0 ? n0(pc) + ' pc' : '');
+    const lines = d.lines || [], open = d.open_lines || [], ws = d.wholesale || [], wanted = d.wanted || [];
+    return `
+      <h2>Sourcing plan <small>· ${d.plan_date ? (isToday ? 'today' : 'from ' + day(d.plan_date)) : 'none yet'} · written by the Sourcing agent each morning</small></h2>
+      ${d.plan_date && !isToday ? '<div class="note">This plan is not from today. The next one comes at about 07:00.</div>' : ''}
+      ${lines.length ? lines.map(l => {
+          const bits = [l.confirmed_kg || l.confirmed_pc ? `<b>Must buy ${q(l.confirmed_kg, l.confirmed_pc)}</b>` : '', l.expected_kg ? `likely to sell ~${kg(l.expected_kg)}` : '',
+                        l.wanted_waiting ? `${l.wanted_waiting} customer${l.wanted_waiting > 1 ? 's' : ''} waiting` : '', l.wholesale_kg ? `wholesale ${kg(l.wholesale_kg)} (ask processors)` : ''].filter(Boolean);
+          return `<div class="card"><div class="row"><h3>${esc(l.product)}</h3><span class="spacer"></span><span class="pill ${l.priority === 'high' ? 'bad' : l.priority === 'medium' ? 'warn' : ''}">${esc(l.priority)}</span></div>
+            <p class="small" style="margin:6px 0">${bits.join(' · ')}</p>${l.note ? `<div class="meta">${esc(l.note)}</div>` : ''}</div>`; }).join('')
+        + '<p class="small muted">Must buy = paid orders still waiting for this fish. Likely to sell = what usually sells today and tomorrow (an estimate). Wholesale = ask processors; MombasaFish does not own their stock.</p>'
+        : '<div class="empty">No plan yet. The Sourcing agent writes one every morning.</div>'}
+
+      <h2>Paid orders still waiting for fish <small>· live</small></h2>
+      ${open.length ? `<div class="tscroll"><table class="tbl"><tr><th>Order</th><th>Fish</th><th class="n">Qty</th><th>Status</th><th class="n">Waiting</th></tr>
+        ${open.map(o => `<tr><td class="mono small" style="white-space:nowrap">${esc(o.order_number)}</td><td>${esc(o.product)}${o.from_box ? ` <span class="muted small">(${esc(o.from_box)})</span>` : ''}</td><td class="n">${q(o.kg, o.pieces)}</td>
+          <td><span class="pill ${(STATE[o.state] || ['',''])[1]}">${esc((STATE[o.state] || [o.state])[0])}</span></td><td class="n">${o.hours_waiting != null ? (o.hours_waiting >= 48 ? Math.round(o.hours_waiting / 24) + ' days' : Math.round(o.hours_waiting) + ' h') : ''}</td></tr>`).join('')}</table></div>`
+        : '<div class="empty">Every paid order waiting for dispatch is packed.</div>'}
+
+      ${ws.length ? `<h2>Wholesale to prepare</h2><div class="tscroll"><table class="tbl"><tr><th>Product</th><th class="n">Confirmed, still to supply</th><th class="n">Requested (quotes)</th><th class="n">Orders</th><th>Oldest</th></tr>
+        ${ws.map(w => `<tr><td>${esc(w.product)}</td><td class="n">${w.confirmed_outstanding_kg ? kg(w.confirmed_outstanding_kg) : ''}</td><td class="n">${w.requested_kg ? kg(w.requested_kg) : ''}</td><td class="n">${w.orders}</td><td class="small mono">${day(w.oldest)}</td></tr>`).join('')}</table></div>` : ''}
+
+      ${wanted.length ? `<h2>Customers waiting for items you did not have</h2><div class="tscroll"><table class="tbl"><tr><th>Item</th><th class="n">Waiting</th><th>Since</th><th>Quantities</th></tr>
+        ${wanted.map(w => `<tr><td>${esc(w.item)}</td><td class="n"><b>${w.waiting}</b></td><td class="small mono">${day(w.oldest_waiting)}</td><td class="small">${esc(w.quantities_waiting || '')}</td></tr>`).join('')}</table></div>
+        <p class="small muted">From the shop's wanted list. When the item comes in, the shop admin page can alert these customers.</p>` : ''}`;
   },
 
   async products(){
