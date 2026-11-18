@@ -594,7 +594,22 @@ const VIEWS = {
   },
 
   async wholesale(){
-    const rows = await load('ws', () => view('wholesale_pipeline_summary', null, null, 500));
+    const [rows, prospects] = await Promise.all([load('ws', () => view('wholesale_pipeline_summary', null, null, 500)), load('prospects', () => rpc('growth_list_prospects'))]);
+    const PST = {new:['New','warn'], approved_to_contact:['OK to contact','info'], contacted:['Contacted','info'], interested:['Interested','good'], quoted:['Quoted','good'], won:['Won','good'], not_interested:['Not interested',''], rejected:['Rejected','bad']};
+    const PNEXT = {new:['approved_to_contact','rejected'], approved_to_contact:['contacted','rejected'], contacted:['interested','not_interested'], interested:['quoted','not_interested'], quoted:['won','not_interested'], won:[], not_interested:['new'], rejected:['new']};
+    const PLAB = {approved_to_contact:'OK to contact', rejected:'Reject', contacted:'I contacted them', interested:'Interested', not_interested:'Not interested', quoted:'Quote sent', won:'Won — became a buyer', new:'Back to new'};
+    const prospectCards = prospects.length ? prospects.map(p => `<div class="card">
+        <div class="row"><h3>${esc(p.business_name)}</h3><span class="spacer"></span><span class="pill ${(PST[p.status] || ['',''])[1]}">${esc((PST[p.status] || [p.status])[0])}</span></div>
+        <div class="meta">${esc(p.buyer_type.replace('_', ' '))}${p.town ? ' · ' + esc(p.town) : ''}${p.county ? ', ' + esc(p.county) : ''} · added ${day(p.created_at)} by ${esc(p.added_by.replace('agent:', ''))} agent</div>
+        ${p.products_of_interest ? `<p class="small"><b>Could buy:</b> ${esc(p.products_of_interest)}</p>` : ''}
+        <p class="small"><b>Why:</b> ${esc(p.why)}</p>
+        ${p.public_contact ? `<p class="small"><b>Public contact:</b> ${esc(p.public_contact)}</p>` : ''}
+        ${p.source_url && /^https?:\/\//.test(p.source_url) ? `<p class="small"><a href="${esc(p.source_url)}" target="_blank" rel="noopener">Source</a></p>` : ''}
+        ${p.outreach_draft ? `<details class="more" style="margin:8px 0 0"><summary>Draft message</summary><p style="white-space:pre-wrap;font-size:14px">${esc(p.outreach_draft)}</p>
+          <div class="acts"><button class="btn ghost sm" data-act="copy" data-text="${esc(p.outreach_draft)}">Copy message</button></div></details>` : ''}
+        ${p.owner_note ? `<p class="small muted">Your note: ${esc(p.owner_note)}</p>` : ''}
+        <div class="acts">${(PNEXT[p.status] || []).map(s => `<button class="btn ${['rejected','not_interested'].includes(s) ? 'bad' : s === 'new' ? 'ghost' : ''} sm" data-act="prospect" data-id="${p.id}" data-s="${s}">${PLAB[s]}</button>`).join('')}</div></div>`).join('')
+      : '<div class="empty">No prospects yet. The Wholesale agent looks for possible buyers every Monday.</div>';
     const t = k => rows.reduce((s, r) => s + Number(r[k] || 0), 0);
     return `
       <h2>Wholesale pipeline <small>· test orders left out</small></h2>
@@ -612,7 +627,9 @@ const VIEWS = {
         <p class="small">Goods ${kes(r.transaction_value_kes)} + transport ${kes(r.transport_kes)} · collected ${kes(r.cash_collected_kes)} · owed ${kes(r.outstanding_kes)}<br>
         Confirmed ${kg(r.confirmed_kg)} · delivered ${kg(r.delivered_kg)}${r.agency_commission_kes != null ? ` · commission ${kes(r.agency_commission_kes)} (${esc(r.commission_status)})` : ' · commission set on delivery'}</p></div>`).join('')
         : '<div class="empty">No wholesale orders yet.</div>'}
-      <p class="small muted">Orders, quotes and payments are handled on the <a href="./wholesale.html">Wholesale page</a>.</p>`;
+      <p class="small muted">Orders, quotes and payments are handled on the <a href="./wholesale.html">Wholesale page</a>.</p>
+      <h2>Possible buyers <small>· ${prospects.filter(p => p.status === 'new').length} new · nobody is contacted until you say so</small></h2>
+      ${prospectCards}`;
   },
 
   async agents(){
@@ -695,6 +712,12 @@ document.addEventListener('click', async e => {
     if(note === null && b.dataset.d === 'rejected') return;
     return act(b, () => rpc('growth_decide', {p_kind: b.dataset.kind, p_id: Number(b.dataset.id), p_decision: b.dataset.d, p_note: note || null}),
       {approved: 'Approved', rejected: 'Rejected', deferred: 'Moved to later'}[b.dataset.d]);
+  }
+  if(a === 'prospect'){
+    const s = b.dataset.s;
+    const note = ['rejected','not_interested','contacted','quoted','won'].includes(s) ? prompt('Note (optional) — e.g. who you spoke to, why not') : null;
+    if(note === null && ['rejected','not_interested'].includes(s) && !confirm('Mark without a note?')) return;
+    return act(b, () => rpc('growth_prospect_status', {p_id: Number(b.dataset.id), p_status: s, p_note: note || null}), 'Saved');
   }
   if(a === 'new-campaign'){ S.editCampaign = 0; render(); return; }
   if(a === 'edit-campaign'){ S.editCampaign = Number(b.dataset.id); render(); window.scrollTo({top: 0, behavior: 'smooth'}); return; }
