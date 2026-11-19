@@ -492,7 +492,8 @@ let tChecked = null;   // { token, trace, summary, used } once a code has been c
 const el = (tag, text, style) => { const e = document.createElement(tag); if(text != null) e.textContent = text; if(style) e.style.cssText = style; return e; };
 function traceToken(v){
   v = String(v || '').trim();
-  const m = v.match(/[?&]t=([0-9a-fA-F]{32})(?![0-9a-fA-F])/) || v.match(/^([0-9a-fA-F]{32})$/);
+  // ?t= fish codes, ?h= honey jar codes (HoneyTrace); both open the same public page
+  const m = v.match(/[?&][th]=([0-9a-fA-F]{32})(?![0-9a-fA-F])/) || v.match(/^([0-9a-fA-F]{32})$/);
   return m ? m[1].toLowerCase() : null;
 }
 function traceSummary(r){
@@ -513,8 +514,29 @@ function traceSummary(r){
                 community: v.filter(x => x.community).length, disputed: v.filter(x => x.disputed).length }
   };
 }
+const HONEY = { mangrove:'Mangrove honey', terrestrial:'Terrestrial (woodland) honey', other:'Honey', blend:'Blended honey' };
+// A honey jar's passport (HoneyTrace), summarised the same way as a fish batch.
+function honeySummary(r){
+  const uniq = a => a.filter((x, i) => x && a.indexOf(x) === i), o = r.origins || [], g = r.packaging || {};
+  const n = o.reduce((t, x) => t + (x.harvests || 0), 0);
+  return {
+    kind: 'honey',
+    product: HONEY[r.honey_type] || 'Honey', packed_by: g.packed_by || '', packaged_on: g.packed_on || null,
+    species: [HONEY[r.honey_type] || 'Honey'], honey_type: r.honey_type, package_code: r.package_code || null,
+    landing_sites: uniq(o.map(x => x.community + (x.county ? ', ' + x.county : ''))), suppliers: uniq(o.map(x => x.producer_group)),
+    dates: r.harvest_period && r.harvest_period.from ? [r.harvest_period.from, r.harvest_period.to] : [],
+    catches: n, recall: r.recall ? r.recall.recall_ref : null,
+    verified: { official: 0, document: o.reduce((t, x) => t + (x.document_verified || 0), 0), community: o.reduce((t, x) => t + (x.community_verified || 0), 0),
+                disputed: o.reduce((t, x) => t + (x.disputed || 0), 0) }
+  };
+}
 function verifiedText(sm){
   const v = sm.verified;
+  if(sm.kind === 'honey'){
+    if(v.disputed) return v.disputed + ' of ' + sm.catches + ' harvests are DISPUTED — under review.';
+    const p = []; if(v.community) p.push(v.community + ' by the beekeepers\' community'); if(v.document) p.push(v.document + ' by document');
+    return p.length ? 'Verified: ' + p.join(', ') + ' — of ' + sm.catches + ' harvests.' : 'Not yet verified (' + sm.catches + ' harvests).';
+  }
   if(!sm.catches) return sm.suppliers.length ? 'Bought from a dealer or company — the vessel and landing are not on record, so it is not verified.' : 'No catch records.';
   if(v.disputed) return v.disputed + ' of ' + sm.catches + ' catch records are DISPUTED — under review.';
   const parts = [];
@@ -547,41 +569,53 @@ function tMsg(text, kind){
 async function checkTrace(){
   tReset();
   const token = traceToken($('tCode').value);
-  if(!token){ $('tResult').append(tMsg('That is not a CatchTrace code. Paste the whole link from the QR code (it contains ?t= followed by 32 letters and numbers).', 'err')); return; }
+  if(!token){ $('tResult').append(tMsg('That is not a CatchTrace code. Paste the whole link from the QR code (it contains ?t= or ?h= followed by 32 letters and numbers).', 'err')); return; }
   $('tCheck').disabled = true; $('tCheck').textContent = 'Checking…';
   let r;
-  try{
-    const res = await fetch(CT.url + '/rest/v1/rpc/public_trace', { method:'POST',
+  const ask = async fn => {
+    const res = await fetch(CT.url + '/rest/v1/rpc/' + fn, { method:'POST',
       headers:{ apikey: CT.key, 'Content-Type':'application/json', 'Content-Profile':'catchtrace' }, body: JSON.stringify({ p_token: token }) });
     if(res.status === 429) throw new Error('CatchTrace is busy. Wait a minute and check again.');
     if(!res.ok) throw new Error('CatchTrace did not answer (' + res.status + '). Check the connection and try again.');
-    r = await res.json();
+    return res.json();
+  };
+  try{
+    r = await ask('public_trace');
+    if(!r || !r.found) r = await ask('honey_passport');   // a honey jar (HoneyTrace)
   }catch(e){
     $('tResult').append(tMsg(e.message && /CatchTrace/.test(e.message) ? e.message : 'Could not reach CatchTrace. Check the connection and try again.', 'err'));
     return;
   }finally{ $('tCheck').disabled = false; $('tCheck').textContent = 'Check code'; }
   if(!r || !r.found){ $('tResult').append(tMsg('CatchTrace does not recognise this code, or it has been withdrawn. Do not link this stock.', 'err')); return; }
-  const sm = traceSummary(r);
+  const honey = r.kind === 'honey', sm = honey ? honeySummary(r) : traceSummary(r);
+  if(honey && r.recall && r.recall.status === 'open'){ $('tResult').append(tMsg('This honey is UNDER RECALL (' + r.recall.recall_ref + '): ' + r.recall.notice + ' Do not put it on sale.', 'err')); return; }
+  if(honey && r.package_status === 'withdrawn'){ $('tResult').append(tMsg('This jar has been written off by the packer. Do not put it on sale.', 'err')); return; }
   let used = null;
   try{ const u = await sb.rpc('shop_trace_code_used', { p_trace_token: token }); if(!u.error) used = u.data; }catch(e){}
   const box = el('div', null, 'border:1px solid var(--faint);border-radius:9px;padding:11px;font-size:13px;line-height:1.5');
-  box.append(el('div', (r.product && r.product.batch_ref ? r.product.batch_ref + ' · ' : '') + sm.product, 'font-weight:700;color:var(--foam)'));
+  box.append(el('div', ((honey ? (r.packaging || {}).pack_ref : r.product && r.product.batch_ref) ? (honey ? r.packaging.pack_ref : r.product.batch_ref) + ' · ' : '') + sm.product, 'font-weight:700;color:var(--foam)'));
   if(sm.packed_by) box.append(el('div', 'Packed by ' + sm.packed_by + (sm.packaged_on ? ' on ' + sm.packaged_on : '')));
+  if(honey){
+    if(sm.package_code) box.append(el('div', 'Jar ' + sm.package_code));
+    box.append(el('div', 'Beekeepers: ' + (sm.suppliers.join(', ') || '—') + ' · ' + (sm.landing_sites.join('; ') || '—')));
+    if(sm.dates.length) box.append(el('div', 'Harvested ' + (sm.dates[0] === sm.dates[1] ? sm.dates[0] : sm.dates[0] + ' to ' + sm.dates[1])));
+  } else {
   box.append(el('div', 'Fish: ' + (sm.species.join(', ') || '—')));
   box.append(el('div', (sm.suppliers.length ? 'From ' + sm.suppliers.join(', ') + ', tied to landing site ' : 'Landed at ') + (sm.landing_sites.join('; ') || '—')));
   if(sm.dates.length) box.append(el('div', (sm.catches ? 'Caught ' : 'Received ') + (sm.dates[0] === sm.dates[1] ? sm.dates[0] : sm.dates[0] + ' to ' + sm.dates[1])));
+  }
   box.append(el('div', verifiedText(sm), 'color:var(--dim)'));
   const a = el('a', 'Open the full trace page ↗', 'color:var(--foam)'); a.href = CT.page + token; a.target = '_blank'; a.rel = 'noopener noreferrer';
   box.append(a);
   $('tResult').append(box);
   if(CT.env !== 'production') $('tResult').append(tMsg('TEST system: this code is from the CatchTrace staging site. It will be counted as test, not as traced stock.', 'warn'));
-  if(r.demonstration_data) $('tResult').append(tMsg('This code is DEMONSTRATION data, not a real catch. It will be counted as test.', 'warn'));
+  if(r.demonstration_data) $('tResult').append(tMsg('This code is DEMONSTRATION data, not a real ' + (honey ? 'honey jar' : 'catch') + '. It will be counted as test.', 'warn'));
   if(sm.verified.disputed) $('tResult').append(tMsg('Some of this catch is disputed. Think twice before selling it as traced.', 'warn'));
   if(used && Number(used.times) > 0) $('tResult').append(tMsg('This code was already used ' + used.times + ' time(s) for ' + used.qty + ' received. Only link it again if this is more of the same batch.', 'warn'));
   const p = products.find(x => x.id === Number($('tProduct').value));
   const words = p ? (p.name + ' ' + (p.sw_name || '')).toLowerCase().split(/[^a-z]+/).filter(w => w.length > 3) : [];
   const fish = sm.species.join(' ').toLowerCase();
-  if(p && words.length && !words.some(w => fish.includes(w))) $('tResult').append(tMsg('The fish on this code (' + (sm.species.join(', ') || '—') + ') does not obviously match ' + p.name + '. Check you picked the right product.', 'warn'));
+  if(p && words.length && !words.some(w => fish.includes(w)) && !(honey && /honey|asali/.test(words.join(' ')))) $('tResult').append(tMsg('The fish on this code (' + (sm.species.join(', ') || '—') + ') does not obviously match ' + p.name + '. Check you picked the right product.', 'warn'));
   tChecked = { token, trace: r, summary: sm, used };
   $('tSave').classList.remove('hide');
 }
@@ -594,7 +628,7 @@ async function saveTraced(){
   if(traceToken($('tCode').value) !== tChecked.token){ tReset(); toast('The code changed — check it again', true); return; }
   $('tSave').disabled = true;
   const { error } = await sb.rpc('add_shop_stock_traced', { p_product: pid, p_qty: n, p_staff: staffName, p_trace_token: tChecked.token, p_trace_env: CT.env,
-    p_batch_ref: (tChecked.trace.product && tChecked.trace.product.batch_ref) || null, p_summary: tChecked.summary, p_demo: !!tChecked.trace.demonstration_data });
+    p_batch_ref: (tChecked.trace.product && tChecked.trace.product.batch_ref) || (tChecked.trace.packaging && tChecked.trace.packaging.pack_ref) || null, p_summary: tChecked.summary, p_demo: !!tChecked.trace.demonstration_data });
   $('tSave').disabled = false;
   if(error){ toast(error.message, true); return; }
   $('tmodal').classList.remove('show'); stopScan();

@@ -29,7 +29,7 @@ const PRODUCTS = [{ id: 1, name: 'Rabbitfish', sw_name: 'Tafi', price: 900, sale
   const browser = await chromium.launch({ executablePath: process.env.CHROME || '/usr/bin/google-chrome', args: ['--no-sandbox'] });
   const ctx = await browser.newContext({ viewport: { width: 400, height: 800 } });
   const calls = [], ctCalls = [];
-  let used = { times: 0, qty: 0 }, trace = TRACE, ctStatus = 200, saveError = null;
+  let honey = null, used = { times: 0, qty: 0 }, trace = TRACE, ctStatus = 200, saveError = null;
   const bundle = fs.readFileSync(process.env.SUPABASE_BUNDLE);
   await ctx.route('https://esm.sh/**', (r) => r.fulfill({ status: 200, contentType: 'text/javascript', body: bundle }));
   await ctx.route('https://fonts.googleapis.com/**', (r) => r.abort());
@@ -53,6 +53,7 @@ const PRODUCTS = [{ id: 1, name: 'Rabbitfish', sw_name: 'Tafi', price: 900, sale
     if (r.request().method() === 'OPTIONS') return r.fulfill({ status: 200, headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'access-control-allow-methods': '*' } });
     ctCalls.push({ url: r.request().url(), headers: r.request().headers(), body: JSON.parse(r.request().postData() || 'null') });
     if (ctStatus !== 200) return json(r, { code: 'PT429', message: 'busy' }, ctStatus);
+    if (honey) return json(r, r.request().url().endsWith('/rpc/honey_passport') ? honey : { found: false });
     return json(r, trace);
   });
   const pg = await ctx.newPage();
@@ -123,6 +124,33 @@ const PRODUCTS = [{ id: 1, name: 'Rabbitfish', sw_name: 'Tafi', price: 900, sale
   await pg.click('#tSave');
   await pg.waitForFunction(() => /owner only/.test(document.querySelector('#toast').textContent));
   ok(await pg.isVisible('#tmodal'), 'T15 a refusal from the shop database is shown and the form stays open');
+  // ---- honey jars (HoneyTrace)
+  saveError = null; await pg.click('#tCancel');
+  const HTOKEN = 'abcdefabcdefabcdefabcdefabcdef12';
+  const HONEY = { found: true, kind: 'honey', scope: 'package', package_code: 'HPK-261120-000001-0007', package_status: 'ok', demonstration_data: false,
+    honey_type: 'mangrove', composition: [{ honey_class: 'mangrove', share_pct: 100 }], recall: null,
+    packaging: { pack_ref: 'HPK-261120-000001', packed_on: '2026-11-20', packed_by: 'TEST MombasaFish', package: { kind: 'jar', material: 'glass', net_g: 250 } },
+    origins: [{ honey_class: 'mangrove', community: 'Pongwe-Kidimu', county: 'Kwale', habitat: 'mangrove', producer: null, producer_group: 'TEST Pongwe-Kidimu Beekeepers',
+                from: '2026-11-18', to: '2026-11-18', harvests: 1, community_verified: 1, document_verified: 0, disputed: 0 }],
+    harvest_period: { from: '2026-11-18', to: '2026-11-18' } };
+  honey = HONEY; ctCalls.length = 0;
+  await pg.click('#addTraced'); await pg.selectOption('#tProduct', '1');
+  await pg.fill('#tCode', 'https://mombasafishcatchtrace.netlify.app/trace/?h=' + HTOKEN);
+  await pg.click('#tCheck'); await pg.waitForSelector('#tSave:not(.hide)');
+  const hr = await pg.textContent('#tResult');
+  ok(ctCalls.map((c) => c.url.split('/rpc/')[1]).join(',') === 'public_trace,honey_passport' && ctCalls[1].body.p_token === HTOKEN,
+    'T17 a honey jar QR (?h=) is read; not being a fish code, it is looked up in HoneyTrace', ctCalls.map((c) => c.url));
+  ok(hr.includes('HPK-261120-000001 · Mangrove honey') && hr.includes('Jar HPK-261120-000001-0007') && hr.includes('TEST Pongwe-Kidimu Beekeepers · Pongwe-Kidimu, Kwale')
+     && hr.includes('Harvested 2026-11-18') && hr.includes('Verified: 1 by the beekeepers\' community'), 'T18 the check shows the honey, jar, beekeepers\' community, harvest date and verification', hr);
+  await pg.fill('#tQty', '12'); await pg.click('#tSave');
+  await pg.waitForFunction(() => !document.querySelector('#tmodal').classList.contains('show'));
+  const hs = calls.filter((c) => c.path === '/rest/v1/rpc/add_shop_stock_traced').pop();
+  ok(hs && hs.body.p_trace_token === HTOKEN && hs.body.p_batch_ref === 'HPK-261120-000001' && hs.body.p_summary.kind === 'honey' && hs.body.p_summary.package_code === 'HPK-261120-000001-0007',
+    'T19 saving links the stock to the honey packing batch, with a honey summary', hs && hs.body);
+  honey = Object.assign({}, HONEY, { recall: { recall_ref: 'HRC-261120-000001', notice: 'TEST return for refund.', status: 'open', opened_on: '2026-11-20' } });
+  await pg.click('#addTraced'); await pg.fill('#tCode', HTOKEN); await pg.click('#tCheck');
+  await pg.waitForFunction(() => /UNDER RECALL/.test(document.querySelector('#tResult').textContent));
+  ok(await pg.isHidden('#tSave'), 'T20 honey under recall cannot be put on sale');
   ok(errors.length === 0, 'T16 no script errors or pop-ups', errors);
 
   await browser.close(); server.close();
