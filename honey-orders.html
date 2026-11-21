@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Honey Orders · MombasaFish team</title>
+<link rel="icon" href="favicon.svg">
+<style>
+:root{--dark:#3d2604;--deep:#5a3a06;--amber:#c98a12;--gold:#f2b632;--cream:#fff8e8;--comb:#fdf0cf;--line:rgba(90,58,6,.16);--ink:#2b1d05;--muted:#7a6235;--ok:#0b5e3c;--bad:#8c1d18}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--cream);color:var(--ink)}
+.hidden,[hidden]{display:none!important}
+header.top{background:var(--dark);color:#fff;padding:.7rem 1rem;display:flex;align-items:center;gap:.8rem;position:sticky;top:0;z-index:20}
+header.top h1{font-size:1.05rem;margin:0;flex:1}
+header.top a,header.top button{color:#fde9b5;font-size:.85rem;background:none;border:0;cursor:pointer;text-decoration:underline}
+.wrap{max-width:1000px;margin:0 auto;padding:1rem}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:1rem;margin-bottom:.8rem}
+input,select,textarea{font:inherit;padding:.6rem .7rem;border:1px solid rgba(90,58,6,.3);border-radius:10px;background:#fff;color:var(--ink);min-height:44px;width:100%}
+label{display:grid;gap:.25rem;font-size:.85rem;font-weight:600}
+button.b{font:600 .92rem system-ui;min-height:44px;padding:0 1rem;border-radius:10px;border:1px solid var(--deep);background:var(--deep);color:#fff;cursor:pointer}
+button.b.sec{background:#fff;color:var(--deep)}
+button.b.gold{background:var(--gold);border-color:var(--gold);color:var(--dark)}
+button.b.red{background:#fff;color:var(--bad);border-color:var(--bad)}
+button.b:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:flex-end}
+.row>*{flex:1 1 160px}
+.msg{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);max-width:92vw;background:var(--dark);color:#fff;padding:.7rem 1rem;border-radius:12px;z-index:50;display:none}
+.msg.on{display:block}.msg.err{background:var(--bad)}
+.stats{display:grid;gap:.6rem;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:.8rem}
+.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:.7rem .8rem}
+.stat span{display:block;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.stat b{font-size:1.15rem;color:var(--dark)}
+.stat small{color:var(--muted);font-size:.75rem}
+.chips{display:flex;gap:.4rem;flex-wrap:wrap;margin:.6rem 0}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:.35rem .75rem;font-size:.82rem;cursor:pointer;min-height:36px}
+.chip[aria-pressed=true]{background:var(--dark);color:#fff;border-color:var(--dark)}
+.ord{background:#fff;border:1px solid var(--line);border-radius:14px;padding:.85rem .95rem;margin-bottom:.6rem}
+.ord .h{display:flex;gap:.5rem;align-items:baseline;flex-wrap:wrap;cursor:pointer}
+.ord .ref{font-weight:700;color:var(--dark)}
+.ord .who{flex:1;min-width:140px}
+.ord .amt{font-weight:700}
+.badge{display:inline-block;font-size:.72rem;padding:.15rem .55rem;border-radius:999px;background:var(--comb);color:var(--deep);font-weight:600}
+.badge.ws{background:#dff3ea;color:var(--ok)}
+.st-pending{background:#fff1d6;color:#7a4a00}.st-awaiting_payment{background:#ffe7c2;color:#7a4a00}.st-paid{background:#dff3ea;color:var(--ok)}
+.st-processing,.st-ready{background:#e3eefc;color:#18406e}.st-dispatched{background:#ece4fb;color:#4b2a86}.st-completed{background:#e6e6e6;color:#333}.st-cancelled{background:#fde8e6;color:var(--bad)}
+.meta{color:var(--muted);font-size:.85rem}
+.items{margin:.4rem 0;font-size:.9rem}
+.det{border-top:1px dashed var(--line);margin-top:.6rem;padding-top:.6rem;display:grid;gap:.6rem}
+.dl{display:grid;grid-template-columns:auto 1fr;gap:.2rem .8rem;font-size:.88rem}
+.dl dt{color:var(--muted)}.dl dd{margin:0;word-break:break-word}
+.acts{display:flex;gap:.5rem;flex-wrap:wrap}
+.sheet{background:var(--comb);border-radius:12px;padding:.8rem;display:grid;gap:.6rem}
+table.t{width:100%;border-collapse:collapse;font-size:.88rem}
+table.t td,table.t th{padding:.35rem .3rem;border-bottom:1px solid var(--line);text-align:left}
+table.t .r{text-align:right}
+.tabs{display:flex;gap:.4rem;margin-bottom:.8rem}
+.empty{color:var(--muted);padding:1rem 0}
+.login{max-width:380px;margin:2rem auto}
+.login h2{margin:.2rem 0 1rem;color:var(--dark)}
+.prod{display:grid;gap:.6rem}.prod img{width:100%;max-width:220px;aspect-ratio:4/3;object-fit:cover;border-radius:10px;background:var(--comb)}
+.prod .head{display:flex;gap:.8rem;align-items:flex-start;flex-wrap:wrap}
+.off{opacity:.6}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>🍯 Honey Orders</h1>
+  <a href="staff.html">Dispatch</a>
+  <span id="who" class="hidden" style="font-size:.8rem;color:#fde9b5"></span>
+  <button id="out" class="hidden" type="button">Sign out</button>
+</header>
+
+<div class="wrap">
+  <!-- sign in -->
+  <div id="loginView" class="card login hidden">
+    <h2>Staff sign in</h2>
+    <form id="loginForm" style="display:grid;gap:.7rem">
+      <label>Email<input id="em" type="email" autocomplete="username" required></label>
+      <label>Password<input id="pw" type="password" autocomplete="current-password" required></label>
+      <button class="b" id="in" type="submit">Sign in</button>
+    </form>
+  </div>
+  <div id="codeView" class="card login hidden">
+    <h2>Enter the code from your email</h2>
+    <p class="meta" id="codeSentTo">Sending a 6-digit code to your email…</p>
+    <form id="codeForm" style="display:grid;gap:.7rem">
+      <label>6-digit code<input id="codeIn" inputmode="numeric" autocomplete="one-time-code" maxlength="8"></label>
+      <button class="b" id="codeGo" type="submit">Verify &amp; continue</button>
+      <button class="b sec" id="codeResend" type="button">Send a new code</button>
+    </form>
+  </div>
+
+  <!-- app -->
+  <div id="appView" class="hidden">
+    <div class="tabs">
+      <button class="chip" id="tabOrders" aria-pressed="true" type="button">Orders</button>
+      <button class="chip hidden" id="tabPrices" aria-pressed="false" type="button">Products &amp; prices (owner)</button>
+      <a class="chip" href="https://mombasafish.com/honey" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;display:inline-flex;align-items:center">Customer page ↗</a>
+    </div>
+
+    <section id="ordersView">
+      <div class="stats" id="stats"></div>
+      <div class="card">
+        <div class="row">
+          <label>Search<input id="q" placeholder="Order ref, name or phone"></label>
+          <label>From<input id="from" type="date"></label>
+          <label>To<input id="to" type="date"></label>
+        </div>
+        <div class="row" style="margin-top:.6rem">
+          <label>Product<select id="fProd"><option value="">All honey</option><option value="mangrove">Mangrove Honey</option><option value="wild-forest">Wild Forest Honey</option><option value="honeycomb">Natural Honeycomb</option></select></label>
+          <label>Pricing<select id="fPrice"><option value="">Retail and wholesale</option><option value="retail">Retail</option><option value="wholesale">Wholesale</option></select></label>
+          <label style="flex:0 0 auto;display:flex;align-items:center;gap:.4rem;font-weight:400"><input type="checkbox" id="fTest" style="width:20px;min-height:20px"> Show TEST orders</label>
+        </div>
+        <div class="chips" id="chips"></div>
+      </div>
+      <div class="card" id="prodReport"></div>
+      <div id="list"></div>
+    </section>
+
+    <section id="pricesView" class="hidden">
+      <div class="card">
+        <h3 style="margin-top:0">Wholesale thresholds</h3>
+        <p class="meta">Extracted honey (Mangrove + Wild Forest) and honeycomb qualify for wholesale separately. Changes apply to new orders only; orders already placed keep their prices.</p>
+        <div id="groupRows"></div>
+      </div>
+      <div id="priceRows"></div>
+    </section>
+  </div>
+</div>
+<div class="msg" id="msg" role="status"></div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
+const sb = createClient('https://tcpqbrchpxpshmqprbkv.supabase.co', 'sb_publishable_7YLqP3JMq8AFZQl4XF--bw_itOMj1gA');
+const $ = (id) => document.getElementById(id);
+const TILL = '9948037';
+const STATUS = [['pending', 'Pending confirmation'], ['awaiting_payment', 'Awaiting payment'], ['paid', 'Paid'], ['processing', 'Processing'], ['ready', 'Ready for collection'], ['dispatched', 'Dispatched'], ['completed', 'Completed'], ['cancelled', 'Cancelled']];
+const SLABEL = Object.fromEntries(STATUS);
+let orders = [], staffName = 'staff', isOwner = false, open = null, sheet = null, statusFilter = 'open';
+
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const kes = (v) => 'KES ' + Number(v || 0).toLocaleString('en-KE', { maximumFractionDigits: 2 });
+const kg = (v) => Number(v || 0).toLocaleString('en-KE', { maximumFractionDigits: 2 }) + ' kg';
+const when = (t) => new Date(t).toLocaleString('en-KE', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+function note(t, kind) { const m = $('msg'); m.textContent = t; m.className = 'msg on ' + (kind || ''); clearTimeout(note._t); note._t = setTimeout(() => m.className = 'msg', kind === 'err' ? 7000 : 4000); }
+const total = (o) => Number(o.subtotal_kes) + Number(o.delivery_kes || 0);
+
+// ------------------------------------------------------------ sign in
+async function sendCode() {
+  $('codeResend').disabled = true; $('codeSentTo').textContent = 'Sending a 6-digit code to your email…';
+  const { data, error } = await sb.rpc('mfm_staff_send_login_code');
+  $('codeSentTo').textContent = error ? (/just sent/i.test(error.message) ? 'We emailed you a code a moment ago. Check your inbox (and spam).' : error.message)
+    : `We emailed a 6-digit code to ${data.sent_to}. It works for 10 minutes. Check spam if you don't see it.`;
+  setTimeout(() => $('codeResend').disabled = false, 45000);
+}
+async function boot() {
+  const { data: { session } } = await sb.auth.getSession();
+  ['loginView', 'codeView', 'appView'].forEach((v) => $(v).classList.add('hidden'));
+  if (!session) { $('loginView').classList.remove('hidden'); $('who').classList.add('hidden'); $('out').classList.add('hidden'); return; }
+  $('out').classList.remove('hidden');
+  const { data: codeOk, error: codeErr } = await sb.rpc('mfm_staff_code_ok');
+  if (!codeErr && codeOk === false) {
+    $('codeView').classList.remove('hidden'); $('codeIn').value = ''; setTimeout(() => $('codeIn').focus(), 50);
+    const key = session.access_token.slice(-16);
+    if (boot._sent !== key) { boot._sent = key; sendCode(); }
+    return;
+  }
+  const { data: staff } = await sb.from('mfm_staff').select('full_name, role').eq('user_id', session.user.id).maybeSingle();
+  if (!staff) { note('This account is not registered as staff. Ask Hemed to add you.', 'err'); await sb.auth.signOut(); return boot(); }
+  staffName = staff.full_name || session.user.email; isOwner = staff.role === 'owner';
+  $('who').textContent = staffName; $('who').classList.remove('hidden');
+  $('tabPrices').classList.toggle('hidden', !isOwner);
+  $('appView').classList.remove('hidden');
+  await load();
+}
+$('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault(); const b = $('in'); b.disabled = true; b.textContent = 'Signing in…';
+  const { error } = await sb.auth.signInWithPassword({ email: $('em').value.trim(), password: $('pw').value });
+  b.disabled = false; b.textContent = 'Sign in';
+  if (error) return note(error.message, 'err');
+  boot();
+});
+$('codeForm').addEventListener('submit', async (e) => {
+  e.preventDefault(); const code = $('codeIn').value.replace(/\D/g, '');
+  if (code.length !== 6) return note('Enter the 6-digit code from the email.', 'err');
+  const b = $('codeGo'); b.disabled = true;
+  const { data: ok, error } = await sb.rpc('mfm_w_verify_login_code', { p_code: code });
+  b.disabled = false;
+  if (error) return note(error.message, 'err');
+  if (!ok) { $('codeIn').value = ''; return note('That code is not right. Use the newest email and try again.', 'err'); }
+  boot();
+});
+$('codeResend').addEventListener('click', sendCode);
+$('out').addEventListener('click', async () => { await sb.auth.signOut(); boot(); });
+
+// ------------------------------------------------------------ data
+async function load() {
+  const { data, error } = await sb.rpc('mfm_honey_admin_orders', { p_from: $('from').value || null, p_to: $('to').value || null, p_include_test: $('fTest').checked });
+  if (error) { note(error.message, 'err'); if (/code/i.test(error.message)) boot(); return; }
+  orders = data || [];
+  render();
+}
+function filtered() {
+  const q = $('q').value.trim().toLowerCase().replace(/\s+/g, ' '), qd = q.replace(/\D/g, ''), prod = $('fProd').value, pr = $('fPrice').value;
+  return orders.filter((o) =>
+    (!q || o.order_number.toLowerCase().includes(q) || (o.customer_name || '').toLowerCase().includes(q) || (qd.length >= 4 && (o.phone || '').replace(/\D/g, '').includes(qd)))
+    && (!prod || (o.items || []).some((i) => i.slug === prod))
+    && (!pr || (o.items || []).some((i) => (i.pricing || o.pricing) === pr)));
+}
+function render() {
+  const rows = filtered(), live = rows.filter((o) => o.status !== 'cancelled');
+  const sumKg = (slug) => live.reduce((a, o) => a + (o.items || []).filter((i) => !slug || i.slug === slug).reduce((b, i) => b + Number(i.kg), 0), 0);
+  const lines = live.flatMap((o) => (o.items || []).map((i) => Object.assign({ pricing: o.pricing }, i)));
+  const rev = (p) => lines.filter((i) => i.pricing === p).reduce((a, i) => a + Number(i.line_kes), 0);
+  const avg = live.length ? live.reduce((a, o) => a + Number(o.subtotal_kes), 0) / live.length : 0;
+  const unpaid = live.filter((o) => ['pending', 'awaiting_payment'].includes(o.status));
+  $('stats').innerHTML = [
+    ['Honey orders', live.length, rows.length - live.length ? (rows.length - live.length) + ' cancelled not counted' : ''],
+    ['Total ordered', kg(sumKg()), ''], ['Mangrove', kg(sumKg('mangrove')), ''], ['Wild Forest', kg(sumKg('wild-forest')), ''], ['Honeycomb', kg(sumKg('honeycomb')), ''],
+    ['Retail value', kes(rev('retail')), 'honey sold at retail prices'],
+    ['Wholesale value', kes(rev('wholesale')), 'honey sold at wholesale prices'],
+    ['Average order', kes(avg), 'honey value per order'],
+    ['Outstanding payments', kes(unpaid.reduce((a, o) => a + total(o), 0)), unpaid.length + ' not paid · delivery included where set']
+  ].map(([l, v, s]) => `<div class="stat"><span>${l}</span><b>${v}</b>${s ? `<small>${s}</small>` : ''}</div>`).join('');
+  const prods = [['mangrove', 'Mangrove Honey'], ['wild-forest', 'Wild Forest Honey'], ['honeycomb', 'Natural Honeycomb']];
+  const pr = (slug, p) => lines.filter((i) => i.slug === slug && (!p || i.pricing === p));
+  const sumL = (a, f) => a.reduce((x, i) => x + Number(i[f]), 0);
+  $('prodReport').innerHTML = `<b>By product</b> <span class="meta">(orders not cancelled, in the filters above)</span><table class="t"><thead><tr><th>Product</th><th class="r">kg</th><th class="r">Retail</th><th class="r">Wholesale</th><th class="r">Value</th></tr></thead><tbody>`
+    + prods.map(([slug, name]) => `<tr${slug === 'honeycomb' ? ' style="border-top:2px solid var(--line)"' : ''}><td>${name}${slug === 'honeycomb' ? '<br><span class="meta">counted on its own</span>' : ''}</td><td class="r">${kg(sumL(pr(slug), 'kg'))}</td><td class="r">${kg(sumL(pr(slug, 'retail'), 'kg'))}<br><span class="meta">${kes(sumL(pr(slug, 'retail'), 'line_kes'))}</span></td><td class="r">${kg(sumL(pr(slug, 'wholesale'), 'kg'))}<br><span class="meta">${kes(sumL(pr(slug, 'wholesale'), 'line_kes'))}</span></td><td class="r"><b>${kes(sumL(pr(slug), 'line_kes'))}</b></td></tr>`).join('')
+    + '</tbody></table>';
+  const counts = Object.fromEntries(STATUS.map(([k]) => [k, rows.filter((o) => o.status === k).length]));
+  const openN = rows.filter((o) => !['completed', 'cancelled'].includes(o.status)).length;
+  $('chips').innerHTML = [['open', 'Open', openN], ['all', 'All', rows.length]].concat(STATUS.map(([k, l]) => [k, l, counts[k]]))
+    .map(([k, l, c]) => `<button class="chip" type="button" data-st="${k}" aria-pressed="${statusFilter === k}">${l} · ${c}</button>`).join('');
+  const shown = rows.filter((o) => statusFilter === 'all' || (statusFilter === 'open' ? !['completed', 'cancelled'].includes(o.status) : o.status === statusFilter));
+  $('list').innerHTML = shown.length ? shown.map(card).join('') : '<p class="empty">No honey orders here.</p>';
+}
+function card(o) {
+  const isOpen = open === o.order_number;
+  const items = (o.items || []).map((i) => `${esc(i.product)} ${kg(i.kg)} × ${kes(i.unit_kes_per_kg)} = ${kes(i.line_kes)}`).join('<br>');
+  return `<div class="ord" data-ord="${esc(o.order_number)}">
+    <div class="h" data-toggle="1"><span class="ref">${esc(o.order_number)}</span>
+      <span class="badge st-${o.status}">${SLABEL[o.status] || o.status}</span>
+      ${o.extracted_pricing ? `<span class="badge ${o.extracted_pricing === 'wholesale' ? 'ws' : ''}">Honey ${o.extracted_pricing}</span>` : ''}
+      ${o.honeycomb_pricing ? `<span class="badge ${o.honeycomb_pricing === 'wholesale' ? 'ws' : ''}">Comb ${o.honeycomb_pricing}</span>` : ''}
+      ${!o.extracted_pricing && !o.honeycomb_pricing ? `<span class="badge ${o.pricing === 'wholesale' ? 'ws' : ''}">${o.pricing}</span>` : ''}
+      <span class="who">${esc(o.customer_name)}${o.is_test ? ' <span class="badge">TEST</span>' : ''}<br><span class="meta">${when(o.created_at)} · ${esc(o.town)}, ${esc(o.county)} · ${o.fulfilment === 'pickup' ? 'Pickup' : 'Delivery'}</span></span>
+      <span class="amt">${kes(o.subtotal_kes)}<br><span class="meta">${kg(o.total_kg)}</span></span></div>
+    <div class="items">${items}</div>
+    ${isOpen ? details(o) : ''}
+  </div>`;
+}
+function details(o) {
+  const tel = (o.phone || '').replace(/^0/, '254').replace(/^\+/, '');
+  const a = [];
+  const can = (st) => st.includes(o.status);
+  if (can(['pending', 'awaiting_payment'])) a.push(`<button class="b gold" data-act="confirm" type="button">${o.status === 'pending' ? 'Confirm order' : 'Change delivery cost'}</button>`);
+  if (can(['pending', 'awaiting_payment'])) a.push('<button class="b" data-act="paid" type="button">Mark paid</button>');
+  if (can(['paid'])) a.push('<button class="b" data-act="processing" type="button">Start processing</button>');
+  if (o.fulfilment === 'pickup' && can(['paid', 'processing'])) a.push('<button class="b" data-act="ready" type="button">Ready for collection</button>');
+  if (o.fulfilment === 'delivery' && can(['paid', 'processing'])) a.push('<button class="b" data-act="dispatched" type="button">Mark dispatched</button>');
+  if (can(['dispatched', 'ready', 'processing'])) a.push(`<button class="b" data-act="completed" type="button">${o.fulfilment === 'pickup' ? 'Collected — completed' : 'Delivered — completed'}</button>`);
+  if (can(['pending', 'awaiting_payment', 'paid', 'processing', 'ready'])) a.push('<button class="b red" data-act="cancel" type="button">Cancel order</button>');
+  a.push('<button class="b sec" data-act="wa" type="button">WhatsApp customer</button>');
+  return `<div class="det">
+    <dl class="dl">
+      <dt>Phone</dt><dd><a href="tel:${esc(o.phone)}">${esc(o.phone)}</a> · <a href="https://wa.me/${esc(tel)}" target="_blank" rel="noopener">WhatsApp</a></dd>
+      <dt>Email</dt><dd>${o.email ? `<a href="mailto:${esc(o.email)}">${esc(o.email)}</a>` : '—'}</dd>
+      <dt>${o.fulfilment === 'pickup' ? 'Collect at' : 'Deliver to'}</dt><dd>${esc(o.address)}, ${esc(o.town)}, ${esc(o.county)}</dd>
+      <dt>Honey</dt><dd>${kes(o.subtotal_kes)} · ${kg(o.total_kg)}${o.extracted_kg > 0 ? ` · extracted ${kg(o.extracted_kg)} ${o.extracted_pricing}` : ''}${o.honeycomb_kg > 0 ? ` · honeycomb ${kg(o.honeycomb_kg)} ${o.honeycomb_pricing}` : ''}</dd>
+      <dt>Delivery</dt><dd>${o.fulfilment === 'pickup' ? 'Pickup' : (o.delivery_kes == null ? 'Not confirmed yet' : kes(o.delivery_kes))}</dd>
+      <dt>Total to pay</dt><dd><b>${kes(total(o))}</b>${o.paid_kes ? ` · paid ${kes(o.paid_kes)}` : ''}</dd>
+      <dt>Tracking</dt><dd>${esc(o.tracking_code)} · <a href="index.html?order=${encodeURIComponent(o.order_number)}&code=${encodeURIComponent(o.tracking_code)}" target="_blank" rel="noopener">tracker</a></dd>
+      ${o.confirmed_at ? `<dt>Confirmed</dt><dd>${when(o.confirmed_at)} by ${esc(o.confirmed_by)}</dd>` : ''}
+      ${o.duplicate_of ? `<dt>Possible repeat</dt><dd>Same phone ordered ${esc(o.duplicate_of)} in the last 3 days</dd>` : ''}
+      ${o.cancel_reason ? `<dt>Cancelled</dt><dd>${esc(o.cancel_reason)}${o.cancel_note ? ' — ' + esc(o.cancel_note) : ''}</dd>` : ''}
+      <dt>Notes</dt><dd>${esc(o.notes || '—')}</dd>
+    </dl>
+    <div class="acts">${a.join('')}</div>
+    ${sheet && sheet.ord === o.order_number ? sheetHtml(o) : ''}
+  </div>`;
+}
+function sheetHtml(o) {
+  if (sheet.act === 'confirm') return `<div class="sheet"><b>Confirm ${esc(o.order_number)}</b>
+    ${o.fulfilment === 'delivery' ? `<label>Delivery cost (KES) — leave empty if not known yet<input id="shDel" inputmode="numeric" value="${o.delivery_kes ?? ''}"></label>` : '<span class="meta">Pickup — no delivery cost.</span>'}
+    <div class="acts"><button class="b gold" data-go="confirm" type="button">Confirm</button><button class="b sec" data-go="close" type="button">Close</button></div></div>`;
+  if (sheet.act === 'paid') return `<div class="sheet"><b>Payment received for ${esc(o.order_number)}</b>
+    <label>Amount received (KES)<input id="shAmt" inputmode="numeric" value="${total(o)}"></label>
+    <div class="acts"><button class="b" data-go="paid" type="button">Record payment</button><button class="b sec" data-go="close" type="button">Close</button></div></div>`;
+  if (sheet.act === 'cancel') return `<div class="sheet"><b>Cancel ${esc(o.order_number)}</b>
+    <label>Why<select id="shWhy"><option>Customer cancelled</option><option value="Fish not available">Honey not available</option><option>Other</option></select></label>
+    <label>Note (required for Other)<input id="shNote" maxlength="300"></label>
+    ${['paid', 'processing', 'ready'].includes(o.status) ? `<label>Money returned to the customer (KES) — empty = the amount paid on record<input id="shRefund" inputmode="numeric"></label>` : ''}
+    <div class="acts"><button class="b red" data-go="cancel" type="button">Cancel this order</button><button class="b sec" data-go="close" type="button">Keep it</button></div></div>`;
+  return '';
+}
+function waMessage(o) {
+  const lines = (o.items || []).map((i) => `• ${i.product} ${kg(i.kg)} — ${kes(i.line_kes)}`).join('\n');
+  const deliv = o.fulfilment === 'pickup' ? 'Pickup' : (o.delivery_kes == null ? 'Delivery: we will confirm the cost' : 'Delivery: ' + kes(o.delivery_kes));
+  const pay = ['pending', 'awaiting_payment'].includes(o.status) ? `\n\nTotal to pay: ${kes(total(o))}\nPay by M-Pesa Till ${TILL} (MombasaFish) and send us the M-Pesa message.` : '';
+  const grp = [o.extracted_kg > 0 ? `honey ${o.extracted_pricing}` : '', o.honeycomb_kg > 0 ? `honeycomb ${o.honeycomb_pricing}` : ''].filter(Boolean).join(', ') || o.pricing;
+  return `Hello ${(o.customer_name || '').split(' ')[0]}, thank you for your MombasaFish honey order ${o.order_number}.\n${lines}\nHoney total (${grp}): ${kes(o.subtotal_kes)}\n${deliv}${pay}\n\nTrack your order: https://mombasafishteam.netlify.app/?order=${encodeURIComponent(o.order_number)}&code=${o.tracking_code}`;
+}
+
+// ------------------------------------------------------------ actions
+async function run(fn, args, okText) {
+  const { error } = await sb.rpc(fn, args);
+  if (error) { note(error.message, 'err'); return false; }
+  note(okText); sheet = null; await load(); return true;
+}
+$('list').addEventListener('click', async (e) => {
+  const c = e.target.closest('.ord'); if (!c) return;
+  const o = orders.find((x) => x.order_number === c.dataset.ord); if (!o) return;
+  if (e.target.closest('[data-toggle]') && !e.target.closest('a')) { open = open === o.order_number ? null : o.order_number; sheet = null; return render(); }
+  const b = e.target.closest('button'); if (!b) return;
+  const act = b.dataset.act, go = b.dataset.go;
+  if (act === 'wa') { const tel = (o.phone || '').replace(/^0/, '254').replace(/^\+/, ''); window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(waMessage(o)), '_blank'); return; }
+  if (['confirm', 'paid', 'cancel'].includes(act)) { sheet = { ord: o.order_number, act }; return render(); }
+  if (go === 'close') { sheet = null; return render(); }
+  b.disabled = true;
+  if (act === 'processing') await run('set_stage', { p_order: o.order_number, p_stage: 2 }, o.order_number + ' is being processed.');
+  else if (act === 'ready') await run('mfm_honey_mark_ready', { p_order: o.order_number }, o.order_number + ' is ready for collection.');
+  else if (act === 'dispatched') await run('dispatch_order', { p_order: o.order_number }, o.order_number + ' dispatched.');
+  else if (act === 'completed') await run('set_stage', { p_order: o.order_number, p_stage: 4 }, o.order_number + ' completed.');
+  else if (go === 'confirm') {
+    const v = $('shDel') ? $('shDel').value.replace(/[,\s]/g, '') : '';
+    if (v !== '' && !(Number(v) >= 0)) { b.disabled = false; return note('Delivery cost is a number in KES.', 'err'); }
+    await run('mfm_honey_confirm', { p_order: o.order_number, p_delivery_kes: v === '' ? null : Number(v) }, o.order_number + ' confirmed. Send the customer the total on WhatsApp.');
+  } else if (go === 'paid') {
+    const v = Number($('shAmt').value.replace(/[,\s]/g, ''));
+    if (!(v > 0)) { b.disabled = false; return note('Enter the amount received in KES.', 'err'); }
+    await run('mark_order_paid', { p_order: o.order_number, p_staff: staffName, p_amount: v }, 'Payment recorded for ' + o.order_number + '.');
+  } else if (go === 'cancel') {
+    const r = $('shRefund') ? $('shRefund').value.replace(/[,\s]/g, '') : '';
+    await run('mfm_cancel_dispatch_order', { p_order: o.order_number, p_reason: $('shWhy').value, p_note: $('shNote').value.trim() || null, p_refund_kes: r === '' ? null : Number(r) }, o.order_number + ' cancelled.');
+  }
+  b.disabled = false;
+});
+$('chips').addEventListener('click', (e) => { const b = e.target.closest('[data-st]'); if (!b) return; statusFilter = b.dataset.st; render(); });
+['q', 'fProd', 'fPrice'].forEach((id) => $(id).addEventListener('input', render));
+['from', 'to', 'fTest'].forEach((id) => $(id).addEventListener('change', load));
+
+// ------------------------------------------------------------ owner: prices
+function tab(t) {
+  $('tabOrders').setAttribute('aria-pressed', t === 'orders'); $('tabPrices').setAttribute('aria-pressed', t === 'prices');
+  $('ordersView').classList.toggle('hidden', t !== 'orders'); $('pricesView').classList.toggle('hidden', t !== 'prices');
+  if (t === 'prices') loadPrices();
+}
+$('tabOrders').addEventListener('click', () => tab('orders'));
+$('tabPrices').addEventListener('click', () => tab('prices'));
+async function loadPrices() {
+  const { data, error } = await sb.rpc('mfm_honey_admin_products');
+  if (error) return note(error.message, 'err');
+  const gl = { extracted_honey: 'Extracted honey (Mangrove + Wild Forest together)', honeycomb: 'Natural honeycomb (on its own)' };
+  $('groupRows').innerHTML = data.groups.map((g) => `<div class="row" style="margin-top:.6rem" data-group="${esc(g.code)}">
+    <label>${esc(gl[g.code] || g.label)} — wholesale from (kg)<input class="g-min" inputmode="decimal" value="${Number(g.wholesale_min_kg)}"></label>
+    <button class="b" type="button" data-gsave="1" style="flex:0 0 auto">Save</button></div>`).join('');
+  $('priceRows').innerHTML = data.products.map((p) => `<div class="card prod ${p.active ? '' : 'off'}" data-slug="${esc(p.slug)}">
+    <div class="head">${p.image_url ? `<img src="${esc(/^https:/.test(p.image_url) ? p.image_url : 'https://mombasafish.com/' + p.image_url)}" alt="">` : '<div class="meta">No photo</div>'}
+      <div style="flex:1 1 200px"><b>${esc(p.name)}</b> ${p.active ? '' : '<span class="badge st-cancelled">Off sale</span>'}<br><span class="meta">${esc(gl[p.pricing_group] || p.pricing_group)}</span><br>
+      <span class="meta">Last change ${esc(p.updated_by || '')}</span></div></div>
+    <div class="row"><label>Retail KES / kg<input class="pr-r" inputmode="numeric" value="${Number(p.retail_kes_per_kg)}"></label>
+      <label>Wholesale KES / kg<input class="pr-w" inputmode="numeric" value="${Number(p.wholesale_kes_per_kg)}"></label>
+      <button class="b" type="button" data-save="1" style="flex:0 0 auto">Save prices</button></div>
+    <div class="row"><label>Name<input class="pd-name" value="${esc(p.name)}"></label><label>Swahili name<input class="pd-sw" value="${esc(p.swahili_name || '')}"></label>
+      <label>Minimum (kg)<input class="pd-min" inputmode="decimal" value="${Number(p.min_qty_kg)}"></label></div>
+    <label>Description<textarea class="pd-desc" maxlength="400" rows="2">${esc(p.description || '')}</textarea></label>
+    <div class="row"><label>Photo (link, or website path like images/honey.jpg)<input class="pd-img" value="${esc(p.image_url || '')}"></label>
+      <label>Or upload a new photo<input class="pd-file" type="file" accept="image/jpeg,image/png,image/webp"></label></div>
+    <label style="display:flex;gap:.5rem;align-items:center;font-weight:400"><input type="checkbox" class="pd-on" style="width:20px;min-height:20px" ${p.active ? 'checked' : ''}> On sale (shown on mombasafish.com/honey)</label>
+    <div class="acts"><button class="b gold" type="button" data-psave="1">Save product details</button></div>
+  </div>`).join('');
+}
+$('groupRows').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-gsave]'); if (!b) return;
+  const row = b.closest('[data-group]'), v = Number(row.querySelector('.g-min').value.replace(',', '.'));
+  if (!confirm(`Set the wholesale minimum to ${kg(v)}? New orders only.`)) return;
+  const { error } = await sb.rpc('mfm_honey_set_group_min', { p_group: row.dataset.group, p_kg: v });
+  if (error) return note(error.message, 'err');
+  note('Wholesale minimum saved.'); loadPrices();
+});
+$('priceRows').addEventListener('click', async (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  const row = b.closest('[data-slug]'), slug = row.dataset.slug;
+  if (b.dataset.save) {
+    const r = Number(row.querySelector('.pr-r').value), w = Number(row.querySelector('.pr-w').value);
+    if (!confirm(`Change the price to retail ${kes(r)} and wholesale ${kes(w)} per kg? The customer page shows it straight away; orders already placed keep their price.`)) return;
+    const { error } = await sb.rpc('mfm_honey_set_prices', { p_slug: slug, p_retail: r, p_wholesale: w });
+    if (error) return note(error.message, 'err');
+    note('Price saved.'); return loadPrices();
+  }
+  if (b.dataset.psave) {
+    b.disabled = true;
+    let img = row.querySelector('.pd-img').value.trim();
+    const file = row.querySelector('.pd-file').files[0];
+    if (file) {
+      if (file.size > 3 * 1024 * 1024) { b.disabled = false; return note('The photo must be under 3 MB.', 'err'); }
+      const ext = (file.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+      const path = `${slug}-${Date.now()}.${ext}`;
+      const up = await sb.storage.from('honey-products').upload(path, file, { contentType: file.type, upsert: false });
+      if (up.error) { b.disabled = false; return note(up.error.message, 'err'); }
+      img = sb.storage.from('honey-products').getPublicUrl(path).data.publicUrl;
+    }
+    const { error } = await sb.rpc('mfm_honey_update_product', { p_slug: slug, p_name: row.querySelector('.pd-name').value, p_swahili_name: row.querySelector('.pd-sw').value,
+      p_description: row.querySelector('.pd-desc').value, p_image_url: img || null, p_min_qty_kg: Number(row.querySelector('.pd-min').value.replace(',', '.')), p_active: row.querySelector('.pd-on').checked });
+    b.disabled = false;
+    if (error) return note(error.message, 'err');
+    note('Product saved. The customer page shows it straight away.'); loadPrices();
+  }
+});
+
+sb.auth.onAuthStateChange((ev) => { if (ev === 'SIGNED_OUT') boot(); });
+boot();
+</script>
+</body>
+</html>
