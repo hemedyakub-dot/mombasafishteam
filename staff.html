@@ -368,6 +368,26 @@ select.catpick{width:100%;padding:13px 12px;background:rgba(3,42,46,.78);border:
 .rate small{display:block;color:var(--dim);font-size:12px}
 .rate b{font-variant-numeric:tabular-nums;white-space:nowrap}
 .rate-form{margin-top:18px;padding:14px;border:1px solid var(--faint);border-radius:6px}
+/* Refunds tab: every refund has a 2-week countdown */
+.rfd{border:1px solid var(--faint);border-left:3px solid var(--catch);border-radius:4px;padding:12px 13px;margin-bottom:9px;font-size:14px;background:rgba(3,42,46,.6)}
+.rfd.late{border-left-color:var(--coral)}
+.rfd.closed{border-left-color:var(--foam);opacity:.85}
+.rfd-top{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.rfd-top b{font-family:var(--mono);letter-spacing:.04em}
+.rfd-left{font-family:var(--mono);font-size:12px;color:var(--catch);white-space:nowrap}
+.rfd.late .rfd-left{color:var(--coral)}
+.rfd.closed .rfd-left{color:var(--foam)}
+.rfd-meta{color:var(--dim);font-size:13px;margin-top:4px;line-height:1.5}
+.rfd-meta em{font-style:normal;color:var(--sand)}
+.rfd-bar{height:4px;border-radius:2px;background:rgba(255,255,255,.1);margin:8px 0 2px;overflow:hidden}
+.rfd-bar i{display:block;height:100%;background:var(--catch)}
+.rfd.late .rfd-bar i{background:var(--coral)}
+.rfd-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.rfd-acts button,.rfd-acts a{padding:7px 10px;border:1px solid var(--faint);border-radius:3px;background:transparent;color:var(--foam);font-family:var(--mono);font-size:11px;letter-spacing:.04em;cursor:pointer;text-decoration:none}
+.rfd-acts .go{background:var(--foam);color:var(--abyss);border-color:var(--foam)}
+.rfd-form{margin-top:9px;padding:10px;border:1px dashed var(--faint);border-radius:4px}
+.rfd-form input{margin-bottom:8px;padding:10px;font-size:15px}
+.rfd-chip{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:9px;border:1px solid var(--faint);color:var(--dim);margin-left:6px}
 .rate-form h3{font-family:var(--display);font-size:15px;margin-bottom:10px}
 .ototal b{font-family:var(--display);font-size:16px;color:var(--sand);font-variant-numeric:tabular-nums}
 .ototal small{display:block;font-size:11.5px;color:var(--catch);margin-top:2px}
@@ -464,6 +484,7 @@ select.catpick{width:100%;padding:13px 12px;background:rgba(3,42,46,.78);border:
       <button class="tab" data-f="mombasa">Mombasa check</button>
       <button class="tab" data-f="road">On the road</button>
       <button class="tab" data-f="done">Arrived</button>
+      <button class="tab" data-f="refunds" id="refundsTab">Refunds</button>
       <button class="tab" data-f="rates">Delivery prices</button>
       <button class="tab owner-only hidden" data-f="repeats">Repeat customers</button>
     </div>
@@ -538,9 +559,9 @@ select.catpick{width:100%;padding:13px 12px;background:rgba(3,42,46,.78);border:
     <label for="xcNote" id="xcNoteLbl">Note (optional)</label>
     <textarea class="cpnote" id="xcNote" maxlength="300" placeholder="e.g. customer called, travelling this week"></textarea>
     <div id="xcRefundRow">
-      <label for="xcRefund">Money returned to the customer (KES)</label>
+      <label for="xcRefund">Refund owed to the customer (KES)</label>
       <input id="xcRefund" type="number" inputmode="numeric" min="0" step="1" placeholder="Blank = the amount they paid">
-      <p class="opt">Cancelling a paid order records the money as returned to the customer. Leave blank to use the amount paid on record. Nothing is sent to the customer automatically.</p>
+      <p class="opt">Cancelling a paid order starts a 2-week refund countdown on the customer's tracking link. Leave blank to use the amount paid on record. Send the money, then tap Refund paid on the Refunds tab.</p>
     </div>
     <div class="sheet-acts">
       <button class="ghost" id="xcBack">Keep order</button>
@@ -798,6 +819,7 @@ const $ = id => document.getElementById(id);
 const STAGE = {1:['Confirmed','p1'],2:['Packed','p2'],3:['On the road','p3'],4:['Arrived','p4'],'-1':['Cancelled','pX']};
 const isUnpaid = o => o.status === 'Pending Payment' && o.stage === 1;
 let orders = [], filter = 'todo', searchQuery = '';
+let refundsBoard = { claims: [], orders: [] }, rfAct = null, refundsOk = true;
 
 function note(text, kind='ok'){
   const m = $('msg');
@@ -985,6 +1007,11 @@ async function load(){
   itemsByOrder = {}; srcByOrder = {}; delivByOrder = {};
   await loadBoxes();
   try{
+    const { data: rb, error: rbe } = await sb.rpc('mfm_refunds_board');
+    refundsOk = !rbe; refundsBoard = { claims: (!rbe && rb && Array.isArray(rb.claims)) ? rb.claims : [], orders: (!rbe && rb && Array.isArray(rb.orders)) ? rb.orders : [] };
+  }catch(e){ refundsOk = false; refundsBoard = { claims: [], orders: [] }; }
+  refreshRefundsTab();
+  try{
     const { data: rr, error: re } = await sb.from('mfm_delivery_rates').select('id, courier, county, charge_kes, note, updated_by, updated_at').eq('active', true).order('courier').order('county', { nullsFirst: false });
     rates = re ? [] : (rr || []);
   }catch(e){ rates = []; }
@@ -1133,6 +1160,7 @@ function render(){
   if(filter === 'repeats'){ $('zones').innerHTML = ''; renderRepeats(); return; }
   if(filter === 'mombasa'){ $('zones').innerHTML = ''; renderMombasa(); return; }
   if(filter === 'rates'){ $('zones').innerHTML = ''; renderRates(); return; }
+  if(filter === 'refunds'){ $('zones').innerHTML = ''; renderRefunds(); return; }
   const sets = {
     unpaid: o => isUnpaid(o),
     todo:   o => (o.stage===1||o.stage===2) && !isUnpaid(o),
@@ -1487,7 +1515,7 @@ async function submitCancel(){
   const order = xcOrder, nt = $('xcNote').value.trim(), rv = $('xcRefund').value.trim();
   const refund = rv === '' ? null : Math.round(Number(rv));
   if(xcReason === 'Other' && nt.length < 3){ note('Write what happened for "Other".', 'err'); return; }
-  if(refund !== null && !(refund >= 0)){ note('The amount returned looks wrong.', 'err'); return; }
+  if(refund !== null && !(refund >= 0)){ note('The refund amount looks wrong.', 'err'); return; }
   const xo = orders.find(x => x.order_number === order) || {};
   const wasPaid = refund > 0 || xo.status === 'Prepaid' || xo.payment_status === 'paid';
   const btn = $('xcGo'); btn.disabled = true; btn.textContent = 'Cancelling…';
@@ -1496,7 +1524,7 @@ async function submitCancel(){
   if(error){ note(error.message, 'err'); return; }
   closeCancel();
   await load();
-  noteUndo(`✕ ${order} cancelled${refund ? ` — KES ${refund.toLocaleString('en-KE')} recorded as returned to the customer` : wasPaid ? ' — money recorded as returned to the customer' : ''}.`, async () => {
+  noteUndo(`✕ ${order} cancelled${wasPaid ? ` — refund${refund ? ' of KES ' + refund.toLocaleString('en-KE') : ''} owed within 2 weeks (Refunds tab)` : ''}.`, async () => {
     const { error } = await sb.rpc('undo_cancel', { p_order: order, p_staff: window.__staffName || 'staff' });
     if(error){ note(error.message, 'err'); return; }
     await load();
@@ -1813,6 +1841,123 @@ $('list').addEventListener('click', async e => {
   if(e.target.id === 'rfSave') saveRate();
   if(e.target.id === 'rfCancel'){ rateEdit = null; renderRates(); }
 });
+
+/* ---------- Refunds: 2-week countdown on every refund (claims + cancelled paid orders) ---------- */
+const RF_DAY = 864e5;
+function rfLeft(dueIso){
+  const ms = new Date(dueIso) - Date.now(), a = Math.abs(ms), d = Math.floor(a / RF_DAY), h = Math.floor(a % RF_DAY / 36e5), m = Math.floor(a % 36e5 / 6e4);
+  const t = d ? `${d} day${d === 1 ? '' : 's'} ${h} h` : h ? `${h} h ${m} min` : `${m} min`;
+  return { late: ms <= 0, text: ms <= 0 ? `OVERDUE by ${t}` : `${t} left`, pct: Math.min(100, Math.max(2, 100 - ms / (14 * RF_DAY) * 100)) };
+}
+const rfDate = iso => new Date(iso).toLocaleString('en-KE', { timeZone: 'Africa/Nairobi', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
+const rfWa = phone => digitsOf(phone).replace(/^0/, '254');
+function rfOpen(){
+  return refundsBoard.orders.filter(r => !r.paid_at).length + refundsBoard.claims.filter(c => ['new', 'in_review', 'approved'].includes(c.status)).length;
+}
+function refreshRefundsTab(){
+  const t = $('refundsTab'); if(!t) return;
+  const n = rfOpen(), late = refundsBoard.orders.some(r => !r.paid_at && rfLeft(r.due_at).late) || refundsBoard.claims.some(c => ['new', 'in_review', 'approved'].includes(c.status) && rfLeft(c.due_at).late);
+  t.textContent = n ? `Refunds (${n})${late ? ' ⚠' : ''}` : 'Refunds';
+}
+function renderRefunds(){
+  const B = refundsBoard;
+  if(!refundsOk){ $('list').innerHTML = '<div class="empty">Refunds could not be loaded. Pull down to refresh, or try again in a minute.</div>'; return; }
+  let h = '<div class="rates">';
+  const owed = B.orders.filter(r => !r.paid_at), paidO = B.orders.filter(r => r.paid_at);
+  h += '<div class="rate-c">Owed on cancelled orders</div>';
+  h += owed.length ? owed.map(rfOrderCard).join('') : '<div class="opt" style="margin-bottom:6px">Nothing owed right now.</div>';
+  const openC = B.claims.filter(c => ['new', 'in_review', 'approved'].includes(c.status)), doneC = B.claims.filter(c => !['new', 'in_review', 'approved'].includes(c.status));
+  h += '<div class="rate-c">Claims from the refund page</div>';
+  h += openC.length ? openC.map(rfClaimCard).join('') : '<div class="opt" style="margin-bottom:6px">No open claims.</div>';
+  if(paidO.length || doneC.length){
+    h += '<div class="rate-c">Closed in the last 30 days</div>' + paidO.map(rfOrderCard).join('') + doneC.map(rfClaimCard).join('');
+  }
+  h += '<p class="opt" style="margin-top:14px">Every refund must be paid within 2 weeks. Customers see the same countdown on their tracking link or claim page.</p>';
+  $('list').innerHTML = h + '</div>';
+}
+function rfOrderCard(r){
+  const L = rfLeft(r.due_at), paid = !!r.paid_at, amt = r.amount_kes ? kes(r.amount_kes) : 'amount not recorded';
+  const link = `${location.origin}/?order=${encodeURIComponent(r.order_number)}&code=${encodeURIComponent(r.tracking_code)}`;
+  const first = (r.name || '').split(' ')[0] || '';
+  const msg = paid ? `Habari ${first}, tumekutumia marejesho ya ${amt} kwa M-Pesa (oda ${r.order_number}). Asante kwa uvumilivu. — Mombasafish`
+                   : `Habari ${first}, marejesho yako ya ${amt} (oda ${r.order_number}) yatatumwa kwa M-Pesa kabla ya ${rfDate(r.due_at)}. Fuatilia hapa: ${link} — Mombasafish`;
+  const act = rfAct && rfAct.kind === 'order' && rfAct.id === r.order_number ? rfAct : null;
+  return `<div class="rfd ${paid ? 'closed' : L.late ? 'late' : ''}">
+    <div class="rfd-top"><span><b>${esc(r.order_number)}</b> · ${esc(r.name || '-')} · ${esc(amt)}</span><span class="rfd-left">${paid ? 'PAID ' + esc(rfDate(r.paid_at)) : esc(L.text)}</span></div>
+    ${paid ? '' : `<div class="rfd-bar"><i style="width:${L.pct}%"></i></div>`}
+    <div class="rfd-meta">${esc(r.phone || '')}${r.county ? ' · ' + esc(r.county) : ''} · cancelled ${esc(rfDate(r.initiated_at))}${r.cancel_reason ? ' (' + esc(r.cancel_reason) + ')' : ''}<br>
+      ${paid ? `Paid by ${esc(r.paid_by || '-')}${r.mpesa_ref ? ' · M-Pesa ' + esc(r.mpesa_ref) : ''}` : `Due by <em>${esc(rfDate(r.due_at))}</em>`}</div>
+    ${act ? `<div class="rfd-form"><label>Amount sent (KES)</label><input type="number" inputmode="numeric" min="1" step="1" id="rfAmt" value="${r.amount_kes || ''}">
+        <label>M-Pesa code (optional)</label><input id="rfRef" maxlength="20" autocomplete="off" placeholder="e.g. QK7A1B2C3D">
+        <div class="rfd-acts"><button type="button" class="go" data-rf-save="order" data-rf-id="${esc(r.order_number)}">Save — refund paid</button><button type="button" data-rf-cancel>Cancel</button></div></div>`
+      : `<div class="rfd-acts">${paid ? `<button type="button" data-rf-undo="${esc(r.order_number)}">Undo paid</button>` : `<button type="button" class="go" data-rf-pay="order" data-rf-id="${esc(r.order_number)}">Refund paid</button>`}
+        ${r.phone ? `<a href="https://wa.me/${rfWa(r.phone)}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">💬 ${paid ? 'Tell' : 'Update'} ${esc(first || 'customer')}</a>` : ''}</div>`}
+  </div>`;
+}
+const RF_STATUS = { new: 'Waiting', in_review: 'Waiting', approved: 'Approved', refunded: 'Refund paid', replaced: 'Replacement', rejected: 'Not approved', closed: 'Closed' };
+function rfClaimCard(c){
+  const open = ['new', 'in_review', 'approved'].includes(c.status), L = rfLeft(c.due_at);
+  const link = `${location.origin}/refund.html?claim=${c.token}`, first = (c.name || '').split(' ')[0] || '';
+  const msg = `Habari ${first}, tumepokea dai lako ${c.ref}. Fuatilia hali yake na muda uliobaki hapa: ${link} — Mombasafish`;
+  const act = rfAct && rfAct.kind === 'claim' && rfAct.id === c.id ? rfAct : null;
+  let form = '';
+  if(act && act.act === 'paid') form = `<div class="rfd-form"><label>Amount sent (KES)</label><input type="number" inputmode="numeric" min="1" step="1" id="rfAmt" value="${c.order_paid_kes || ''}">
+      <label>M-Pesa code (optional)</label><input id="rfRef" maxlength="20" autocomplete="off" placeholder="e.g. QK7A1B2C3D">
+      <div class="rfd-acts"><button type="button" class="go" data-rf-save="claim-paid" data-rf-id="${c.id}">Save — refund paid</button><button type="button" data-rf-cancel>Cancel</button></div></div>`;
+  if(act && act.act === 'rejected') form = `<div class="rfd-form"><label>Why not approved? (tell the customer on WhatsApp too)</label><input id="rfNote" maxlength="300" autocomplete="off">
+      <div class="rfd-acts"><button type="button" class="go" data-rf-save="claim-rejected" data-rf-id="${c.id}">Save — not approved</button><button type="button" data-rf-cancel>Cancel</button></div></div>`;
+  return `<div class="rfd ${!open ? 'closed' : L.late ? 'late' : ''}">
+    <div class="rfd-top"><span><b>${esc(c.ref)}</b> · ${esc(c.name)}<span class="rfd-chip">${esc(RF_STATUS[c.status] || c.status)}</span></span><span class="rfd-left">${open ? esc(L.text) : c.paid_at ? 'PAID ' + esc(rfDate(c.paid_at)) : esc(rfDate(c.decided_at || c.created_at))}</span></div>
+    ${open ? `<div class="rfd-bar"><i style="width:${L.pct}%"></i></div>` : ''}
+    <div class="rfd-meta">${esc(c.phone)} · order ${esc(c.order_number || c.order_input + ' (not found)')}${c.order_number && c.phone_matches === false ? ' · <em>different phone from the order</em>' : ''}<br>
+      <em>${esc(c.issue)}</em> · wants <em>${esc(c.remedy)}</em>${c.detail ? '<br>“' + esc(c.detail) + '”' : ''}<br>
+      Sent ${esc(rfDate(c.created_at))}${open ? ` · due by <em>${esc(rfDate(c.due_at))}</em>` : ''}${c.paid_kes ? ' · ' + esc(kes(c.paid_kes)) + (c.mpesa_ref ? ' · M-Pesa ' + esc(c.mpesa_ref) : '') : ''}${c.staff_note ? '<br>Note: ' + esc(c.staff_note) : ''}</div>
+    ${form || `<div class="rfd-acts">${open
+      ? (c.status !== 'approved' ? `<button type="button" data-rf-set="approved" data-rf-id="${c.id}">Approve</button>` : '') +
+        `<button type="button" class="go" data-rf-pay="claim" data-rf-id="${c.id}">Refund paid</button><button type="button" data-rf-set="replaced" data-rf-id="${c.id}">Replacement</button><button type="button" data-rf-reject="${c.id}">Not approved</button>`
+      : `<button type="button" data-rf-set="new" data-rf-id="${c.id}">Reopen</button>`}
+      <a href="https://wa.me/${rfWa(c.phone)}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">💬 Send ${esc(first || 'customer')} the claim page</a></div>`}
+  </div>`;
+}
+$('list').addEventListener('click', async e => {
+  if(filter !== 'refunds') return;
+  const t = e.target.closest('button'); if(!t) return;
+  if(t.dataset.rfPay){ rfAct = { kind: t.dataset.rfPay, id: t.dataset.rfPay === 'claim' ? Number(t.dataset.rfId) : t.dataset.rfId, act: 'paid' }; renderRefunds(); try{ $('rfAmt').focus(); }catch(_){} return; }
+  if(t.dataset.rfReject){ rfAct = { kind: 'claim', id: Number(t.dataset.rfReject), act: 'rejected' }; renderRefunds(); try{ $('rfNote').focus(); }catch(_){} return; }
+  if(t.hasAttribute('data-rf-cancel')){ rfAct = null; renderRefunds(); return; }
+  let call = null, done = '';
+  if(t.dataset.rfSave === 'order'){
+    const v = $('rfAmt').value.trim(), amt = v === '' ? null : Math.round(Number(v)), ref = $('rfRef').value.replace(/\s+/g, '').toUpperCase();
+    if(amt !== null && !(amt > 0)){ note('Enter the amount sent in KES.', 'err'); return; }
+    if(ref && !/^[A-Z0-9]{6,20}$/.test(ref)){ note('The M-Pesa code looks wrong — letters and numbers only.', 'err'); return; }
+    call = sb.rpc('mfm_mark_refund_paid', { p_order: t.dataset.rfId, p_mpesa_ref: ref || null, p_note: null, p_amount: amt });
+    done = `✓ Refund for ${t.dataset.rfId} marked paid — the customer's countdown now shows "Refund sent".`;
+  } else if(t.dataset.rfSave === 'claim-paid'){
+    const amt = Math.round(Number($('rfAmt').value)), ref = $('rfRef').value.replace(/\s+/g, '').toUpperCase();
+    if(!(amt > 0)){ note('Enter the amount sent in KES.', 'err'); return; }
+    if(ref && !/^[A-Z0-9]{6,20}$/.test(ref)){ note('The M-Pesa code looks wrong — letters and numbers only.', 'err'); return; }
+    call = sb.rpc('mfm_set_claim_status', { p_claim: Number(t.dataset.rfId), p_status: 'refunded', p_note: null, p_paid_kes: amt, p_mpesa_ref: ref || null });
+    done = '✓ Claim marked refund paid — the customer sees it on their claim page.';
+  } else if(t.dataset.rfSave === 'claim-rejected'){
+    const nt = $('rfNote').value.trim();
+    if(nt.length < 3){ note('Write a short reason.', 'err'); return; }
+    call = sb.rpc('mfm_set_claim_status', { p_claim: Number(t.dataset.rfId), p_status: 'rejected', p_note: nt, p_paid_kes: null, p_mpesa_ref: null });
+    done = 'Claim marked not approved. Tell the customer why on WhatsApp.';
+  } else if(t.dataset.rfSet){
+    call = sb.rpc('mfm_set_claim_status', { p_claim: Number(t.dataset.rfId), p_status: t.dataset.rfSet, p_note: null, p_paid_kes: null, p_mpesa_ref: null });
+    done = { approved: 'Claim approved — the countdown keeps running until you mark the refund paid.', replaced: 'Claim closed as a replacement.', new: 'Claim reopened.' }[t.dataset.rfSet];
+  } else if(t.dataset.rfUndo){
+    call = sb.rpc('mfm_undo_refund_paid', { p_order: t.dataset.rfUndo });
+    done = `Undone — the refund for ${t.dataset.rfUndo} is owed again.`;
+  }
+  if(!call) return;
+  t.disabled = true;
+  const { error } = await call;
+  t.disabled = false;
+  if(error){ note(error.message, 'err'); return; }
+  rfAct = null; await load(); note(done);
+});
+setInterval(() => { refreshRefundsTab(); if(filter === 'refunds' && !rfAct && !searchQuery) renderRefunds(); }, 60000);
 
 /* ---------- new order for a customer (phone / WhatsApp / shop) ---------- */
 let no = null;

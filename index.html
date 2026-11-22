@@ -287,6 +287,23 @@ h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01
 /* ---------- details ---------- */
 #rExtra{margin:4px 0 6px}
 #rExtra.hidden{display:none}
+/* refund owed on a cancelled order: 2-week countdown */
+.rf{margin-top:10px;background:rgba(255,184,77,.10);border:1px solid var(--catch);border-left-width:3px;border-radius:0 6px 6px 0;padding:14px 15px;color:var(--sand)}
+.rf strong{display:block;color:var(--catch);font-size:13px;margin-bottom:4px}
+.rf-amt{font-family:var(--mono);font-size:22px;color:var(--sand);letter-spacing:.03em}
+.rf-sub{font-size:13px;color:#cfdcda;margin:2px 0 10px}
+.cd-row{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:4px 0 8px}
+.cd-u{background:rgba(3,42,46,.75);border:1px solid rgba(127,212,193,.18);border-radius:6px;padding:7px 2px;text-align:center}
+.cd-u b{display:block;font-family:var(--mono);font-size:24px;line-height:1.1;color:var(--sand);font-variant-numeric:tabular-nums}
+.cd-u span{font-size:10px;color:#9db0ad;text-transform:uppercase;letter-spacing:.06em}
+.cd-bar{height:6px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}
+.cd-bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--foam),var(--catch));border-radius:3px}
+.cd-due{font-size:12px;color:#cfdcda;margin-top:7px}
+.rf.over{border-color:var(--coral);background:rgba(255,107,90,.10)}
+.rf.over strong{color:var(--coral)}
+.rf.over a{color:var(--foam)}
+.rf.paid{border-color:var(--foam);background:rgba(127,212,193,.10)}
+.rf.paid strong{color:var(--foam)}
 .sent{
   font-family:var(--mono);font-size:11px;letter-spacing:.09em;
   text-transform:uppercase;color:var(--foam);margin-bottom:10px;
@@ -666,6 +683,7 @@ async function track(){
     extra.classList.toggle('hidden', !bits);
   }
 
+  if(window.__rfT){ clearInterval(window.__rfT); window.__rfT = null; }
   const b = $('rBadge');
   const cbtn = $('confirmBtn');
   cbtn.classList.add('hidden');
@@ -695,6 +713,7 @@ async function track(){
   } else if(hit.stage === -1){
     b.className = 'badge void'; b.textContent = 'Imesitishwa';
     $('rChain').innerHTML = '<div class="stage"><div class="rail"><div class="dot"></div></div><div><div class="stage-sw">Imesitishwa</div><div class="stage-en">This order was cancelled</div></div><span></span></div>';
+    if(B.refund) renderRefund(B.refund, hit);
   } else if(hit.stage >= 4){
     b.className = 'badge done'; b.textContent = 'Imefika';
     $('rChain').innerHTML = drawChain(4);
@@ -746,6 +765,47 @@ async function track(){
   }catch(e){ /* loyalty is a bonus; never block the tracker on it */ }
   $('waLink').href = 'https://wa.me/254787668888?text=' +
     encodeURIComponent(`Hi Mombasafish, I need help with order ${hit.order_number}.`);
+}
+
+/* Refund owed on a cancelled order: amount + live 2-week countdown (server clock, so a wrong phone clock does not matter) */
+function renderRefund(r, hit){
+  const extra = $('rExtra');
+  const fmt = d => d.toLocaleString('en-KE', { timeZone: 'Africa/Nairobi', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
+  const kes = r.amount_kes ? 'KES ' + Number(r.amount_kes).toLocaleString('en-KE') : 'Your refund';
+  const box = document.createElement('div');
+  extra.appendChild(box); extra.classList.remove('hidden');
+  if(r.paid_at){
+    box.className = 'rf paid';
+    box.innerHTML = `<strong>Marejesho yamelipwa · Refund sent</strong><div class="rf-amt"></div><div class="rf-sub"></div>`;
+    box.querySelector('.rf-amt').textContent = kes;
+    box.querySelector('.rf-sub').textContent = 'Sent to your M-Pesa on ' + fmt(new Date(r.paid_at)) + '. Asante kwa uvumilivu · Thank you for your patience.';
+    return;
+  }
+  const skew = new Date(r.now) - Date.now(), due = new Date(r.due_at), start = new Date(r.initiated_at), DAY = 864e5;
+  box.className = 'rf';
+  box.innerHTML = `<strong>Marejesho ya pesa · Your refund</strong><div class="rf-amt"></div>
+    <div class="rf-sub">Inarudishwa kwa M-Pesa yako ndani ya wiki 2 · Back to your M-Pesa within 2 weeks</div>
+    <div class="cd-row">${['siku · days','saa · hrs','dak · min','sek · sec'].map(u => `<div class="cd-u"><b>00</b><span>${u}</span></div>`).join('')}</div>
+    <div class="cd-bar"><i></i></div><div class="cd-due"></div>`;
+  box.querySelector('.rf-amt').textContent = kes;
+  box.querySelector('.cd-due').textContent = 'Due by ' + fmt(due) + ' (Kenya time)';
+  const nums = box.querySelectorAll('.cd-u b'), bar = box.querySelector('.cd-bar i');
+  const tick = () => {
+    const now = Date.now() + skew, left = due - now;
+    if(left <= 0){
+      clearInterval(window.__rfT); window.__rfT = null;
+      box.className = 'rf over';
+      box.querySelector('strong').textContent = 'Tumechelewa — samahani · We are late, sorry';
+      box.querySelector('.rf-sub').innerHTML = 'The 2 weeks have passed. Please <a href="https://wa.me/254787668888?text=' +
+        encodeURIComponent('Hello Mombasafish, my refund for order ' + hit.order_number + ' is past 2 weeks.') + '">message us on WhatsApp</a> and we will sort it out today.';
+      nums.forEach(n => { n.textContent = '00'; }); bar.style.width = '100%';
+      return;
+    }
+    const d = Math.floor(left / DAY), h = Math.floor(left % DAY / 36e5), m = Math.floor(left % 36e5 / 6e4), sec = Math.floor(left % 6e4 / 1e3);
+    [d, h, m, sec].forEach((v, i) => { nums[i].textContent = String(v).padStart(2, '0'); });
+    bar.style.width = Math.min(100, Math.max(2, (now - start) / (due - start) * 100)) + '%';
+  };
+  tick(); window.__rfT = setInterval(tick, 1000);
 }
 
 function renderBasket(items){
