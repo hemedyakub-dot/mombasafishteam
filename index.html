@@ -287,6 +287,24 @@ h1{font-family:var(--display);font-size:clamp(20px,5vw,26px);letter-spacing:-.01
 /* ---------- details ---------- */
 #rExtra{margin:4px 0 6px}
 #rExtra.hidden{display:none}
+/* deposit paid, balance on delivery: a bar that fills as they pay */
+.pbx{margin-top:10px;background:rgba(255,184,77,.08);border:1px solid rgba(255,184,77,.55);border-left-width:3px;border-radius:0 6px 6px 0;padding:14px 15px;color:var(--sand)}
+.pbx.full{background:rgba(127,212,193,.08);border-color:var(--foam)}
+.pbx strong{display:block;color:var(--catch);font-size:13px;margin-bottom:4px}
+.pbx.full strong{color:var(--foam)}
+.pbx-amt{font-family:var(--mono);font-size:22px;color:var(--sand);letter-spacing:.03em;font-variant-numeric:tabular-nums}
+.pbx-of{font-size:13px;color:#cfdcda;margin-top:1px}
+.pbx-track{height:12px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden;margin:9px 0 6px}
+.pbx-track i{display:block;height:100%;width:0;border-radius:6px;background:linear-gradient(90deg,#B57A1F,var(--catch));transition:width 1.1s cubic-bezier(.2,.8,.2,1)}
+.pbx.full .pbx-track i{background:var(--foam)}
+.pbx-pct{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#9db0ad;text-transform:uppercase;letter-spacing:.06em}
+.pbx-pct b{color:var(--catch);font-family:var(--mono);font-size:14px;letter-spacing:.02em;text-transform:none;white-space:nowrap}
+.pbx-sub{font-size:13px;color:#cfdcda;margin:8px 0 0;line-height:1.45}
+.pbx-sub b{font-family:var(--mono);color:var(--foam);letter-spacing:.05em}
+.pbx-list{margin-top:9px;border-top:1px dashed rgba(242,237,227,.18);padding-top:7px;font-size:12.5px;color:#9db0ad}
+.pbx-list div{display:flex;justify-content:space-between;gap:10px;padding:2px 0}
+.pbx-list span:last-child{font-family:var(--mono);color:var(--sand);white-space:nowrap}
+@media (prefers-reduced-motion: reduce){ .pbx-track i{transition:none} }
 /* refund owed on a cancelled order: 2-week countdown */
 .rf{margin-top:10px;background:rgba(255,184,77,.10);border:1px solid var(--catch);border-left-width:3px;border-radius:0 6px 6px 0;padding:14px 15px;color:var(--sand)}
 .rf strong{display:block;color:var(--catch);font-size:13px;margin-bottom:4px}
@@ -722,6 +740,7 @@ async function track(){
     $('rChain').innerHTML = drawChain(hit.stage);
     if(hit.stage === 3) cbtn.classList.remove('hidden');
   }
+  try{ if(B.payment && !hit.awaiting_payment && hit.stage !== -1) renderPayment(B.payment, hit); }catch(e){ /* a bonus; never block the tracker */ }
   $('result').classList.add('on');
 
   /* Route map: Shimoni -> Mombasa check point -> the customer's county (never the exact address) */
@@ -765,6 +784,29 @@ async function track(){
   }catch(e){ /* loyalty is a bonus; never block the tracker on it */ }
   $('waLink').href = 'https://wa.me/254787668888?text=' +
     encodeURIComponent(`Hi Mombasafish, I need help with order ${hit.order_number}.`);
+}
+
+/* Deposit paid, rest on delivery: how much is paid, the balance, and a bar that fills as they pay */
+function renderPayment(p, hit){
+  const pays = Array.isArray(p.payments) ? p.payments : [];
+  if(p.status !== 'partial' && !pays.length) return;   // paid in one go: nothing extra to show
+  const paid = Math.round(Number(p.paid_kes) || 0), total = p.total_kes != null ? Math.round(Number(p.total_kes)) : null;
+  const K = n => 'KES\u00a0' + Math.round(n).toLocaleString('en-KE');
+  const full = total != null && paid >= total, bal = total != null ? Math.max(total - paid, 0) : null;
+  const pct = total > 0 ? Math.min(100, Math.round(paid / total * 100)) : (full ? 100 : 0);
+  const KIND = { deposit: 'Malipo ya awali · Deposit', payment: 'Malipo · Payment', balance: 'Salio · Balance' };
+  const day = iso => new Date(iso).toLocaleDateString('en-GB', { timeZone: 'Africa/Nairobi', day: 'numeric', month: 'short' });
+  const extra = $('rExtra'), box = document.createElement('div');
+  box.className = 'pbx' + (full ? ' full' : '');
+  box.innerHTML = `<strong>${full ? '✓ Imelipwa yote · Paid in full' : 'Malipo · Payment'}</strong>
+    <div class="pbx-amt">${K(paid)}</div>
+    <div class="pbx-of">${total != null ? `imelipwa kati ya ${K(total)} · paid of ${K(total)}` : 'imelipwa · paid'}</div>
+    <div class="pbx-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="${pct}% paid"><i></i></div>
+    <div class="pbx-pct"><span>${pct}% imelipwa</span>${!full && bal != null ? `<b>Salio ${K(bal)}</b>` : ''}</div>
+    ${!full && bal ? `<div class="pbx-sub">${hit.stage >= 4 ? 'Tafadhali lipa salio · Please pay the balance' : 'Salio utalipa ukipokea mzigo · Pay the balance when your order arrives'} — M-Pesa Buy Goods Till <b>9948037</b> (Hemed Yakub).</div>` : ''}
+    ${pays.length ? `<div class="pbx-list">${pays.map(x => `<div><span>${KIND[x.kind] || 'Malipo · Payment'} · ${day(x.at)}</span><span>${K(x.kes)}</span></div>`).join('')}</div>` : ''}`;
+  extra.appendChild(box); extra.classList.remove('hidden');
+  requestAnimationFrame(() => requestAnimationFrame(() => { box.querySelector('.pbx-track i').style.width = pct + '%'; }));
 }
 
 /* Refund owed on a cancelled order: amount + live 2-week countdown (server clock, so a wrong phone clock does not matter) */

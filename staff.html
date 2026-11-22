@@ -368,6 +368,32 @@ select.catpick{width:100%;padding:13px 12px;background:rgba(3,42,46,.78);border:
 .pay-short label{display:flex;gap:10px;align-items:flex-start;margin:0 0 8px;font-family:var(--body);font-size:13px;line-height:1.4;color:var(--sand);text-transform:none;letter-spacing:0}
 .pay-short input[type=checkbox]{width:18px;height:18px;flex:none;margin:1px 0 0;padding:0}
 .pay-short select{margin:0}
+.pay-short p{margin:0 0 8px;line-height:1.4;color:var(--sand)}
+.pay-short .seg3{margin-bottom:8px}
+.pay-short .seg3 button{flex:1 1 28%;min-width:84px;padding:10px 6px;font-size:10.5px}
+.pay-short .opt{margin:6px 0 0;color:var(--dim)}
+/* deposits: paid so far, balance on delivery */
+.paybar{margin-top:8px;padding:10px 12px;border:1px solid rgba(255,184,77,.45);border-radius:6px;background:rgba(255,184,77,.06)}
+.paybar.full{border-color:rgba(127,212,193,.45);background:rgba(127,212,193,.06)}
+.pb-top,.pb-mid{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.pb-top span,.pb-mid span{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.pb-top b{font-family:var(--display);font-size:16px;color:var(--sand);font-variant-numeric:tabular-nums}
+.pb-top b small{font-family:var(--body);font-size:12px;color:var(--dim);font-weight:400}
+.pb-track{height:10px;border-radius:5px;background:rgba(242,237,227,.12);margin:8px 0 6px;overflow:hidden}
+.pb-track i{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,#B57A1F,var(--catch));transition:width .5s ease}
+.paybar.full .pb-track i{background:var(--foam)}
+.pb-mid b{font-size:13px;color:var(--catch);font-variant-numeric:tabular-nums}
+.pb-list{margin-top:8px;border-top:1px dashed var(--faint);padding-top:6px}
+.pb-row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12.5px;color:var(--dim);padding:3px 0}
+.pb-row span{min-width:0}
+.pb-row em{font-style:normal;color:var(--sand)}
+.pb-x{flex:none;padding:3px 8px;border:1px solid var(--faint);border-radius:3px;background:transparent;color:var(--dim);font-family:var(--mono);font-size:10px;cursor:pointer}
+.pb-x:hover{border-color:var(--coral);color:var(--coral)}
+.pb-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}
+.pb-add{flex:1 1 auto;padding:10px 12px;border:none;border-radius:6px;background:var(--catch);color:var(--abyss);font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.04em;cursor:pointer}
+.pb-remind{flex:1 1 auto;padding:10px 12px;border:1px solid rgba(37,211,102,.45);border-radius:6px;color:#7be3a1;font-family:var(--mono);font-size:12px;text-decoration:none;text-align:center}
+.pDep{background:rgba(255,184,77,.22);color:var(--catch)}
+#ppSheet [hidden],#payShort [hidden]{display:none!important}
 .rates{margin-top:4px}
 .rate-c{margin:18px 0 8px;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--sand)}
 .rate{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--faint);border-radius:4px;margin-bottom:6px;font-size:14px}
@@ -702,11 +728,12 @@ select.catpick{width:100%;padding:13px 12px;background:rgba(3,42,46,.78);border:
       <div class="seg3" role="group" aria-label="Payment">
         <button type="button" data-nopay="no" class="on">Not paid yet</button>
         <button type="button" data-nopay="yes">Already paid</button>
+        <button type="button" data-nopay="dep">Deposit</button>
       </div>
       <div id="noPaidBox" hidden>
-        <label for="noPaid">Amount received (KES)</label>
+        <label for="noPaid" id="noPaidLbl">Amount received (KES)</label>
         <input id="noPaid" type="number" inputmode="numeric" min="1" step="1">
-        <p class="opt">Items total does not include transport — enter what the customer actually sent.</p>
+        <p class="opt" id="noPaidHint">Items total does not include transport — enter what the customer actually sent.</p>
         <label for="noRef">M-Pesa code (optional)</label>
         <input id="noRef" type="text" maxlength="24" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. QK7A1B2C3D">
       </div>
@@ -775,13 +802,44 @@ select.catpick{width:100%;padding:13px 12px;background:rgba(3,42,46,.78);border:
     <input id="payAmt" type="number" inputmode="numeric" min="1" step="1">
     <p class="opt" id="payHint"></p>
     <div class="pay-short" id="payShort" hidden>
-      <label><input type="checkbox" id="payShortOn" checked> <span id="payShortTxt"></span></label>
-      <select class="catpick" id="payShortWhy"><option>Customer asked</option><option>We offered</option><option>Loyal customer</option><option>Bulk order</option><option>Delay or problem</option></select>
+      <p id="payShortTxt"></p>
+      <div class="seg3" role="group" aria-label="What is the rest?">
+        <button type="button" data-pshort="dep">Deposit · rest on delivery</button>
+        <button type="button" data-pshort="disc">Discount</button>
+        <button type="button" data-pshort="none">Neither</button>
+      </div>
+      <select class="catpick" id="payShortWhy" aria-label="Why the discount"><option>Customer asked</option><option>We offered</option><option>Loyal customer</option><option>Bulk order</option><option>Delay or problem</option></select>
+      <p class="opt" id="payShortHelp"></p>
     </div>
     <p class="opt">Only do this once you have seen the M-Pesa payment.</p>
     <div class="sheet-acts">
       <button class="ghost" id="payBack">Back</button>
       <button class="btn" id="payGo">✓ Mark PAID</button>
+    </div>
+  </div>
+</div>
+
+<!-- Payment received on an order that has a deposit (rest paid later / on delivery) -->
+<div class="sheet" id="ppSheet">
+  <div class="sheet-in">
+    <h2>Payment received</h2>
+    <div class="for" id="ppFor"></div>
+    <label for="ppKes">Amount received (KES)</label>
+    <input id="ppKes" type="number" inputmode="numeric" min="1" step="1">
+    <label>How did they pay?</label>
+    <div class="seg3" role="group" aria-label="How they paid">
+      <button type="button" data-ppm="M-Pesa" class="on">M-Pesa</button>
+      <button type="button" data-ppm="Cash">Cash</button>
+    </div>
+    <label for="ppRef" id="ppRefLbl">M-Pesa code (optional)</label>
+    <input id="ppRef" type="text" maxlength="24" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. QK7A1B2C3D">
+    <label for="ppNote">Note (optional)</label>
+    <input id="ppNote" type="text" maxlength="200" autocomplete="off" placeholder="e.g. rider collected cash at the gate">
+    <div class="chg-sum" id="ppSum"></div>
+    <p class="opt">Only record money you have seen arrive. Every payment stays in the record.</p>
+    <div class="sheet-acts">
+      <button class="ghost" id="ppBack">Back</button>
+      <button class="btn" id="ppGo">Save payment</button>
     </div>
   </div>
 </div>
@@ -1030,7 +1088,7 @@ async function boot(){
 }
 let isOwner = false;
 
-let itemsByOrder = {}, srcByOrder = {}, delivByOrder = {}, discByOrder = {}, rates = [];
+let itemsByOrder = {}, srcByOrder = {}, delivByOrder = {}, discByOrder = {}, payByOrder = {}, rates = [];
 
 async function load(){
   const { data, error } = await sb.from('mfm_orders')
@@ -1041,7 +1099,7 @@ async function load(){
 
   // Pull per-item states for all visible orders in one query
   const nums = orders.map(o => o.order_number);
-  itemsByOrder = {}; srcByOrder = {}; delivByOrder = {}; discByOrder = {};
+  itemsByOrder = {}; srcByOrder = {}; delivByOrder = {}; discByOrder = {}; payByOrder = {};
   await loadBoxes();
   try{
     const { data: rb, error: rbe } = await sb.rpc('mfm_refunds_board');
@@ -1078,6 +1136,10 @@ async function load(){
       const { data: ds, error: dse } = await sb.from('mfm_order_discounts').select('order_number, amount_kes, reason, note, given_by, given_at').is('voided_at', null).in('order_number', nums);
       if(!dse) (ds || []).forEach(d => { discByOrder[d.order_number] = d; });
     }catch(e){ discByOrder = {}; }
+    try{   // deposits and later payments (balance on delivery)
+      const { data: ps, error: pse } = await sb.from('mfm_order_payments').select('id, order_number, amount_kes, kind, method, mpesa_ref, note, received_at, recorded_by').is('voided_at', null).in('order_number', nums).order('received_at', { ascending:true });
+      if(!pse) (ps || []).forEach(p => { (payByOrder[p.order_number] = payByOrder[p.order_number] || []).push(p); });
+    }catch(e){ payByOrder = {}; }
   }
   await loadCp();
   render();
@@ -1332,6 +1394,9 @@ function orderCard(o){
           ? `Habari ${first}, oda yako ${o.order_number} iko tayari kuchukuliwa dukani ✅`
           : `Habari ${first}, oda yako ${o.order_number} imefika ✅ Asante kwa kuchagua Mombasafish 🐟`
     };
+    const pinfo = unpaid ? null : payInfo(o), owes = pinfo && !pinfo.full && pinfo.bal > 0;
+    if(owes && msgs[3]) msgs[3] += ` Salio la kulipa ukipokea: ${kes(pinfo.bal)} (M-Pesa Till 9948037).`;
+    if(owes && msgs[2]) msgs[2] += ` Salio: ${kes(pinfo.bal)}, utalipa ukipokea.`;
     const notifyMsg = msgs[o.stage];
     const trackMsg = `Habari ${first}, fuatilia oda yako ${o.order_number} hapa: ${trackUrl}`;
     const trackBlock = (!unpaid && o.stage >= 1 && o.stage <= 4 && o.tracking_code)
@@ -1411,12 +1476,13 @@ function orderCard(o){
           <div class="cust">${esc(o.customer_name || 'Customer')}</div>
           <div class="dest">${esc(o.destination || '')}${o.county && !String(o.destination || '').toLowerCase().includes(String(o.county).toLowerCase()) ? `${o.destination ? ' · ' : ''}<span class="cty">${esc(o.county)}</span>` : ''}</div>
         </div>
-        <div class="pills"><span class="pill ${cls}">${label}</span>${ageBadge}</div>
+        <div class="pills"><span class="pill ${cls}">${label}</span>${owes && o.stage !== -1 ? `<span class="pill pDep">Balance ${kes(pinfo.bal)}</span>` : ''}${ageBadge}</div>
       </div>
       ${placed}
       ${contact}
       ${trackBlock}
       ${itemsBlock}
+      ${unpaid ? '' : payBar(o, wa, first, trackUrl)}
       ${(!unpaid && (o.stage===1 || o.stage===2) && cp.ok) ? cpLine(myCp) : ''}
       ${rider}
       ${srcBlock(o)}
@@ -1767,6 +1833,90 @@ function totalBlock(o, items){
   else if(can && t) h += `<div class="otr"><button type="button" class="dl-btn ds-add" data-ds="${esc(o.order_number)}">🏷 Give a discount</button></div>`;
   if(t && (d || ds)) h += `<div class="otr ot-sum"><span>Total to pay</span><div><b>${kes(t.total + (d ? Number(d.charge_kes) || 0 : 0) - (ds ? Number(ds.amount_kes) || 0 : 0))}</b></div></div>`;
   return `<div class="ototal">${h}</div>`;
+}
+
+/* ---------- deposits: paid so far, balance on delivery (the bar fills as they pay) ---------- */
+const PAY_KIND = { deposit: 'Deposit', payment: 'Payment', balance: 'Balance', legacy: 'Paid earlier' };
+function payInfo(o){
+  const rows = payByOrder[o.order_number] || [];
+  if(!rows.length) return null;
+  const paid = rows.reduce((s, r) => s + (Number(r.amount_kes) || 0), 0);
+  const t = payTotal(o), total = t ? t.total : null;
+  const bal = total != null ? Math.max(total - paid, 0) : null;
+  const pct = total > 0 ? Math.min(100, Math.round(paid / total * 100)) : (total === 0 ? 100 : 0);
+  return { rows, paid, total, bal, pct, full: total != null && paid >= total };
+}
+function balanceMsg(o, p, first, trackUrl){
+  return `Habari ${first}, tumepokea ${kes(p.paid)} kwa oda yako ${o.order_number} 🙏 Salio ni ${kes(p.bal)} — utalipa ukipokea mzigo. Lipa na M-Pesa Buy Goods Till 9948037 (Hemed Yakub). Fuatilia hapa: ${trackUrl}`;
+}
+function payBar(o, wa, first, trackUrl){
+  const p = payInfo(o); if(!p) return '';
+  const live = o.stage !== -1;
+  const rows = p.rows.map(r => `<div class="pb-row"><span><em>${PAY_KIND[r.kind] || 'Payment'} ${kes(r.amount_kes)}</em> · ${esc(r.method || 'M-Pesa')}${r.mpesa_ref ? ' ' + esc(r.mpesa_ref) : ''} · ${stamp(r.received_at)}${r.recorded_by && r.recorded_by !== 'system' ? ' · ' + esc(r.recorded_by) : ''}</span>${live && r.kind !== 'legacy' ? `<button type="button" class="pb-x" data-ppx="${r.id}" data-order="${esc(o.order_number)}" aria-label="Remove this payment">Remove</button>` : ''}</div>`).join('');
+  const remind = !p.full && p.bal && o.contact && wa
+    ? `<a class="pb-remind" href="https://wa.me/${wa}?text=${encodeURIComponent(balanceMsg(o, p, first, trackUrl))}" target="_blank" rel="noopener">💬 Remind ${esc(first || 'customer')} of the balance</a>` : '';
+  return `<div class="paybar${p.full ? ' full' : ''}">
+    <div class="pb-top"><span>${p.full ? '✓ Paid in full' : 'Paid so far'}</span><b>${kes(p.paid)}${p.total != null ? ` <small>of ${kes(p.total)}</small>` : ''}</b></div>
+    <div class="pb-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${p.pct}" aria-label="${p.pct}% paid"><i style="width:${p.pct}%"></i></div>
+    <div class="pb-mid"><span>${p.pct}% paid</span>${!p.full && p.bal != null ? `<b>Balance ${kes(p.bal)} · on delivery</b>` : ''}</div>
+    <div class="pb-list">${rows}</div>
+    ${live && !p.full ? `<div class="pb-acts"><button type="button" class="pb-add" data-pp="${esc(o.order_number)}">＋ Payment received</button>${remind}</div>` : ''}
+  </div>`;
+}
+let pp = null;
+function openPayment(order){
+  const o = orders.find(x => x.order_number === order); if(!o) return;
+  const p = payInfo(o);
+  pp = { order, o, p, method: 'M-Pesa' };
+  $('ppFor').textContent = `${o.order_number} · ${o.customer_name || 'Customer'}`;
+  $('ppKes').value = p && p.bal ? p.bal : '';
+  $('ppRef').value = ''; $('ppNote').value = '';
+  ppMethod('M-Pesa');
+  ppDraw();
+  $('ppSheet').classList.add('on');
+  setTimeout(() => { try { $('ppKes').focus(); $('ppKes').select(); } catch(_){} }, 50);
+}
+function ppMethod(m){
+  if(!pp) return;
+  pp.method = m;
+  document.querySelectorAll('[data-ppm]').forEach(b => b.classList.toggle('on', b.dataset.ppm === m));
+  $('ppRef').hidden = $('ppRefLbl').hidden = m !== 'M-Pesa';
+}
+function ppDraw(){
+  if(!pp) return;
+  const p = pp.p, v = Math.round(Number($('ppKes').value) || 0);
+  if(!p || p.total == null){ $('ppSum').textContent = p ? `Paid so far ${kes(p.paid)}. The order total is not known.` : ''; return; }
+  const after = p.paid + v;
+  $('ppSum').innerHTML = `Paid so far <b>${kes(p.paid)}</b> of ${kes(p.total)} · balance <b>${kes(p.bal)}</b>` +
+    (v > 0 ? `<br>After this: <b>${kes(after)}</b> — ${after >= p.total ? '<span class="down">paid in full ✓</span>' : `balance <b>${kes(p.total - after)}</b>`}${after > p.total ? ` <span class="up">(${kes(after - p.total)} more than the balance)</span>` : ''}` : '');
+}
+function closePayment(){ $('ppSheet').classList.remove('on'); pp = null; }
+async function submitPayment(){
+  if(!pp) return;
+  const amt = Number($('ppKes').value), ref = $('ppRef').value.replace(/\s+/g, '').toUpperCase(), nt = $('ppNote').value.trim();
+  if(!(amt > 0) || amt !== Math.floor(amt)){ note('Enter the amount received in KES.', 'err'); return; }
+  if(pp.method === 'M-Pesa' && ref && !/^[A-Z0-9]{6,20}$/.test(ref)){ note('The M-Pesa code looks wrong — letters and numbers only.', 'err'); return; }
+  const d = pp, btn = $('ppGo'); btn.disabled = true; btn.textContent = 'Saving…';
+  const { data, error } = await sb.rpc('mfm_record_payment', { p_order: d.order, p_amount: amt, p_method: d.method, p_mpesa_ref: d.method === 'M-Pesa' && ref ? ref : null, p_note: nt || null });
+  btn.disabled = false; btn.textContent = 'Save payment';
+  if(error){ note(error.message, 'err'); return; }
+  closePayment();
+  await load();
+  const bal = data && data.balance_kes != null ? Number(data.balance_kes) : null;
+  noteUndo(`✓ ${d.order}: ${kes(amt)} ${d.method === 'Cash' ? 'cash' : 'M-Pesa'} recorded — ${bal === 0 ? 'paid in full' : bal != null ? 'balance ' + kes(bal) : 'saved'}.`, async () => {
+    const { error: ue } = await sb.rpc('mfm_void_payment', { p_payment: data.payment_id, p_reason: 'undone on dispatch' });
+    if(ue){ note(ue.message, 'err'); return; }
+    await load(); note(`Undone — the ${kes(amt)} payment on ${d.order} is removed.`);
+  });
+}
+async function removePayment(id, order, btn){
+  const rows = payByOrder[order] || [], r = rows.find(x => String(x.id) === String(id)); if(!r) return;
+  if(!confirm(`Remove the ${PAY_KIND[r.kind] || 'payment'} of ${kes(r.amount_kes)} on ${order}?\n\nOnly do this if it was recorded by mistake. It stays in the record as removed.`)) return;
+  btn.disabled = true;
+  const { error } = await sb.rpc('mfm_void_payment', { p_payment: Number(id), p_reason: 'removed on dispatch' });
+  if(error){ btn.disabled = false; note(error.message, 'err'); return; }
+  await load();
+  note(`Removed the ${kes(r.amount_kes)} payment on ${order}.`);
 }
 
 /* ---------- discount: when a customer asks for one or we offer one; total to pay = items + delivery − discount ---------- */
@@ -2123,14 +2273,21 @@ function noUseLast(){
   $('noDest').value = l.destination && l.destination !== l.county ? l.destination : '';
   if(!$('noSrc').value) $('noSrc').value = 'repeat';
 }
-function noSetPay(paid){
-  no.paid = paid;
-  document.querySelectorAll('[data-nopay]').forEach(b => b.classList.toggle('on', (b.dataset.nopay === 'yes') === paid));
-  $('noPaidBox').hidden = !paid;
-  if(paid && !no.paidEdited){ const dlv = noDelivery(), v = noTotal() + (dlv ? dlv.kes : 0) - noDisc(); $('noPaid').value = no.lines.length && v > 0 ? v : ''; }
+function noSetPay(mode){
+  if(mode === true) mode = 'yes'; else if(mode === false || !mode) mode = 'no';
+  const was = no.paid ? 'yes' : no.dep ? 'dep' : 'no';
+  no.paid = mode === 'yes'; no.dep = mode === 'dep';
+  document.querySelectorAll('[data-nopay]').forEach(b => b.classList.toggle('on', b.dataset.nopay === mode));
+  $('noPaidBox').hidden = mode === 'no';
+  $('noPaidLbl').textContent = no.dep ? 'Deposit received (KES)' : 'Amount received (KES)';
+  $('noPaidHint').textContent = no.dep
+    ? 'The rest is paid later or on delivery. The order goes to packing and shows the balance to collect.'
+    : 'Items total does not include transport — enter what the customer actually sent.';
+  if(was !== mode){ no.paidEdited = false; if(no.dep) $('noPaid').value = ''; }
+  if(no.paid && !no.paidEdited){ const dlv = noDelivery(), v = noTotal() + (dlv ? dlv.kes : 0) - noDisc(); $('noPaid').value = no.lines.length && v > 0 ? v : ''; }
 }
 async function openNewOrder(){
-  no = { lines: [], paid: false, paidEdited: false, dlEdited: false, last: null, done: null };
+  no = { lines: [], paid: false, dep: false, paidEdited: false, dlEdited: false, last: null, done: null };
   ['noPhone','noName','noDest','noQty','noPaid','noRef','noNote','noCourierOther','noDlKes','noDisc'].forEach(id => { $(id).value = ''; });
   $('noDiscWhy').selectedIndex = 0;
   $('noCounty').value = ''; $('noPickup').checked = false; $('noPrep').selectedIndex = 0; $('noSrc').value = '';
@@ -2160,13 +2317,18 @@ async function submitNewOrder(){
   const dsk = noDisc(), dsWhy = $('noDiscWhy').value;
   if($('noDisc').value.trim() && (!(Number($('noDisc').value) >= 0) || Number($('noDisc').value) !== Math.floor(Number($('noDisc').value)))){ note('Enter the discount in whole KES.', 'err'); $('noDisc').focus(); return; }
   { const dl0 = noDelivery(); if(dsk && dsk > noTotal() + (dl0 ? dl0.kes : 0)){ note('The discount is more than the order total.', 'err'); $('noDisc').focus(); return; } }
-  let paid = null;
-  if(no.paid){
-    paid = Number($('noPaid').value);
-    if(!(paid > 0) || paid !== Math.floor(paid)){ note('Enter the amount received in KES.', 'err'); $('noPaid').focus(); return; }
+  let paid = null, dep = null;
+  if(no.paid || no.dep){
+    const v = Number($('noPaid').value);
+    if(!(v > 0) || v !== Math.floor(v)){ note(no.dep ? 'Enter the deposit received in KES.' : 'Enter the amount received in KES.', 'err'); $('noPaid').focus(); return; }
+    if(no.paid) paid = v; else dep = v;
+  }
+  if(no.dep){
+    const dl0 = noDelivery(), full = noTotal() + (dl0 ? dl0.kes : 0) - dsk;
+    if(dep >= full){ note(`${kes(dep)} is the full amount (${kes(full)}) — choose "Already paid".`, 'err'); $('noPaid').focus(); return; }
   }
   const ref = $('noRef').value.replace(/\s+/g, '').toUpperCase();
-  if(no.paid && ref && !/^[A-Z0-9]{6,20}$/.test(ref)){ note('The M-Pesa code looks wrong — letters and numbers only.', 'err'); return; }
+  if((no.paid || no.dep) && ref && !/^[A-Z0-9]{6,20}$/.test(ref)){ note('The M-Pesa code looks wrong — letters and numbers only.', 'err'); return; }
   const cName = noCourierName(), dlv = noDelivery();
   if($('noCourier').value && cName.length < 2){ note('Write the courier name.', 'err'); $('noCourierOther').focus(); return; }
   if(cName && !dlv){ note('Enter the delivery cost in KES (0 if free).', 'err'); $('noDlKes').focus(); return; }
@@ -2186,26 +2348,38 @@ async function submitNewOrder(){
     if(de) discErr = de.message;
   }
   const dskOk = dsk && !discErr ? dsk : 0;
+  let depErr = null, depRes = null;
+  if(dep){   // deposit: the order is created unpaid, then the deposit is recorded (balance on delivery)
+    const { data: pr, error: pe } = await sb.rpc('mfm_record_payment', { p_order: data.order_number, p_amount: dep, p_method: 'M-Pesa', p_mpesa_ref: ref || null, p_note: 'Deposit taken with the order' });
+    if(pe) depErr = pe.message; else depRes = pr;
+  }
+  const depOk = dep && !depErr;
   const first = name.split(' ')[0];
   const link = `https://mombasafishteam.netlify.app/?order=${encodeURIComponent(data.order_number)}&code=${encodeURIComponent(data.tracking_code)}`;
   const list = no.lines.map(l => `${l.name} (${l.qty} ${l.unit})`).join(', ');
   const toPay = Number(data.items_total) + (dlv ? dlv.kes : 0) - dskOk;
+  const depBal = depOk ? (depRes && depRes.balance_kes != null ? Number(depRes.balance_kes) : Math.max(toPay - dep, 0)) : null;
   const money = dlv || dskOk
     ? `Bidhaa ${kes(data.items_total)}${dlv ? ` + usafiri (${dlv.courier}) ${kes(dlv.kes)}` : ''}${dskOk ? ` − punguzo ${kes(dskOk)}` : ''} = jumla ${kes(toPay)}.`
     : `Jumla ya bidhaa ${kes(data.items_total)} (bila usafiri).`;
   const msg = paid
     ? `Habari ${first}, asante! Tumepokea malipo yako ${kes(paid)} 🙏 Oda yako ${data.order_number}: ${list}. ${money} Fuatilia hapa: ${link}`
-    : `Habari ${first}, oda yako ${data.order_number} imepokelewa: ${list}. ${money} Tafadhali lipa na M-Pesa Buy Goods Till 9948037 (Hemed Yakub) kukamilisha. Fuatilia hapa: ${link}`;
+    : depOk
+      ? `Habari ${first}, asante! Tumepokea malipo ya awali (deposit) ${kes(dep)} 🙏 Oda yako ${data.order_number}: ${list}. ${money} Salio ${kes(depBal)} utalipa ukipokea mzigo (M-Pesa Till 9948037). Fuatilia hapa: ${link}`
+      : `Habari ${first}, oda yako ${data.order_number} imepokelewa: ${list}. ${money} Tafadhali lipa na M-Pesa Buy Goods Till 9948037 (Hemed Yakub) kukamilisha. Fuatilia hapa: ${link}`;
   $('noDoneNo').textContent = data.order_number;
   $('noDoneCode').textContent = data.tracking_code;
   $('noDoneSum').innerHTML = `${esc(name)} · ${esc(dest ? dest + ', ' : '')}${esc(county)}${data.delivery_type === 'pickup' ? ' · collects at the shop' : ''}<br>Items total <b>${kes(data.items_total)}</b>${dlv ? ` + delivery (${esc(dlv.courier)}) <b>${kes(dlv.kes)}</b>` : ''}${dskOk ? ` − discount <b>${kes(dskOk)}</b>` : ''}${dlv || dskOk ? ` = <b>${kes(toPay)}</b>` : ''} · ` +
     (discErr ? `<span class="up">The discount was not saved: ${esc(discErr)} — add it on the order card.</span><br>` : '') +
-    (paid ? `<span class="down">Paid ${kes(paid)}${ref ? ' · M-Pesa ' + esc(ref) : ''}</span> — it is in To dispatch.` : '<span class="up">Not paid yet</span> — it is in Awaiting payment. Send the payment request below.') +
+    (paid ? `<span class="down">Paid ${kes(paid)}${ref ? ' · M-Pesa ' + esc(ref) : ''}</span> — it is in To dispatch.`
+      : depOk ? `<span class="down">Deposit ${kes(dep)}${ref ? ' · M-Pesa ' + esc(ref) : ''}</span> · balance <b>${kes(depBal)}</b> on delivery — it is in To dispatch.`
+      : depErr ? `<span class="up">The deposit was not saved: ${esc(depErr)}</span> — it is in Awaiting payment. Record it with ✓ Mark PAID on the order card.`
+      : '<span class="up">Not paid yet</span> — it is in Awaiting payment. Send the payment request below.') +
     (data.duplicate_of ? `<br><span class="up">Same number as ${esc(data.duplicate_of)} — marked as a possible duplicate.</span>` : '');
   $('noTell').href = `https://wa.me/${digitsOf(phone).replace(/^0/, '254')}?text=${encodeURIComponent(msg)}`;
-  $('noTell').textContent = paid ? '💬 Send the tracking link on WhatsApp' : '💬 Send the payment request on WhatsApp';
+  $('noTell').textContent = paid || depOk ? '💬 Send the tracking link on WhatsApp' : '💬 Send the payment request on WhatsApp';
   $('noForm').hidden = true; $('noDone').hidden = false;
-  const tab = document.querySelector(`.tab[data-f="${paid ? 'todo' : 'unpaid'}"]`);
+  const tab = document.querySelector(`.tab[data-f="${paid || depOk ? 'todo' : 'unpaid'}"]`);
   if(tab){ document.querySelectorAll('.tab').forEach(x => x.classList.remove('on')); tab.classList.add('on'); filter = tab.dataset.f; }
   if(zoneFilter !== 'all'){ zoneFilter = 'all'; try { localStorage.setItem('mf_zone', 'all'); } catch(_) {} }   // so the new order is in view
   await load();
@@ -2231,7 +2405,7 @@ $('noPickup').addEventListener('change', () => { if(no){ if($('noPickup').checke
 $('noSheet').addEventListener('click', e => {
   if(e.target.id === 'noSheet' && !(no && no.lines.length && !no.done)) closeNewOrder();
   const rm = e.target.closest('[data-noline]'); if(rm && no){ no.lines.splice(Number(rm.dataset.noline), 1); noDraw(); }
-  const pay = e.target.closest('[data-nopay]'); if(pay && no) noSetPay(pay.dataset.nopay === 'yes');
+  const pay = e.target.closest('[data-nopay]'); if(pay && no) noSetPay(pay.dataset.nopay);
   if(e.target.id === 'noUseLast') noUseLast();
 });
 
@@ -2556,19 +2730,32 @@ function markPaid(orderNo){
     ? (d || ds ? `Items ${kes(b)}${d ? ` + delivery (${d.courier}) ${kes(dk)}` : ''}${ds ? ` − discount ${kes(dsk)}` : ''} = ${kes(payExpected)}. Change it if the customer paid a different amount.`
          : `Website basket: ${kes(b)} (fish + cooler, no transport). Change it if the customer paid a different amount.`)
     : 'Enter what the customer actually sent.';
-  $('payShortOn').checked = true; $('payShortWhy').value = 'Customer asked';
+  $('payShortWhy').value = 'Customer asked'; payMode = null;
   payShortDraw();
   $('paySheet').classList.add('on');
   setTimeout(() => { try { $('payAmt').focus(); $('payAmt').select(); } catch(_){} }, 50);
 }
-let payExpected = null;
+let payExpected = null, payMode = null;   // payMode: what the shortfall is — 'dep' deposit (rest on delivery), 'disc' discount, 'none'
 function payShortBy(){ const a = Math.round(Number($('payAmt').value)); return payExpected != null && a > 0 && a < payExpected ? payExpected - a : 0; }
 function payShortDraw(){
-  const sh = payShortBy();
+  const sh = payShortBy(), a = Math.round(Number($('payAmt').value));
   $('payShort').hidden = !sh;
-  if(sh) $('payShortTxt').textContent = `The customer paid ${kes(sh)} less than the total (${kes(payExpected)}). Record the ${kes(sh)} as a discount so it balances:`;
+  // a small gap is usually a discount; a big one is usually a deposit — staff can change it
+  const mode = sh ? (payMode || (sh <= payExpected * 0.2 ? 'disc' : 'dep')) : null;
+  document.querySelectorAll('[data-pshort]').forEach(b => b.classList.toggle('on', b.dataset.pshort === mode));
+  $('payShortWhy').hidden = mode !== 'disc';
+  $('payGo').textContent = mode === 'dep' ? '✓ Record deposit' : '✓ Mark PAID';
+  if(!sh) return;
+  $('payShortTxt').textContent = `The customer paid ${kes(sh)} less than the total (${kes(payExpected)}). What is the ${kes(sh)}?`;
+  $('payShortHelp').textContent = mode === 'dep'
+    ? `Deposit of ${kes(a)}. The order goes to packing and shows a balance of ${kes(sh)} to collect on delivery.`
+    : mode === 'disc'
+      ? `The ${kes(sh)} is recorded as a discount so the order balances. Hemed gets an email.`
+      : `Marked paid ${kes(a)}; the ${kes(sh)} gap is not explained.`;
 }
+function payShortMode(){ const sh = payShortBy(); return sh ? (payMode || (sh <= payExpected * 0.2 ? 'disc' : 'dep')) : null; }
 $('payAmt').addEventListener('input', payShortDraw);
+$('payShort').addEventListener('click', e => { const b = e.target.closest('[data-pshort]'); if(b){ payMode = b.dataset.pshort; payShortDraw(); } });
 function closePay(){ $('paySheet').classList.remove('on'); payOrder = null; }
 async function submitPay(){
   if(!payOrder) return;
@@ -2576,8 +2763,22 @@ async function submitPay(){
   const who = o ? (o.customer_name || orderNo) : orderNo;
   const amt = Number($('payAmt').value);
   if(!(amt > 0) || amt !== Math.floor(amt)){ note('Enter the amount received in KES.', 'err'); return; }
-  const btn = $('payGo'); btn.disabled = true; btn.textContent = 'Saving…';
-  const short = payShortBy(), asDisc = short > 0 && $('payShortOn').checked;
+  const btn = $('payGo'), btnTxt = btn.textContent; btn.disabled = true; btn.textContent = 'Saving…';
+  const short = payShortBy(), mode = payShortMode(), asDisc = short > 0 && mode === 'disc';
+  if(short > 0 && mode === 'dep'){   // deposit now, the rest on delivery
+    const { data, error } = await sb.rpc('mfm_record_payment', { p_order: orderNo, p_amount: amt, p_method: 'M-Pesa', p_mpesa_ref: null, p_note: null });
+    btn.disabled = false; btn.textContent = btnTxt;
+    if(error){ note(error.message, 'err'); return; }
+    closePay();
+    await load();
+    noteUndo(`✓ ${who}: deposit ${kes(amt)} recorded — balance ${kes(data && data.balance_kes != null ? data.balance_kes : short)} on delivery. Now in the dispatch queue.`, async ()=>{
+      const { error: ue } = await sb.rpc('mfm_void_payment', { p_payment: data.payment_id, p_reason: 'undone on dispatch' });
+      if(ue){ note(ue.message, 'err'); return; }
+      await load();
+      note(`Undone — ${who} back to awaiting payment.`);
+    });
+    return;
+  }
   if(asDisc){
     const cur = discByOrder[orderNo], why = $('payShortWhy').value;
     const { error: de } = await sb.rpc('mfm_set_order_discount', { p_order: orderNo, p_amount: (cur ? Number(cur.amount_kes) || 0 : 0) + short, p_reason: why,
@@ -2688,6 +2889,13 @@ async function doDispatch(){
 
 $('payGo').addEventListener('click', submitPay);
 $('payBack').addEventListener('click', closePay);
+$('ppGo').addEventListener('click', submitPayment);
+$('ppBack').addEventListener('click', closePayment);
+$('ppKes').addEventListener('input', ppDraw);
+$('ppSheet').addEventListener('click', e => {
+  if(e.target.id === 'ppSheet') closePayment();
+  const m = e.target.closest('[data-ppm]'); if(m) ppMethod(m.dataset.ppm);
+});
 $('payAmt').addEventListener('keydown', e => { if(e.key === 'Enter') submitPay(); });
 $('paySheet').addEventListener('click', e => { if(e.target.id === 'paySheet') closePay(); });
 $('sheetGo').addEventListener('click', doDispatch);
@@ -2746,6 +2954,10 @@ $('list').addEventListener('click', e=>{
   if(dlo){ e.stopPropagation(); openDelivery(dlo.dataset.dl); return; }
   const dso = e.target.closest('[data-ds]');
   if(dso){ e.stopPropagation(); openDiscount(dso.dataset.ds); return; }
+  const ppo = e.target.closest('[data-pp]');
+  if(ppo){ e.stopPropagation(); openPayment(ppo.dataset.pp); return; }
+  const ppx = e.target.closest('[data-ppx]');
+  if(ppx){ e.stopPropagation(); removePayment(ppx.dataset.ppx, ppx.dataset.order, ppx); return; }
   // Cancel an awaiting-payment order
   const cancel = e.target.closest('[data-cancel]');
   if(cancel){
@@ -2788,7 +3000,13 @@ $('list').addEventListener('click', e=>{
   if(lbl){ openLabel(lbl.dataset.label); return; }
   // Stage change (Mark packed / arrived etc.)
   const b = e.target.closest('.act');
-  if(b && b.dataset.s) setStage(b.dataset.o, Number(b.dataset.s), b);
+  if(b && b.dataset.s){
+    if(Number(b.dataset.s) === 4){   // balance still owed: remind before closing the order
+      const o = orders.find(x => x.order_number === b.dataset.o), p = o ? payInfo(o) : null;
+      if(p && !p.full && p.bal > 0 && !confirm(`${o.order_number}: balance ${kes(p.bal)} is not recorded yet.\n\nIf the customer paid on delivery, tap Cancel and use "＋ Payment received" first.\n\nMark it ${(o.delivery_type || '') === 'pickup' ? 'collected' : 'arrived'} anyway?`)) return;
+    }
+    setStage(b.dataset.o, Number(b.dataset.s), b);
+  }
 });
 
 $('labelClose').addEventListener('click', closeLabel);
