@@ -361,6 +361,13 @@ select.catpick{width:100%;padding:13px 12px;background:rgba(3,42,46,.78);border:
 .dl-btn{padding:4px 10px;border:1px solid var(--faint);border-radius:3px;background:transparent;color:var(--foam);font-family:var(--mono);font-size:11px;cursor:pointer;margin-left:6px}
 .dl-btn:hover{border-color:var(--foam)}
 .dl-add{width:100%;text-align:left;margin:0;padding:7px 0;border:0;color:var(--catch);font-size:12px}
+.otr.ot-disc b{color:var(--catch)}
+.otr.ot-disc small{display:block;color:var(--dim);font-size:11px;text-align:right}
+.ds-add{width:100%;text-align:left;margin:0;padding:7px 0;border:0;color:var(--foam);font-size:12px}
+.pay-short{margin:8px 0 4px;padding:10px 12px;border:1px solid var(--catch);border-radius:6px;background:rgba(255,184,77,.08);font-size:13px}
+.pay-short label{display:flex;gap:10px;align-items:flex-start;margin:0 0 8px;font-family:var(--body);font-size:13px;line-height:1.4;color:var(--sand);text-transform:none;letter-spacing:0}
+.pay-short input[type=checkbox]{width:18px;height:18px;flex:none;margin:1px 0 0;padding:0}
+.pay-short select{margin:0}
 .rates{margin-top:4px}
 .rate-c{margin:18px 0 8px;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--sand)}
 .rate{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--faint);border-radius:4px;margin-bottom:6px;font-size:14px}
@@ -663,6 +670,11 @@ select.catpick{width:100%;padding:13px 12px;background:rgba(3,42,46,.78);border:
         <button type="button" id="noAddLine">＋ Add item</button>
       </div>
       <div class="chg-sum" id="noSum">No items yet.</div>
+      <label for="noDisc">Discount (optional)</label>
+      <div class="no-add">
+        <input id="noDisc" type="number" inputmode="numeric" min="0" step="1" placeholder="KES" aria-label="Discount in KES">
+        <select class="catpick" id="noDiscWhy" aria-label="Why the discount" style="margin:0"><option>Customer asked</option><option>We offered</option><option>Loyal customer</option><option>Bulk order</option><option>Delay or problem</option></select>
+      </div>
       <label for="noPrep">How should we clean it?</label>
       <select class="catpick" id="noPrep">
         <option value="Cleaned &amp; gutted">Cleaned &amp; gutted</option>
@@ -733,6 +745,27 @@ select.catpick{width:100%;padding:13px 12px;background:rgba(3,42,46,.78);border:
   </div>
 </div>
 
+<!-- Discount on an order -->
+<div class="sheet" id="dsSheet">
+  <div class="sheet-in">
+    <h2>Discount</h2>
+    <div class="for" id="dsFor"></div>
+    <label for="dsKes">Discount (KES)</label>
+    <input id="dsKes" type="number" inputmode="numeric" min="1" step="1">
+    <label>Why?</label>
+    <div class="seg3" role="group" aria-label="Why the discount" id="dsWhy"></div>
+    <label for="dsNote">Note (optional)</label>
+    <input id="dsNote" type="text" maxlength="200" autocomplete="off" placeholder="e.g. agreed on WhatsApp, 10% for 3rd order">
+    <div class="chg-sum" id="dsSum"></div>
+    <p class="opt">Hemed gets an email for every discount. Changing it keeps the old one in the record.</p>
+    <div class="sheet-acts">
+      <button class="ghost" id="dsBack">Back</button>
+      <button class="ghost" id="dsRemove" hidden>Remove</button>
+      <button class="btn" id="dsGo">Save discount</button>
+    </div>
+  </div>
+</div>
+
 <!-- Mark paid: record the amount received -->
 <div class="sheet" id="paySheet">
   <div class="sheet-in">
@@ -741,6 +774,10 @@ select.catpick{width:100%;padding:13px 12px;background:rgba(3,42,46,.78);border:
     <label for="payAmt">Amount received on M-Pesa (KES)</label>
     <input id="payAmt" type="number" inputmode="numeric" min="1" step="1">
     <p class="opt" id="payHint"></p>
+    <div class="pay-short" id="payShort" hidden>
+      <label><input type="checkbox" id="payShortOn" checked> <span id="payShortTxt"></span></label>
+      <select class="catpick" id="payShortWhy"><option>Customer asked</option><option>We offered</option><option>Loyal customer</option><option>Bulk order</option><option>Delay or problem</option></select>
+    </div>
     <p class="opt">Only do this once you have seen the M-Pesa payment.</p>
     <div class="sheet-acts">
       <button class="ghost" id="payBack">Back</button>
@@ -993,7 +1030,7 @@ async function boot(){
 }
 let isOwner = false;
 
-let itemsByOrder = {}, srcByOrder = {}, delivByOrder = {}, rates = [];
+let itemsByOrder = {}, srcByOrder = {}, delivByOrder = {}, discByOrder = {}, rates = [];
 
 async function load(){
   const { data, error } = await sb.from('mfm_orders')
@@ -1004,7 +1041,7 @@ async function load(){
 
   // Pull per-item states for all visible orders in one query
   const nums = orders.map(o => o.order_number);
-  itemsByOrder = {}; srcByOrder = {}; delivByOrder = {};
+  itemsByOrder = {}; srcByOrder = {}; delivByOrder = {}; discByOrder = {};
   await loadBoxes();
   try{
     const { data: rb, error: rbe } = await sb.rpc('mfm_refunds_board');
@@ -1037,6 +1074,10 @@ async function load(){
       const { data: dl, error: de } = await sb.from('mfm_order_delivery').select('order_number, courier, charge_kes, recorded_by').in('order_number', nums);
       if(!de) (dl || []).forEach(d => { delivByOrder[d.order_number] = d; });
     }catch(e){ delivByOrder = {}; }
+    try{
+      const { data: ds, error: dse } = await sb.from('mfm_order_discounts').select('order_number, amount_kes, reason, note, given_by, given_at').is('voided_at', null).in('order_number', nums);
+      if(!dse) (ds || []).forEach(d => { discByOrder[d.order_number] = d; });
+    }catch(e){ discByOrder = {}; }
   }
   await loadCp();
   render();
@@ -1353,7 +1394,7 @@ function orderCard(o){
     // Unpaid: no notify-dispatch message; instead a clear "send payment link" prompt
     const payUrl = `https://mombasafishteam.netlify.app/?order=${encodeURIComponent(o.order_number)}&code=${encodeURIComponent(o.tracking_code||'')}`;
     const toPay = payTotal(o);
-    const payMsg = `Habari ${first}, oda yako ${o.order_number} imepokelewa.${toPay ? ` Jumla ya kulipa: ${kes(toPay.total)}${toPay.delivery ? ` (pamoja na usafiri ${kes(toPay.delivery)})` : ''}.` : ''} Tafadhali lipa na M-Pesa Buy Goods Till 9948037 (Hemed Yakub) kukamilisha. Fuatilia hapa: ${payUrl}`;
+    const payMsg = `Habari ${first}, oda yako ${o.order_number} imepokelewa.${toPay ? ` Jumla ya kulipa: ${kes(toPay.total)}${toPay.delivery ? ` (pamoja na usafiri ${kes(toPay.delivery)})` : ''}${toPay.discount ? ` baada ya punguzo la ${kes(toPay.discount)}` : ''}.` : ''} Tafadhali lipa na M-Pesa Buy Goods Till 9948037 (Hemed Yakub) kukamilisha. Fuatilia hapa: ${payUrl}`;
     const payBlock = unpaid
       ? `<div class="pay-flag">⏳ Awaiting payment — do not pack or source yet</div>
          ${o.contact ? `<a class="notify pay-notify" href="https://wa.me/${wa}?text=${encodeURIComponent(payMsg)}" target="_blank" rel="noopener">💬 Send payment link to ${first||'customer'}</a>` : ''}
@@ -1710,20 +1751,70 @@ function orderTotal(o, items){
 }
 const canSetDelivery = o => o.stage >= 1 && o.stage <= 3 && o.status !== 'Cancelled';
 function payTotal(o){
-  const t = orderTotal(o, itemsByOrder[o.order_number]), d = delivByOrder[o.order_number];
+  const t = orderTotal(o, itemsByOrder[o.order_number]), d = delivByOrder[o.order_number], ds = discByOrder[o.order_number];
   if(!t) return null;
-  const delivery = d ? Number(d.charge_kes) || 0 : 0;
-  return { items: t.total, delivery, courier: d ? d.courier : null, total: t.total + delivery };
+  const delivery = d ? Number(d.charge_kes) || 0 : 0, discount = ds ? Number(ds.amount_kes) || 0 : 0;
+  return { items: t.total, delivery, courier: d ? d.courier : null, discount, discountWhy: ds ? ds.reason : null, total: t.total + delivery - discount };
 }
 function totalBlock(o, items){
-  const t = orderTotal(o, items), d = delivByOrder[o.order_number], can = canSetDelivery(o);
-  if(!t && !d && !can) return '';
+  const t = orderTotal(o, items), d = delivByOrder[o.order_number], ds = discByOrder[o.order_number], can = canSetDelivery(o);
+  if(!t && !d && !ds && !can) return '';
   let h = '';
   if(t) h += `<div class="otr"><span>Items total</span><div><b>${kes(t.total)}</b>${t.added ? `<small>incl. ${kes(t.added)} added on dispatch</small>` : ''}</div></div>`;
   if(d) h += `<div class="otr"><span>Delivery · ${esc(d.courier)}</span><div><b>${kes(d.charge_kes)}</b>${can ? `<button type="button" class="dl-btn" data-dl="${esc(o.order_number)}">Change</button>` : ''}</div></div>`;
   else if(can) h += `<div class="otr"><button type="button" class="dl-btn dl-add" data-dl="${esc(o.order_number)}">🚚 Add delivery cost</button></div>`;
-  if(t && d) h += `<div class="otr ot-sum"><span>Total to pay</span><div><b>${kes(t.total + (Number(d.charge_kes) || 0))}</b></div></div>`;
+  if(ds) h += `<div class="otr ot-disc"><span>Discount</span><div><b>− ${kes(ds.amount_kes)}</b>${can ? `<button type="button" class="dl-btn" data-ds="${esc(o.order_number)}">Change</button>` : ''}<small>${esc(ds.reason)}${ds.given_by ? ' · ' + esc(ds.given_by) : ''}${ds.note ? ' · ' + esc(ds.note) : ''}</small></div></div>`;
+  else if(can && t) h += `<div class="otr"><button type="button" class="dl-btn ds-add" data-ds="${esc(o.order_number)}">🏷 Give a discount</button></div>`;
+  if(t && (d || ds)) h += `<div class="otr ot-sum"><span>Total to pay</span><div><b>${kes(t.total + (d ? Number(d.charge_kes) || 0 : 0) - (ds ? Number(ds.amount_kes) || 0 : 0))}</b></div></div>`;
   return `<div class="ototal">${h}</div>`;
+}
+
+/* ---------- discount: when a customer asks for one or we offer one; total to pay = items + delivery − discount ---------- */
+const DS_WHY = ['Customer asked', 'We offered', 'Loyal customer', 'Bulk order', 'Delay or problem', 'Other'];
+let dsc = null;
+function openDiscount(order){
+  const o = orders.find(x => x.order_number === order); if(!o) return;
+  const cur = discByOrder[order], t = payTotal(o);
+  dsc = { order, o, why: cur ? cur.reason : 'Customer asked', cur };
+  $('dsFor').textContent = `${o.order_number} · ${o.customer_name || 'Customer'}`;
+  $('dsKes').value = cur ? cur.amount_kes : '';
+  $('dsNote').value = cur && cur.note ? cur.note : '';
+  $('dsWhy').innerHTML = DS_WHY.map(w => `<button type="button" data-dswhy="${esc(w)}" class="${w === dsc.why ? 'on' : ''}">${esc(w)}</button>`).join('');
+  $('dsRemove').hidden = !cur;
+  dsDraw();
+  $('dsSheet').classList.add('on');
+  setTimeout(() => { try { $('dsKes').focus(); } catch(_){} }, 50);
+}
+function dsDraw(){
+  if(!dsc) return;
+  const t = payTotal(dsc.o), v = Math.round(Number($('dsKes').value) || 0);
+  if(!t){ $('dsSum').textContent = 'The order total is not known — the discount is still recorded.'; return; }
+  const before = t.items + t.delivery;
+  $('dsSum').innerHTML = `Items ${kes(t.items)}${t.delivery ? ` + delivery ${kes(t.delivery)}` : ''} = <b>${kes(before)}</b>` +
+    (v > 0 ? `<br>Discount <b>− ${kes(v)}</b> → total to pay <b>${kes(before - v)}</b>${v > before ? ' <span class="up">(more than the order total)</span>' : ''}` : '');
+}
+function closeDiscount(){ $('dsSheet').classList.remove('on'); dsc = null; }
+async function submitDiscount(){
+  if(!dsc) return;
+  const v = $('dsKes').value.trim(), amt = Number(v), nt = $('dsNote').value.trim();
+  if(!(amt >= 1) || amt !== Math.floor(amt)){ note('Enter the discount in KES.', 'err'); return; }
+  if(dsc.why === 'Other' && nt.length < 3){ note('Write a short note for "Other".', 'err'); return; }
+  const d = dsc, btn = $('dsGo'); btn.disabled = true; btn.textContent = 'Saving…';
+  const { data, error } = await sb.rpc('mfm_set_order_discount', { p_order: d.order, p_amount: amt, p_reason: d.why, p_note: nt || null });
+  btn.disabled = false; btn.textContent = 'Save discount';
+  if(error){ note(error.message, 'err'); return; }
+  closeDiscount();
+  await load();
+  note(`🏷 ${d.order}: discount ${kes(amt)} (${d.why})${data && data.total_to_pay != null ? ` — total to pay ${kes(data.total_to_pay)}` : ''}.`);
+}
+async function removeDiscount(){
+  if(!dsc || !dsc.cur) return;
+  const d = dsc, btn = $('dsRemove'); btn.disabled = true;
+  const { error } = await sb.rpc('mfm_remove_order_discount', { p_order: d.order });
+  btn.disabled = false;
+  if(error){ note(error.message, 'err'); return; }
+  closeDiscount(); await load();
+  note(`Discount removed from ${d.order}.`);
 }
 
 /* ---------- delivery cost: price list + per order ---------- */
@@ -1789,6 +1880,12 @@ $('dlCourier').addEventListener('change', () => { if(dl){ dl.edited = false; dlR
 $('dlOther').addEventListener('input', () => { if(dl) dlRefresh(); });
 $('dlKes').addEventListener('input', () => { if(dl) dl.edited = true; });
 $('dlSheet').addEventListener('click', e => { if(e.target.id === 'dlSheet') closeDelivery(); });
+$('dsGo').addEventListener('click', submitDiscount);
+$('dsBack').addEventListener('click', closeDiscount);
+$('dsRemove').addEventListener('click', removeDiscount);
+$('dsKes').addEventListener('input', dsDraw);
+$('dsWhy').addEventListener('click', e => { const b = e.target.closest('[data-dswhy]'); if(!b || !dsc) return; dsc.why = b.dataset.dswhy; document.querySelectorAll('[data-dswhy]').forEach(x => x.classList.toggle('on', x === b)); });
+$('dsSheet').addEventListener('click', e => { if(e.target.id === 'dsSheet') closeDiscount(); });
 
 /* price list tab: everyone sees it, only the owner changes it */
 let rateEdit = null, rateRemove = null;
@@ -1981,13 +2078,16 @@ function noDlRefresh(){
 function noDraw(){
   $('noLines').innerHTML = no.lines.map((l, i) =>
     `<div class="no-line"><span>${esc(l.name)} — ${l.qty} ${l.unit}${boxFor(l.name) ? `<small>${boxInline(l.name, l.qty)}</small>` : ''}</span><b>${kes(Math.round(l.qty * l.price))}</b><button type="button" data-noline="${i}" aria-label="Remove">✕</button></div>`).join('');
-  const dlv = noDelivery();
+  const dlv = noDelivery(), dsk = noDisc();
   $('noSum').innerHTML = no.lines.length
     ? `Items total: <b>${kes(noTotal())}</b> · ${no.lines.length} item${no.lines.length > 1 ? 's' : ''}` +
-      (dlv ? `<br>Delivery (${esc(dlv.courier)}): <b>${kes(dlv.kes)}</b><br>Total to pay: <b>${kes(noTotal() + dlv.kes)}</b>` : ' <span style="color:var(--dim)">(no delivery cost added)</span>')
+      (dlv ? `<br>Delivery (${esc(dlv.courier)}): <b>${kes(dlv.kes)}</b>` : ' <span style="color:var(--dim)">(no delivery cost added)</span>') +
+      (dsk ? `<br>Discount (${esc($('noDiscWhy').value)}): <b>− ${kes(dsk)}</b>` : '') +
+      (dlv || dsk ? `<br>Total to pay: <b>${kes(noTotal() + (dlv ? dlv.kes : 0) - dsk)}</b>` : '')
     : 'No items yet.';
-  if(no.paid && !no.paidEdited) $('noPaid').value = no.lines.length ? noTotal() + (dlv ? dlv.kes : 0) : '';
+  if(no.paid && !no.paidEdited){ const v = noTotal() + (dlv ? dlv.kes : 0) - dsk; $('noPaid').value = no.lines.length && v > 0 ? v : ''; }
 }
+function noDisc(){ const v = Math.round(Number($('noDisc').value)); return v > 0 ? v : 0; }
 function noPickChanged(){
   const p = noPicked();
   $('noQty').step = p ? qtyStep(p) : '0.25';
@@ -2027,11 +2127,12 @@ function noSetPay(paid){
   no.paid = paid;
   document.querySelectorAll('[data-nopay]').forEach(b => b.classList.toggle('on', (b.dataset.nopay === 'yes') === paid));
   $('noPaidBox').hidden = !paid;
-  if(paid && !no.paidEdited){ const dlv = noDelivery(); $('noPaid').value = no.lines.length ? noTotal() + (dlv ? dlv.kes : 0) : ''; }
+  if(paid && !no.paidEdited){ const dlv = noDelivery(), v = noTotal() + (dlv ? dlv.kes : 0) - noDisc(); $('noPaid').value = no.lines.length && v > 0 ? v : ''; }
 }
 async function openNewOrder(){
   no = { lines: [], paid: false, paidEdited: false, dlEdited: false, last: null, done: null };
-  ['noPhone','noName','noDest','noQty','noPaid','noRef','noNote','noCourierOther','noDlKes'].forEach(id => { $(id).value = ''; });
+  ['noPhone','noName','noDest','noQty','noPaid','noRef','noNote','noCourierOther','noDlKes','noDisc'].forEach(id => { $(id).value = ''; });
+  $('noDiscWhy').selectedIndex = 0;
   $('noCounty').value = ''; $('noPickup').checked = false; $('noPrep').selectedIndex = 0; $('noSrc').value = '';
   courierOptions($('noCourier'), '', 'No delivery cost yet');
   $('noKnown').hidden = true; noSetPay(false); noDlRefresh();
@@ -2056,6 +2157,9 @@ async function submitNewOrder(){
     if(noPicked() && Number($('noQty').value) > 0) noAddLine();
     if(!no.lines.length){ note('Add at least one item.', 'err'); return; }
   }
+  const dsk = noDisc(), dsWhy = $('noDiscWhy').value;
+  if($('noDisc').value.trim() && (!(Number($('noDisc').value) >= 0) || Number($('noDisc').value) !== Math.floor(Number($('noDisc').value)))){ note('Enter the discount in whole KES.', 'err'); $('noDisc').focus(); return; }
+  { const dl0 = noDelivery(); if(dsk && dsk > noTotal() + (dl0 ? dl0.kes : 0)){ note('The discount is more than the order total.', 'err'); $('noDisc').focus(); return; } }
   let paid = null;
   if(no.paid){
     paid = Number($('noPaid').value);
@@ -2076,17 +2180,26 @@ async function submitNewOrder(){
   btn.disabled = false; btn.textContent = 'Create order';
   if(error){ note(error.message, 'err'); return; }
   no.done = data;
+  let discErr = null;
+  if(dsk){
+    const { error: de } = await sb.rpc('mfm_set_order_discount', { p_order: data.order_number, p_amount: dsk, p_reason: dsWhy, p_note: null });
+    if(de) discErr = de.message;
+  }
+  const dskOk = dsk && !discErr ? dsk : 0;
   const first = name.split(' ')[0];
   const link = `https://mombasafishteam.netlify.app/?order=${encodeURIComponent(data.order_number)}&code=${encodeURIComponent(data.tracking_code)}`;
   const list = no.lines.map(l => `${l.name} (${l.qty} ${l.unit})`).join(', ');
-  const toPay = Number(data.items_total) + (dlv ? dlv.kes : 0);
-  const money = dlv ? `Bidhaa ${kes(data.items_total)} + usafiri (${dlv.courier}) ${kes(dlv.kes)} = jumla ${kes(toPay)}.` : `Jumla ya bidhaa ${kes(data.items_total)} (bila usafiri).`;
+  const toPay = Number(data.items_total) + (dlv ? dlv.kes : 0) - dskOk;
+  const money = dlv || dskOk
+    ? `Bidhaa ${kes(data.items_total)}${dlv ? ` + usafiri (${dlv.courier}) ${kes(dlv.kes)}` : ''}${dskOk ? ` − punguzo ${kes(dskOk)}` : ''} = jumla ${kes(toPay)}.`
+    : `Jumla ya bidhaa ${kes(data.items_total)} (bila usafiri).`;
   const msg = paid
     ? `Habari ${first}, asante! Tumepokea malipo yako ${kes(paid)} 🙏 Oda yako ${data.order_number}: ${list}. ${money} Fuatilia hapa: ${link}`
     : `Habari ${first}, oda yako ${data.order_number} imepokelewa: ${list}. ${money} Tafadhali lipa na M-Pesa Buy Goods Till 9948037 (Hemed Yakub) kukamilisha. Fuatilia hapa: ${link}`;
   $('noDoneNo').textContent = data.order_number;
   $('noDoneCode').textContent = data.tracking_code;
-  $('noDoneSum').innerHTML = `${esc(name)} · ${esc(dest ? dest + ', ' : '')}${esc(county)}${data.delivery_type === 'pickup' ? ' · collects at the shop' : ''}<br>Items total <b>${kes(data.items_total)}</b>${dlv ? ` + delivery (${esc(dlv.courier)}) <b>${kes(dlv.kes)}</b> = <b>${kes(toPay)}</b>` : ''} · ` +
+  $('noDoneSum').innerHTML = `${esc(name)} · ${esc(dest ? dest + ', ' : '')}${esc(county)}${data.delivery_type === 'pickup' ? ' · collects at the shop' : ''}<br>Items total <b>${kes(data.items_total)}</b>${dlv ? ` + delivery (${esc(dlv.courier)}) <b>${kes(dlv.kes)}</b>` : ''}${dskOk ? ` − discount <b>${kes(dskOk)}</b>` : ''}${dlv || dskOk ? ` = <b>${kes(toPay)}</b>` : ''} · ` +
+    (discErr ? `<span class="up">The discount was not saved: ${esc(discErr)} — add it on the order card.</span><br>` : '') +
     (paid ? `<span class="down">Paid ${kes(paid)}${ref ? ' · M-Pesa ' + esc(ref) : ''}</span> — it is in To dispatch.` : '<span class="up">Not paid yet</span> — it is in Awaiting payment. Send the payment request below.') +
     (data.duplicate_of ? `<br><span class="up">Same number as ${esc(data.duplicate_of)} — marked as a possible duplicate.</span>` : '');
   $('noTell').href = `https://wa.me/${digitsOf(phone).replace(/^0/, '254')}?text=${encodeURIComponent(msg)}`;
@@ -2108,6 +2221,8 @@ $('noPick').addEventListener('change', noPickChanged);
 $('noQty').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); noAddLine(); } });
 $('noPhone').addEventListener('input', noPhoneChanged);
 $('noPaid').addEventListener('input', () => { if(no) no.paidEdited = true; });
+$('noDisc').addEventListener('input', () => { if(no) noDraw(); });
+$('noDiscWhy').addEventListener('change', () => { if(no) noDraw(); });
 $('noCourier').addEventListener('change', () => { if(no){ no.dlEdited = false; noDlRefresh(); } });
 $('noCourierOther').addEventListener('input', () => { if(no) noDlRefresh(); });
 $('noDlKes').addEventListener('input', () => { if(no){ no.dlEdited = true; noDraw(); } });
@@ -2433,15 +2548,27 @@ function markPaid(orderNo){
   const o = orders.find(x => x.order_number === orderNo); if(!o) return;
   payOrder = orderNo;
   const b = basketOf(o), d = delivByOrder[orderNo], dk = d ? Number(d.charge_kes) || 0 : 0;
+  const ds = discByOrder[orderNo], dsk = ds ? Number(ds.amount_kes) || 0 : 0;
+  payExpected = b != null ? b + dk - dsk : null;
   $('payFor').textContent = `${o.order_number} · ${o.customer_name || 'Customer'}`;
-  $('payAmt').value = b != null ? b + dk : '';
+  $('payAmt').value = payExpected != null ? payExpected : '';
   $('payHint').textContent = b != null
-    ? (d ? `Items ${kes(b)} + delivery (${d.courier}) ${kes(dk)} = ${kes(b + dk)}. Change it if the customer paid a different amount.`
+    ? (d || ds ? `Items ${kes(b)}${d ? ` + delivery (${d.courier}) ${kes(dk)}` : ''}${ds ? ` − discount ${kes(dsk)}` : ''} = ${kes(payExpected)}. Change it if the customer paid a different amount.`
          : `Website basket: ${kes(b)} (fish + cooler, no transport). Change it if the customer paid a different amount.`)
     : 'Enter what the customer actually sent.';
+  $('payShortOn').checked = true; $('payShortWhy').value = 'Customer asked';
+  payShortDraw();
   $('paySheet').classList.add('on');
   setTimeout(() => { try { $('payAmt').focus(); $('payAmt').select(); } catch(_){} }, 50);
 }
+let payExpected = null;
+function payShortBy(){ const a = Math.round(Number($('payAmt').value)); return payExpected != null && a > 0 && a < payExpected ? payExpected - a : 0; }
+function payShortDraw(){
+  const sh = payShortBy();
+  $('payShort').hidden = !sh;
+  if(sh) $('payShortTxt').textContent = `The customer paid ${kes(sh)} less than the total (${kes(payExpected)}). Record the ${kes(sh)} as a discount so it balances:`;
+}
+$('payAmt').addEventListener('input', payShortDraw);
 function closePay(){ $('paySheet').classList.remove('on'); payOrder = null; }
 async function submitPay(){
   if(!payOrder) return;
@@ -2450,12 +2577,19 @@ async function submitPay(){
   const amt = Number($('payAmt').value);
   if(!(amt > 0) || amt !== Math.floor(amt)){ note('Enter the amount received in KES.', 'err'); return; }
   const btn = $('payGo'); btn.disabled = true; btn.textContent = 'Saving…';
+  const short = payShortBy(), asDisc = short > 0 && $('payShortOn').checked;
+  if(asDisc){
+    const cur = discByOrder[orderNo], why = $('payShortWhy').value;
+    const { error: de } = await sb.rpc('mfm_set_order_discount', { p_order: orderNo, p_amount: (cur ? Number(cur.amount_kes) || 0 : 0) + short, p_reason: why,
+      p_note: `Paid ${kes(amt)} of ${kes(payExpected)}` });
+    if(de){ btn.disabled = false; btn.textContent = '✓ Mark PAID'; note(de.message, 'err'); return; }
+  }
   const { error } = await sb.rpc('mark_order_paid', { p_order: orderNo, p_staff: window.__staffName || 'staff', p_amount: amt });
   btn.disabled = false; btn.textContent = '✓ Mark PAID';
   if(error){ note(error.message,'err'); return; }
   closePay();
   await load();
-  noteUndo(`✓ ${who} marked paid (${kes(amt)}) — now in the dispatch queue.`, async ()=>{
+  noteUndo(`✓ ${who} marked paid (${kes(amt)})${asDisc ? ` with a ${kes(short)} discount` : short ? ` — ${kes(short)} short of the total` : ''} — now in the dispatch queue.`, async ()=>{
     const { error } = await sb.rpc('undo_mark_paid', { p_order: orderNo, p_staff: window.__staffName || 'staff' });
     if(error){ note(error.message,'err'); return; }
     await load();
@@ -2610,6 +2744,8 @@ $('list').addEventListener('click', e=>{
   if(so){ e.stopPropagation(); openSrc(so.dataset.srcOpen); return; }
   const dlo = e.target.closest('[data-dl]');
   if(dlo){ e.stopPropagation(); openDelivery(dlo.dataset.dl); return; }
+  const dso = e.target.closest('[data-ds]');
+  if(dso){ e.stopPropagation(); openDiscount(dso.dataset.ds); return; }
   // Cancel an awaiting-payment order
   const cancel = e.target.closest('[data-cancel]');
   if(cancel){
